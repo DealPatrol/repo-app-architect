@@ -1,36 +1,51 @@
-import type { Metadata } from "next";
-import { SessionProvider } from "./components/SessionProvider";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import './globals.css'
 
-const baseUrl =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+const _geist = Geist({ subsets: ["latin"] });
+const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Repo Architect – AI-Powered GitHub Analysis",
-  description: "Analyze repos, discover projects, find reusable files, and export blueprints",
-  metadataBase: new URL(baseUrl),
-  openGraph: {
-    title: "Repo Architect – AI-Powered GitHub Analysis",
-    description: "Analyze repos, discover projects, find reusable files, and export blueprints",
+  title: 'TaskFlow - Project Management',
+  description: 'Modern project and task management platform for teams',
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Repo Architect – AI-Powered GitHub Analysis",
-    description: "Analyze repos, discover projects, find reusable files, and export blueprints",
-  },
-};
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-[var(--bg)]">
-        <SessionProvider>{children}</SessionProvider>
+    <html lang="en" className="dark">
+      <body className="font-sans antialiased bg-background text-foreground">
+        {children}
+        <Analytics />
       </body>
     </html>
-  );
+  )
 }
