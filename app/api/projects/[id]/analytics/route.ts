@@ -1,75 +1,53 @@
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const sql = getDb()
     const { id: projectId } = await params
 
-    // Get task statistics
-    const tasksResult = await db.query(
-      `SELECT 
-        status, COUNT(*) as count
-       FROM tasks
-       WHERE project_id = $1
-       GROUP BY status`,
-      [projectId]
-    )
+    const tasks = await sql`
+      SELECT status, COUNT(*)::int as count
+      FROM tasks
+      WHERE project_id = ${projectId}
+      GROUP BY status
+    `
 
-    // Get priority distribution
-    const priorityResult = await db.query(
-      `SELECT 
-        priority, COUNT(*) as count
-       FROM tasks
-       WHERE project_id = $1
-       GROUP BY priority`,
-      [projectId]
-    )
+    const priorities = await sql`
+      SELECT priority, COUNT(*)::int as count
+      FROM tasks
+      WHERE project_id = ${projectId}
+      GROUP BY priority
+    `
 
-    // Get task completion rate
-    const completionResult = await db.query(
-      `SELECT 
-        COUNT(CASE WHEN status = 'done' THEN 1 END) as completed,
-        COUNT(*) as total
-       FROM tasks
-       WHERE project_id = $1`,
-      [projectId]
-    )
+    const completion = await sql`
+      SELECT 
+        COUNT(CASE WHEN status = 'done' THEN 1 END)::int as completed,
+        COUNT(*)::int as total
+      FROM tasks
+      WHERE project_id = ${projectId}
+    `
 
-    // Get team member activity
-    const teamResult = await db.query(
-      `SELECT 
-        u.id, u.name, u.email,
-        COUNT(t.id) as assigned_tasks,
-        COUNT(CASE WHEN t.status = 'done' THEN 1 END) as completed_tasks
-       FROM neon_auth."user" u
-       LEFT JOIN tasks t ON u.id = t.assigned_to AND t.project_id = $1
-       JOIN project_members pm ON u.id = pm.user_id AND pm.project_id = $1
-       GROUP BY u.id, u.name, u.email`,
-      [projectId]
-    )
-
-    // Get recent activity
-    const activityResult = await db.query(
-      `SELECT 
-        DATE_TRUNC('day', created_at) as date,
-        COUNT(*) as count
-       FROM activity_logs
-       WHERE project_id = $1
-       AND created_at >= NOW() - INTERVAL '30 days'
-       GROUP BY DATE_TRUNC('day', created_at)
-       ORDER BY date DESC`,
-      [projectId]
-    )
+    const activity = await sql`
+      SELECT 
+        DATE_TRUNC('day', created_at)::date as date,
+        COUNT(*)::int as count
+      FROM activity_logs
+      WHERE project_id = ${projectId}
+      AND created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY DATE_TRUNC('day', created_at)
+      ORDER BY date DESC
+    `
 
     return NextResponse.json({
-      tasks: tasksResult.rows,
-      priorities: priorityResult.rows,
-      completion: completionResult.rows[0],
-      team: teamResult.rows,
-      activity: activityResult.rows,
+      tasks,
+      priorities,
+      completion: completion[0] || { completed: 0, total: 0 },
+      team: [],
+      activity,
     })
   } catch (error) {
     console.error('Error fetching analytics:', error)

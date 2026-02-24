@@ -38,7 +38,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id: taskId } = await params
 
     const body = await request.json()
-    const updatedTask = await updateTask(taskId, body)
+    const { status } = body
+    const updatedTask = await updateTask(taskId, status)
 
     return NextResponse.json(updatedTask)
   } catch (error) {

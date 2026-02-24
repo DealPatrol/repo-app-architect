@@ -8,9 +8,12 @@ export default async function DashboardPage() {
   let projects: Awaited<ReturnType<typeof getProjectsByOrganization>> = []
 
   try {
+    console.log("[v0] DATABASE_URL set:", !!process.env.DATABASE_URL)
     // TODO: Replace with real org ID from auth when auth is integrated
     projects = await getProjectsByOrganization('demo-org')
-  } catch {
+    console.log("[v0] Projects loaded:", projects.length)
+  } catch (error) {
+    console.log("[v0] Dashboard DB error:", error)
     // Database may not be ready yet, show empty state
   }
 
