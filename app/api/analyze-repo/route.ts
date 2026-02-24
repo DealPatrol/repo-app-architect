@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
 import { getGitHubToken } from "@/lib/get-github-token";
+import { validateOwnerRepo } from "@/lib/validation";
+
+const migrationSuggestionSchema = z.object({
+  from: z.string().describe("Current state (e.g. JavaScript, React 17)"),
+  to: z.string().describe("Target state (e.g. TypeScript, React 18)"),
+  reason: z.string().describe("Why this migration is recommended"),
+  steps: z.array(z.string()).describe("2-4 actionable steps to perform the migration"),
+});
 
 const analysisSchema = z.object({
   summary: z.string().describe("A 2-4 paragraph summary of what the repo does, its purpose, and main characteristics"),
@@ -11,6 +19,7 @@ const analysisSchema = z.object({
   capabilities: z.array(z.string()).describe("List of key capabilities, features, or technical abilities"),
   appConcepts: z.array(z.string()).describe("High-level application concepts, architecture patterns, or design ideas"),
   suggestedImprovements: z.array(z.string()).optional().describe("Suggestions for improvement, tech debt, or modernization"),
+  migrationSuggestions: z.array(migrationSuggestionSchema).optional().describe("Structured migration suggestions: JS→TS, framework upgrades, deprecated deps, etc."),
 });
 
 export type RepoAnalysis = z.infer<typeof analysisSchema>;
@@ -76,21 +85,19 @@ async function fetchRepoData(owner: string, repo: string, token: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { owner, repo } = body;
-    if (!owner || !repo) {
-      return NextResponse.json(
-        { error: "Missing owner or repo" },
-        { status: 400 }
-      );
+    const body = await request.json().catch(() => ({}));
+    const validated = validateOwnerRepo(body?.owner, body?.repo);
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: 400 });
     }
+    const { owner, repo } = validated;
 
     const token = await getGitHubToken();
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey || apiKey.includes("your-")) {
       return NextResponse.json(
-        { error: "Configure OPENAI_API_KEY in .env.local" },
-        { status: 500 }
+        { error: "Service temporarily unavailable. Please try again later." },
+        { status: 503 }
       );
     }
 
@@ -116,14 +123,15 @@ Provide:
 4. dependencies: Key dependencies from package.json and what each is used for.
 5. capabilities: A list of 5-15 key capabilities, features, or technical abilities.
 6. appConcepts: High-level application concepts, architecture patterns, or design ideas.
-7. suggestedImprovements: 2-5 optional suggestions for improvement, tech debt, or modernization.`;
+7. suggestedImprovements: 2-5 optional suggestions for improvement, tech debt, or modernization.
+8. migrationSuggestions: 2-5 structured migration suggestions. Include: from (current state), to (target), reason (why), steps (2-4 actionable steps). Examples: JavaScript→TypeScript, React 17→18, deprecated dependencies, CommonJS→ESM.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
-          content: `${prompt}\n\nRespond with valid JSON: { "summary": string, "techStack": string[], "architecture": string, "dependencies": string[], "capabilities": string[], "appConcepts": string[], "suggestedImprovements": string[] }`,
+          content: `${prompt}\n\nRespond with valid JSON: { "summary": string, "techStack": string[], "architecture": string, "dependencies": string[], "capabilities": string[], "appConcepts": string[], "suggestedImprovements": string[], "migrationSuggestions": [{ "from": string, "to": string, "reason": string, "steps": string[] }] }`,
         },
       ],
       response_format: { type: "json_object" },

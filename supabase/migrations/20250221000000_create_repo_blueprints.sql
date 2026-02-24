@@ -15,4 +15,15 @@ create index if not exists idx_repo_blueprints_share_slug
   on repo_blueprints (share_slug)
   where is_shared = true;
 
--- RLS: allow public read on shared blueprints by slug (handled via anon key + API)
+-- RLS: restrict access for security
+alter table repo_blueprints enable row level security;
+
+-- Allow anyone to insert (API creates shares)
+create policy "Allow insert for shared blueprints"
+  on repo_blueprints for insert
+  with check (true);
+
+-- Allow public read only for shared blueprints (by slug, enforced in API)
+create policy "Allow select shared blueprints"
+  on repo_blueprints for select
+  using (is_shared = true);

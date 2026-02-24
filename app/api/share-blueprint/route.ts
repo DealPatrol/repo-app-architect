@@ -5,16 +5,19 @@ import { randomBytes } from "crypto";
 export async function POST(request: Request) {
   if (!supabase) {
     return NextResponse.json(
-      { error: "Configure SUPABASE_URL and SUPABASE_ANON_KEY for sharing" },
+      { error: "Share feature is not available at this time" },
       { status: 503 }
     );
   }
 
   try {
-    const body = await request.json();
-    const { title, type, data } = body;
+    const body = await request.json().catch(() => ({}));
+    const { title, type, data } = body || {};
     if (!title || !type || !data) {
       return NextResponse.json({ error: "Missing title, type, or data" }, { status: 400 });
+    }
+    if (typeof data !== "object" || data === null) {
+      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
     const slug = randomBytes(8).toString("hex");
@@ -42,13 +45,13 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   if (!supabase) {
-    return NextResponse.json({ error: "Sharing not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Share feature is not available" }, { status: 503 });
   }
 
   const { searchParams } = new URL(request.url);
-  const slug = searchParams.get("slug");
-  if (!slug) {
-    return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+  const slug = searchParams.get("slug")?.trim();
+  if (!slug || !/^[a-f0-9]{1,32}$/.test(slug)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const { data, error } = await supabase

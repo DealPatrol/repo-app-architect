@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
 import type { RepoAnalysis } from "../analyze-repo/route";
 import type { DiscoveredProject } from "../discover-projects/route";
-import type { ReusableFile } from "../find-files-for-project/route";
+import type { FindFilesDirection, ReusableFile } from "../find-files-for-project/route";
 
 function buildRepoPdf(doc: PDFDocument, data: RepoAnalysis, title: string) {
   doc.fontSize(24).text(title, { align: "center" });
@@ -96,6 +96,36 @@ function buildDiscoveredPdf(doc: PDFDocument, projects: DiscoveredProject[]) {
   });
 }
 
+function buildFindFilesPdfFromDirections(doc: PDFDocument, title: string, directions: FindFilesDirection[]) {
+  const d = doc as PDFDocument & { fillColor: (color: string) => typeof doc };
+  doc.fontSize(24).text("App Directions for Your Project", { align: "center" });
+  doc.moveDown(1);
+  doc.fontSize(14).text(title, { align: "center" });
+  doc.moveDown(1);
+  d.fillColor("#71717a");
+  doc.fontSize(11).text(`Generated ${new Date().toLocaleDateString()} • ${directions.length} directions`, {
+    align: "center",
+  });
+  d.fillColor("#000000");
+  doc.moveDown(2);
+
+  directions.forEach((dir, i) => {
+    doc.fontSize(16).text(`${i + 1}. ${dir.name}`, { underline: true } as Record<string, unknown>);
+    doc.fontSize(10).text(dir.shortDescription);
+    doc.fontSize(9).text(dir.fullDescription);
+    doc.moveDown(0.5);
+    if (dir.existingFiles.length > 0) {
+      doc.fontSize(10).text("Files you have:");
+      dir.existingFiles.slice(0, 10).forEach((f) => doc.fontSize(9).text(`  • ${f.path}`));
+    }
+    if (dir.missingFiles.length > 0) {
+      doc.fontSize(10).text("Files to create:");
+      dir.missingFiles.forEach((f) => doc.fontSize(9).text(`  + ${f.path}`));
+    }
+    doc.moveDown(1.5);
+  });
+}
+
 function buildFindFilesPdf(doc: PDFDocument, title: string, files: ReusableFile[]) {
   const d = doc as PDFDocument & { fillColor: (color: string) => typeof doc };
   doc.fontSize(24).text("Reusable Files for Your Project", { align: "center" });
@@ -121,12 +151,13 @@ function buildFindFilesPdf(doc: PDFDocument, title: string, files: ReusableFile[
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { type, data, repoName, projects, reusableFiles, findFilesTitle } = body as {
+    const { type, data, repoName, projects, reusableFiles, directions, findFilesTitle } = body as {
       type: "full" | "summary" | "capabilities" | "appConcepts" | "discovered" | "findFiles";
       data?: RepoAnalysis;
       repoName?: string;
       projects?: DiscoveredProject[];
       reusableFiles?: ReusableFile[];
+      directions?: FindFilesDirection[];
       findFilesTitle?: string;
     };
 
@@ -139,6 +170,8 @@ export async function POST(request: Request) {
 
       if (type === "discovered" && Array.isArray(projects) && projects.length > 0) {
         buildDiscoveredPdf(doc, projects);
+      } else if (type === "findFiles" && Array.isArray(directions) && directions.length > 0) {
+        buildFindFilesPdfFromDirections(doc, findFilesTitle || "Your project", directions);
       } else if (type === "findFiles" && Array.isArray(reusableFiles) && reusableFiles.length > 0) {
         buildFindFilesPdf(doc, findFilesTitle || "Your project", reusableFiles);
       } else if (data) {
@@ -173,9 +206,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
-    console.error("Blueprint PDF error:", err);
-    const message = err instanceof Error ? err.message : "PDF generation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (process.env.NODE_ENV === "development") {
+      console.error("Blueprint PDF error:", err);
+    }
+    return NextResponse.json({ error: "PDF generation failed. Please try again." }, { status: 500 });
   }
 }
 

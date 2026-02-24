@@ -17,6 +17,16 @@ export function Hero() {
         <p className="text-lg text-[var(--text-muted)] max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
           Analyze architecture, discover projects you can build from existing code, and find reusable files across your entire GitHub portfolio.
         </p>
+        <a
+          href="#tools"
+          className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold transition-all shine animate-fade-in mb-8"
+          style={{ animationDelay: "0.3s" }}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Search repos
+        </a>
         <div className="flex flex-wrap justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <span className="px-4 py-2 rounded-full text-sm font-medium bg-[var(--accent-muted)] text-[var(--accent)] border border-[var(--accent)]/30">
             Deep architecture insights

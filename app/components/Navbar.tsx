@@ -8,6 +8,7 @@ const TOOLS = [
   { id: "single", label: "Repo Analysis", desc: "Deep dive into any repository", href: "#" },
   { id: "discover", label: "Discover Projects", desc: "Find apps you can build from your code", href: "#" },
   { id: "findFiles", label: "Find Reusable Files", desc: "Match your project to existing files", href: "#" },
+  { id: "compare", label: "Compare Repos", desc: "Side-by-side comparison of two repositories", href: "#" },
 ];
 
 export function Navbar({
@@ -15,7 +16,7 @@ export function Navbar({
   onModeChange,
 }: {
   mode: string;
-  onModeChange: (m: "single" | "discover" | "findFiles") => void;
+  onModeChange: (m: "single" | "discover" | "findFiles" | "compare") => void;
 }) {
   const { data: session, status } = useSession();
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -52,7 +53,7 @@ export function Navbar({
                     <button
                       key={t.id}
                       onClick={() => {
-                        onModeChange(t.id as "single" | "discover" | "findFiles");
+                        onModeChange(t.id as "single" | "discover" | "findFiles" | "compare");
                         setToolsOpen(false);
                         document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" });
                       }}
@@ -68,6 +69,12 @@ export function Navbar({
 
             <Link href="#features" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5 transition-colors">
               Features
+            </Link>
+            <Link href="/docs" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5 transition-colors">
+              API
+            </Link>
+            <Link href="/pricing" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5 transition-colors">
+              Pricing
             </Link>
           </nav>
 

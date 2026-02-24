@@ -46,3 +46,8 @@ If using Share blueprints, ensure Supabase has the `repo_blueprints` table. Run 
 -- In Supabase SQL Editor, or: supabase db push
 -- See supabase/migrations/20250221000000_create_repo_blueprints.sql
 ```
+
+## Production & Deployment
+
+- **Health check:** `GET /api/health` – use for uptime monitoring (UptimeRobot, Vercel Health Checks, etc.)
+- **Deployment checklist:** See [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) for full production setup and what to do before charging customers.

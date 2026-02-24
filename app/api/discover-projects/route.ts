@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const token = await getGitHubToken();
     if (!token || token.includes("your_") || /ghp_your|ghp_xxxx|replace_me/i.test(token)) {
       return NextResponse.json(
-        { error: "Sign in with GitHub to use this feature, or configure GITHUB_TOKEN in .env.local" },
+        { error: "Sign in with GitHub to use this feature" },
         { status: 401 }
       );
     }
@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey || apiKey.includes("your-")) {
       return NextResponse.json(
-        { error: "Configure OPENAI_API_KEY in .env.local" },
-        { status: 500 }
+        { error: "Service temporarily unavailable. Please try again later." },
+        { status: 503 }
       );
     }
 
