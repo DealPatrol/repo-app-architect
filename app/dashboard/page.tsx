@@ -1,28 +1,30 @@
-import { getProjectsByOrganization } from '@/lib/queries';
-import { currentUser } from '@stack-auth/nextjs';
-import { Button } from '@/components/ui/button';
-import { Plus, Folder, Users } from 'lucide-react';
-import Link from 'next/link';
+import { getProjectsByOrganization } from '@/lib/queries'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Plus, Folder, Users, CheckSquare } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
-  const user = await currentUser();
-  if (!user) return null;
+  let projects: Awaited<ReturnType<typeof getProjectsByOrganization>> = []
 
-  // Get the organization ID from user's active organization
-  const orgId = user.activeOrganizationId;
-  const projects = orgId ? await getProjectsByOrganization(orgId) : [];
+  try {
+    // TODO: Replace with real org ID from auth when auth is integrated
+    projects = await getProjectsByOrganization('demo-org')
+  } catch {
+    // Database may not be ready yet, show empty state
+  }
 
   return (
-    <div className="space-y-8 p-4 md:p-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's your project overview.</p>
+        <h1 className="text-3xl font-bold text-foreground text-balance">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome back! Here is your project overview.</p>
       </div>
 
       {/* Quick stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-6">
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Projects</p>
@@ -30,17 +32,17 @@ export default async function DashboardPage() {
             </div>
             <Folder className="h-8 w-8 text-primary/50" />
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
+        </Card>
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Active Tasks</p>
               <p className="text-2xl font-bold text-foreground">0</p>
             </div>
-            <Folder className="h-8 w-8 text-primary/50" />
+            <CheckSquare className="h-8 w-8 text-primary/50" />
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
+        </Card>
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Team Members</p>
@@ -48,56 +50,62 @@ export default async function DashboardPage() {
             </div>
             <Users className="h-8 w-8 text-primary/50" />
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Projects section */}
-      <div className="space-y-4">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Your Projects</h2>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
+          <Button className="gap-2" asChild>
+            <Link href="/dashboard/projects">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Link>
           </Button>
         </div>
 
         {projects.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
+          <Card className="border-dashed p-8 text-center">
             <Folder className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
             <h3 className="text-base font-semibold text-foreground mb-1">No projects yet</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Get started by creating your first project to organize your tasks.
             </p>
-            <Button>Create Your First Project</Button>
-          </div>
+            <Button asChild>
+              <Link href="/dashboard/projects">Create Your First Project</Link>
+            </Button>
+          </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <Link
                 key={project.id}
                 href={`/dashboard/projects/${project.id}`}
-                className="group rounded-lg border border-border bg-card p-6 hover:border-primary/50 hover:shadow-sm transition-all"
+                className="group"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-semibold"
-                    style={{ backgroundColor: project.color || '#3b82f6' }}
-                  >
-                    {project.icon || 'P'}
+                <Card className="p-6 hover:border-primary/50 transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                      style={{ backgroundColor: project.color || '#3b82f6' }}
+                    >
+                      {project.icon || project.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground capitalize">
+                      {project.visibility}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {project.visibility === 'public' ? 'Public' : 'Private'}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
-                  {project.name}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">{project.description || 'No description'}</p>
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
+                    {project.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{project.description || 'No description'}</p>
+                </Card>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
-  );
+  )
 }
