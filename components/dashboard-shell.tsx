@@ -94,11 +94,11 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <UserCircle2 className="h-4 w-4" />
                 </Button>
               </Link>
-              <a href="/handler/sign-out" className="flex-1">
+              <Link href="/handler/sign-out" className="flex-1">
                 <Button variant="ghost" size="sm" className="h-9 w-full">
                   <LogOut className="h-4 w-4" />
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

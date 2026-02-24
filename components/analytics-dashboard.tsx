@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { Users, ListTodo, CheckCircle2, TrendingUp } from 'lucide-react'
 
 interface AnalyticsData {

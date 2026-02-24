@@ -19,12 +19,12 @@ export default function LoginPage() {
           </div>
         )}
 
-        <a href="/handler/sign-in" className="mt-6 block">
+        <Link href="/handler/sign-in" className="mt-6 block">
           <Button className="w-full gap-2">
             Continue to secure sign in
             <ArrowRight className="h-4 w-4" />
           </Button>
-        </a>
+        </Link>
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           New here?{' '}

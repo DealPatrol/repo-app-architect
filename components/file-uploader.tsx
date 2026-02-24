@@ -19,7 +19,7 @@ export function FileUploader({
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = async (files: FileList | null) {
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files) return
 
     for (const file of Array.from(files)) {
