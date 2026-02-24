@@ -16,7 +16,7 @@ const stackPublishableClientKey =
 const stackSecretServerKey = process.env.STACK_SECRET_SERVER_KEY ?? null;
 
 // Keep auth routes functional in build/test environments where secrets may be missing.
-const fallbackProjectId = '00000000-0000-0000-0000-000000000000';
+const fallbackProjectId = '123e4567-e89b-12d3-a456-426614174000';
 const fallbackPublishableKey =
   'pck_test_0000000000000000000000000000000000000000';
 const fallbackSecretKey =
