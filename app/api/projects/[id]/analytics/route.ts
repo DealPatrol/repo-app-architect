@@ -1,17 +1,23 @@
 import { db } from '@/lib/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
 
     // Get task statistics
     const tasksResult = await db.query(
       `SELECT 
-        status, COUNT(*) as count
+        status, COUNT(*)::int as count
        FROM tasks
        WHERE project_id = $1
        GROUP BY status`,
@@ -21,7 +27,7 @@ export async function GET(
     // Get priority distribution
     const priorityResult = await db.query(
       `SELECT 
-        priority, COUNT(*) as count
+        priority, COUNT(*)::int as count
        FROM tasks
        WHERE project_id = $1
        GROUP BY priority`,
@@ -31,8 +37,8 @@ export async function GET(
     // Get task completion rate
     const completionResult = await db.query(
       `SELECT 
-        COUNT(CASE WHEN status = 'done' THEN 1 END) as completed,
-        COUNT(*) as total
+        COUNT(CASE WHEN status = 'done' THEN 1 END)::int as completed,
+        COUNT(*)::int as total
        FROM tasks
        WHERE project_id = $1`,
       [projectId]
@@ -42,8 +48,8 @@ export async function GET(
     const teamResult = await db.query(
       `SELECT 
         u.id, u.name, u.email,
-        COUNT(t.id) as assigned_tasks,
-        COUNT(CASE WHEN t.status = 'done' THEN 1 END) as completed_tasks
+        COUNT(t.id)::int as assigned_tasks,
+        COUNT(CASE WHEN t.status = 'done' THEN 1 END)::int as completed_tasks
        FROM neon_auth."user" u
        LEFT JOIN tasks t ON u.id = t.assigned_to AND t.project_id = $1
        JOIN project_members pm ON u.id = pm.user_id AND pm.project_id = $1
@@ -55,7 +61,7 @@ export async function GET(
     const activityResult = await db.query(
       `SELECT 
         DATE_TRUNC('day', created_at) as date,
-        COUNT(*) as count
+        COUNT(*)::int as count
        FROM activity_logs
        WHERE project_id = $1
        AND created_at >= NOW() - INTERVAL '30 days'

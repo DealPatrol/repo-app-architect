@@ -1,11 +1,19 @@
 import { db } from '@/lib/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth'
+
+const VALID_ROLES = new Set(['owner', 'admin', 'member', 'viewer'])
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
 
     const result = await db.query(
@@ -31,11 +39,20 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
     const { user_id, role } = await request.json()
 
     if (!user_id || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    if (!VALID_ROLES.has(role)) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
 
     const result = await db.query(
@@ -58,6 +75,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { member_id } = await request.json()
 
     if (!member_id) {

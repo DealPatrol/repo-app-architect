@@ -1,12 +1,17 @@
-import { currentUser } from '@stack-auth/nextjs';
 import { createTaskComment, getTaskComments } from '@/lib/queries';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { taskId } = await params;
     const comments = await getTaskComments(taskId);
     return NextResponse.json(comments);
@@ -21,7 +26,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
-    const user = await currentUser();
+    const user = await getCurrentUser();
     const { taskId } = await params;
 
     if (!user) {

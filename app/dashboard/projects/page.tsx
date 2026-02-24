@@ -1,12 +1,11 @@
 import { getProjectsByOrganization } from '@/lib/queries';
-import { currentUser } from '@stack-auth/nextjs';
+import { getCurrentOrganizationId, requireCurrentUser } from '@/lib/auth';
 import { ProjectsList } from '@/components/projects-list';
 
 export default async function ProjectsPage() {
-  const user = await currentUser();
-  if (!user) return null;
+  const user = await requireCurrentUser();
 
-  const orgId = user.activeOrganizationId;
+  const orgId = getCurrentOrganizationId(user);
   const projects = orgId ? await getProjectsByOrganization(orgId) : [];
 
   return <ProjectsList projects={projects} />;

@@ -1,6 +1,6 @@
 import { getProjectById, getTasksByProject, getProjectMembers } from '@/lib/queries'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Users, Settings, Plus, BarChart3, ListTodo, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Settings, Plus, BarChart3, ListTodo, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Trash2, Shield, Edit2 } from 'lucide-react'
+import { Users, Trash2, Edit2 } from 'lucide-react'
 
 interface TeamMember {
   id: string

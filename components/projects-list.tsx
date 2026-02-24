@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import {
@@ -31,8 +32,11 @@ interface ProjectsPageProps {
 }
 
 export function ProjectsList({ projects }: ProjectsPageProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [newProject, setNewProject] = useState({ name: '', description: '' });
 
   const filteredProjects = projects.filter(
@@ -44,13 +48,32 @@ export function ProjectsList({ projects }: ProjectsPageProps) {
   const handleCreateProject = async () => {
     if (!newProject.name.trim()) return;
 
+    setIsCreating(true);
+    setCreateError(null);
+
     try {
-      // This will be connected to the API route
-      // For now, just reset the form
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProject.name.trim(),
+          description: newProject.description.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error || 'Failed to create project');
+      }
+
       setNewProject({ name: '', description: '' });
       setIsOpen(false);
+      router.refresh();
     } catch (error) {
       console.error('Failed to create project:', error);
+      setCreateError(error instanceof Error ? error.message : 'Failed to create project');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -94,11 +117,18 @@ export function ProjectsList({ projects }: ProjectsPageProps) {
                 />
               </div>
             </div>
+            {createError && (
+              <p className="text-sm text-destructive" role="alert">
+                {createError}
+              </p>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateProject}>Create Project</Button>
+              <Button onClick={handleCreateProject} disabled={isCreating || !newProject.name.trim()}>
+                {isCreating ? 'Creating...' : 'Create Project'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

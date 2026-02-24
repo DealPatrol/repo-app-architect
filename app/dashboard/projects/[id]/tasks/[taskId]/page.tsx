@@ -1,8 +1,7 @@
 import { getProjectById, getTaskById, getTaskComments } from '@/lib/queries';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, User, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, User } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { TaskComments } from '@/components/task-comments';
 
 interface TaskDetailPageProps {
@@ -67,7 +66,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
           </div>
 
           {/* Task Comments */}
-          <TaskComments taskId={taskId} comments={comments} />
+          <TaskComments projectId={projectId} taskId={taskId} comments={comments} />
         </div>
 
         {/* Sidebar */}

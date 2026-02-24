@@ -1,12 +1,13 @@
-import { currentUser } from '@stack-auth/nextjs';
 import { createProject } from '@/lib/queries';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentOrganizationId, getCurrentUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getCurrentUser();
+    const organizationId = getCurrentOrganizationId(user);
 
-    if (!user || !user.activeOrganizationId) {
+    if (!user || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
       .replace(/^-+|-+$/g, '');
 
     const project = await createProject({
-      organization_id: user.activeOrganizationId,
+      organization_id: organizationId,
       name: name.trim(),
       description: description?.trim() || null,
       slug,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,21 +16,28 @@ interface TaskComment {
 }
 
 interface TaskCommentsProps {
+  projectId: string;
   taskId: string;
   comments: TaskComment[];
   onCommentAdded?: () => void;
 }
 
-export function TaskComments({ taskId, comments, onCommentAdded }: TaskCommentsProps) {
+export function TaskComments({
+  projectId,
+  taskId,
+  comments,
+  onCommentAdded,
+}: TaskCommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/projects/[id]/tasks/${taskId}/comments`, {
+      const response = await fetch(`/api/projects/${projectId}/tasks/${taskId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newComment }),
@@ -37,6 +45,7 @@ export function TaskComments({ taskId, comments, onCommentAdded }: TaskCommentsP
 
       if (response.ok) {
         setNewComment('');
+        router.refresh();
         onCommentAdded?.();
       }
     } catch (error) {

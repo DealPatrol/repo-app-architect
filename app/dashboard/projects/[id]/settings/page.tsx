@@ -1,5 +1,6 @@
 import { TeamSettings } from '@/components/team-settings'
 import { Card } from '@/components/ui/card'
+import { requireCurrentUser } from '@/lib/auth'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -7,9 +8,7 @@ interface Props {
 
 export default async function SettingsPage({ params }: Props) {
   const { id: projectId } = await params
-
-  // TODO: Get current user from auth context
-  const currentUserId = 'temp-user-id'
+  const currentUser = await requireCurrentUser()
 
   return (
     <div className="space-y-6">
@@ -42,7 +41,7 @@ export default async function SettingsPage({ params }: Props) {
           </div>
         </Card>
 
-        <TeamSettings projectId={projectId} currentUserId={currentUserId} />
+        <TeamSettings projectId={projectId} currentUserId={currentUser.id} />
       </div>
     </div>
   )

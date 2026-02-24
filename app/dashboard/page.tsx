@@ -1,15 +1,13 @@
 import { getProjectsByOrganization } from '@/lib/queries';
-import { currentUser } from '@stack-auth/nextjs';
+import { getCurrentOrganizationId, requireCurrentUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Plus, Folder, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
-  const user = await currentUser();
-  if (!user) return null;
+  const user = await requireCurrentUser();
 
-  // Get the organization ID from user's active organization
-  const orgId = user.activeOrganizationId;
+  const orgId = getCurrentOrganizationId(user);
   const projects = orgId ? await getProjectsByOrganization(orgId) : [];
 
   return (
@@ -55,10 +53,12 @@ export default async function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Your Projects</h2>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
+          <Link href="/dashboard/projects">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+          </Link>
         </div>
 
         {projects.length === 0 ? (
@@ -68,7 +68,9 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Get started by creating your first project to organize your tasks.
             </p>
-            <Button>Create Your First Project</Button>
+            <Link href="/dashboard/projects">
+              <Button>Create Your First Project</Button>
+            </Link>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

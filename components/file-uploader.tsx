@@ -7,14 +7,12 @@ import { Upload, X, File, Loader2 } from 'lucide-react'
 interface FileUploaderProps {
   projectId: string
   taskId: string
-  userId: string
   onFileUploaded?: (file: any) => void
 }
 
 export function FileUploader({
   projectId,
   taskId,
-  userId,
   onFileUploaded,
 }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false)
@@ -57,7 +55,6 @@ export function FileUploader({
             file_name: filename,
             file_size: size,
             mime_type: type,
-            uploaded_by: userId,
           }),
         }
       )
@@ -74,7 +71,7 @@ export function FileUploader({
     }
   }
 
-  const deleteFile = async (attachmentId: string, fileUrl: string) => {
+  const deleteFile = async (attachmentId: string) => {
     try {
       await fetch(
         `/api/projects/${projectId}/tasks/${taskId}/attachments`,
@@ -147,7 +144,7 @@ export function FileUploader({
                   </div>
                 </div>
                 <button
-                  onClick={() => deleteFile(file.id, file.file_url)}
+                  onClick={() => deleteFile(file.id)}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <X className="h-4 w-4 text-muted-foreground" />

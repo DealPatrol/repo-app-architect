@@ -1,13 +1,22 @@
 import { db } from '@/lib/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
-    const limit = request.nextUrl.searchParams.get('limit') || '50'
+    const parsedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') || '50', 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 200)
+      : 50
 
     const result = await db.query(
       `SELECT 
@@ -18,7 +27,7 @@ export async function GET(
        WHERE al.project_id = $1
        ORDER BY al.created_at DESC
        LIMIT $2`,
-      [projectId, parseInt(limit)]
+      [projectId, limit]
     )
 
     return NextResponse.json(result.rows)
@@ -33,10 +42,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: projectId } = await params
-    const { user_id, action, entity_type, entity_id, description, metadata } = await request.json()
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    if (!user_id || !action || !entity_type) {
+    const { id: projectId } = await params
+    const { action, entity_type, entity_id, description, metadata } = await request.json()
+
+    if (!action || !entity_type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -44,7 +58,7 @@ export async function POST(
       `INSERT INTO activity_logs (project_id, user_id, action, entity_type, entity_id, description, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [projectId, user_id, action, entity_type, entity_id || null, description || null, JSON.stringify(metadata || {})]
+      [projectId, user.id, action, entity_type, entity_id || null, description || null, JSON.stringify(metadata || {})]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })

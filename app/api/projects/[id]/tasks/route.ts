@@ -1,10 +1,10 @@
-import { currentUser } from '@stack-auth/nextjs';
-import { createTask, updateTask } from '@/lib/queries';
+import { createTask } from '@/lib/queries';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await currentUser();
+    const user = await getCurrentUser();
     const { id: projectId } = await params;
 
     if (!user) {
@@ -34,24 +34,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await currentUser();
-    const { id: taskId } = await params;
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const updatedTask = await updateTask(taskId, body);
-
-    return NextResponse.json(updatedTask);
-  } catch (error) {
-    console.error('Error updating task:', error);
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, GripVertical, MoreVertical, Trash2, AlertCircle, CheckCircle, Clock, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, GripVertical, AlertCircle, CheckCircle, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -47,10 +48,10 @@ const PRIORITY_COLORS = {
 };
 
 export function KanbanBoard({ projectId, tasks, onTaskUpdate }: KanbanBoardProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' });
-  const [selectedColumn, setSelectedColumn] = useState('todo');
 
   const tasksByStatus = STATUSES.reduce(
     (acc, status) => {
@@ -70,10 +71,22 @@ export function KanbanBoard({ projectId, tasks, onTaskUpdate }: KanbanBoardProps
 
   const handleDrop = async (status: string) => {
     if (!draggedTask) return;
+    if (draggedTask.status === status) {
+      setDraggedTask(null);
+      return;
+    }
 
     if (onTaskUpdate) {
       await onTaskUpdate(draggedTask.id, { status: status as Task['status'] });
+    } else {
+      await fetch(`/api/projects/${projectId}/tasks/${draggedTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
     }
+
+    router.refresh();
     setDraggedTask(null);
   };
 
@@ -94,7 +107,7 @@ export function KanbanBoard({ projectId, tasks, onTaskUpdate }: KanbanBoardProps
       if (response.ok) {
         setNewTask({ title: '', description: '', priority: 'medium' });
         setIsOpen(false);
-        // Trigger refresh by calling onTaskUpdate or similar mechanism
+        router.refresh();
       }
     } catch (error) {
       console.error('Failed to create task:', error);

@@ -54,6 +54,8 @@ export interface ProjectMember {
   id: string;
   project_id: string;
   user_id: string;
+  name?: string | null;
+  email?: string | null;
   role: 'owner' | 'admin' | 'member' | 'viewer';
   added_at: string;
 }
@@ -66,8 +68,31 @@ export interface ActivityLog {
   entity_type: string;
   entity_id: string | null;
   description: string | null;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface UserProfile {
+  user_id: string;
+  display_name: string | null;
+  company_name: string | null;
+  job_title: string | null;
+  timezone: string;
+  billing_email: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSubscription {
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  status: string;
+  plan: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Project queries
@@ -127,7 +152,7 @@ export async function createTask(data: Omit<Task, 'id' | 'created_at' | 'updated
 
 export async function updateTask(taskId: string, data: Partial<Task>): Promise<Task> {
   const updates: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   Object.entries(data).forEach(([key, value]) => {
@@ -137,6 +162,14 @@ export async function updateTask(taskId: string, data: Partial<Task>): Promise<T
       paramIndex++;
     }
   });
+
+  if (updates.length === 0) {
+    const existing = await getTaskById(taskId);
+    if (!existing) {
+      throw new Error('Task not found');
+    }
+    return existing;
+  }
 
   values.push(taskId);
   const result = await sql(`UPDATE tasks SET updated_at = CURRENT_TIMESTAMP, ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`, values);
@@ -159,7 +192,21 @@ export async function createTaskComment(data: Omit<TaskComment, 'id' | 'created_
 
 // Project members
 export async function getProjectMembers(projectId: string): Promise<ProjectMember[]> {
-  const members = await sql('SELECT * FROM project_members WHERE project_id = $1', [projectId]);
+  const members = await sql(
+    `SELECT
+      pm.id,
+      pm.project_id,
+      pm.user_id,
+      pm.role,
+      pm.added_at,
+      u.name as name,
+      u.email as email
+    FROM project_members pm
+    LEFT JOIN neon_auth."user" u ON u.id = pm.user_id
+    WHERE pm.project_id = $1
+    ORDER BY pm.added_at DESC`,
+    [projectId]
+  );
   return members as ProjectMember[];
 }
 
@@ -180,4 +227,114 @@ export async function logActivity(data: Omit<ActivityLog, 'id' | 'created_at'>):
     [data.project_id, data.user_id, data.action, data.entity_type, data.entity_id, data.description, data.metadata ? JSON.stringify(data.metadata) : null]
   );
   return result[0] as ActivityLog;
+}
+
+// User profile queries
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const profiles = await sql('SELECT * FROM user_profiles WHERE user_id = $1', [userId]);
+  return (profiles[0] as UserProfile) || null;
+}
+
+export async function upsertUserProfile(
+  userId: string,
+  data: Partial<Omit<UserProfile, 'user_id' | 'created_at' | 'updated_at'>>
+): Promise<UserProfile> {
+  const result = await sql(
+    `INSERT INTO user_profiles (user_id, display_name, company_name, job_title, timezone, billing_email)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT(user_id) DO UPDATE SET
+       display_name = EXCLUDED.display_name,
+       company_name = EXCLUDED.company_name,
+       job_title = EXCLUDED.job_title,
+       timezone = EXCLUDED.timezone,
+       billing_email = EXCLUDED.billing_email,
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [
+      userId,
+      data.display_name ?? null,
+      data.company_name ?? null,
+      data.job_title ?? null,
+      data.timezone ?? 'UTC',
+      data.billing_email ?? null,
+    ]
+  );
+
+  return result[0] as UserProfile;
+}
+
+// Subscription queries
+export async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
+  const subscriptions = await sql('SELECT * FROM user_subscriptions WHERE user_id = $1', [userId]);
+  return (subscriptions[0] as UserSubscription) || null;
+}
+
+export async function getUserSubscriptionByCustomerId(
+  customerId: string
+): Promise<UserSubscription | null> {
+  const subscriptions = await sql(
+    'SELECT * FROM user_subscriptions WHERE stripe_customer_id = $1',
+    [customerId]
+  );
+  return (subscriptions[0] as UserSubscription) || null;
+}
+
+export async function upsertUserSubscription(
+  userId: string,
+  data: Partial<Omit<UserSubscription, 'user_id' | 'created_at' | 'updated_at'>>
+): Promise<UserSubscription> {
+  const result = await sql(
+    `INSERT INTO user_subscriptions (
+      user_id, stripe_customer_id, stripe_subscription_id, status, plan, current_period_end, cancel_at_period_end
+    )
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT(user_id) DO UPDATE SET
+       stripe_customer_id = EXCLUDED.stripe_customer_id,
+       stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+       status = EXCLUDED.status,
+       plan = EXCLUDED.plan,
+       current_period_end = EXCLUDED.current_period_end,
+       cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [
+      userId,
+      data.stripe_customer_id ?? null,
+      data.stripe_subscription_id ?? null,
+      data.status ?? 'inactive',
+      data.plan ?? 'free',
+      data.current_period_end ?? null,
+      data.cancel_at_period_end ?? false,
+    ]
+  );
+
+  return result[0] as UserSubscription;
+}
+
+export async function updateUserSubscriptionByCustomerId(
+  customerId: string,
+  data: Partial<Omit<UserSubscription, 'user_id' | 'created_at' | 'updated_at'>>
+): Promise<UserSubscription | null> {
+  const result = await sql(
+    `UPDATE user_subscriptions
+     SET
+       stripe_subscription_id = COALESCE($2, stripe_subscription_id),
+       status = COALESCE($3, status),
+       plan = COALESCE($4, plan),
+       current_period_end = COALESCE($5, current_period_end),
+       cancel_at_period_end = COALESCE($6, cancel_at_period_end),
+       updated_at = CURRENT_TIMESTAMP
+     WHERE stripe_customer_id = $1
+     RETURNING *`,
+    [
+      customerId,
+      data.stripe_subscription_id ?? null,
+      data.status ?? null,
+      data.plan ?? null,
+      data.current_period_end ?? null,
+      data.cancel_at_period_end ?? null,
+    ]
+  );
+
+  return (result[0] as UserSubscription) || null;
 }
