@@ -153,6 +153,12 @@ STACK_PUBLISHED_CLIENT_KEY=...
 STACK_SECRET_SERVER_KEY=...
 ```
 
+Or run the env setup agent:
+```bash
+pnpm env:setup
+```
+It scans your project for required environment variables, links provider docs, and writes `.env.local` with prompted values.
+
 4. **Run the development server**
 ```bash
 pnpm dev
@@ -160,6 +166,31 @@ pnpm dev
 
 5. **Access the application**
 Open http://localhost:3000 in your browser
+
+## Environment Setup Agent
+
+This project includes a secure env setup agent at `scripts/env-agent.mjs`.
+
+What it does:
+- Detects env vars used in code and docs
+- Suggests likely provider docs (Neon, Vercel Blob, Stack Auth, etc.)
+- Prompts you for values and writes `.env.local`
+
+What it does **not** do:
+- It does not create API keys for you
+- It does not fetch secrets from websites/accounts automatically
+
+Commands:
+```bash
+# scan only (no file writes)
+pnpm env:scan
+
+# interactive setup (writes .env.local)
+pnpm env:setup
+
+# generate template file without prompts
+node scripts/env-agent.mjs --template-only --non-interactive --output .env.example.generated
+```
 
 ## API Endpoints
 

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "env:scan": "node scripts/env-agent.mjs --scan-only",
+    "env:setup": "node scripts/env-agent.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

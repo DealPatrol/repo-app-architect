@@ -18,6 +18,12 @@ Check your Vercel project settings and ensure these are set:
 - `BLOB_READ_WRITE_TOKEN` - Your Vercel Blob token
 - Stack Auth credentials (if not auto-configured)
 
+Optional helper command:
+```bash
+pnpm env:setup
+```
+This scans the codebase for required env vars, links provider docs, and writes `.env.local` from prompted values.
+
 ### 2. Database Ready
 The database schema is already created in Neon with:
 - All 6 tables set up
