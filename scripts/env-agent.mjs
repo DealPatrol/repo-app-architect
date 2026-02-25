@@ -233,7 +233,7 @@ function addMatch(store, key, filePath, reason) {
 function extractFromSource(content, filePath, store) {
   const patterns = [
     {
-      regex: /process\.env(?:\?\.)?([A-Z][A-Z0-9_]*)/g,
+      regex: /process\.env(?:\?\.|\.)([A-Z][A-Z0-9_]*)/g,
       reason: 'process.env access',
     },
     {
