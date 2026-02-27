@@ -1,20 +1,41 @@
 import { getProjectsByOrganization } from '@/lib/queries'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Plus, Folder, Users, CheckSquare } from 'lucide-react'
+import { Plus, Folder, Users, CheckSquare, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
+// Demo projects for demonstration when database isn't available
+const DEMO_PROJECTS = [
+  {
+    id: '1',
+    name: 'Website Redesign',
+    description: 'Complete redesign of company website with new branding',
+    color: '#3b82f6',
+    icon: 'W',
+    visibility: 'private' as const,
+  },
+  {
+    id: '2',
+    name: 'Mobile App',
+    description: 'Native iOS and Android application launch',
+    color: '#10b981',
+    icon: 'M',
+    visibility: 'private' as const,
+  },
+]
+
 export default async function DashboardPage() {
-  let projects: Awaited<ReturnType<typeof getProjectsByOrganization>> = []
+  let projects: any[] = []
+  let dbError = false
 
   try {
-    console.log("[v0] DATABASE_URL set:", !!process.env.DATABASE_URL)
-    // TODO: Replace with real org ID from auth when auth is integrated
+    // Try to fetch from database
     projects = await getProjectsByOrganization('demo-org')
-    console.log("[v0] Projects loaded:", projects.length)
   } catch (error) {
-    console.log("[v0] Dashboard DB error:", error)
-    // Database may not be ready yet, show empty state
+    // If database isn't available, show demo projects
+    console.error('[v0] Database connection error - showing demo projects:', error)
+    dbError = true
+    projects = DEMO_PROJECTS
   }
 
   return (
@@ -23,6 +44,14 @@ export default async function DashboardPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground text-balance">Dashboard</h1>
         <p className="text-muted-foreground">Welcome back! Here is your project overview.</p>
+        {dbError && (
+          <div className="mt-4 flex items-gap gap-3 rounded-lg border border-yellow-200 bg-yellow-50/50 p-3 dark:border-yellow-900/30 dark:bg-yellow-900/20">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+            <p className="text-sm text-yellow-800 dark:text-yellow-400">
+              Note: Database is not connected. Showing demo projects. Set DATABASE_URL environment variable to use your own projects.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Quick stats */}
@@ -112,3 +141,4 @@ export default async function DashboardPage() {
     </div>
   )
 }
+

@@ -1,5 +1,19 @@
-import { createProject } from '@/lib/queries'
+import { createProject, getProjectsByOrganization } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  try {
+    // TODO: Replace with real org ID from auth when auth is integrated
+    const projects = await getProjectsByOrganization('demo-org')
+    return NextResponse.json(projects)
+  } catch (error) {
+    console.error('Error fetching projects:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch projects' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
