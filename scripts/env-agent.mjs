@@ -2,6 +2,8 @@
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
+import { execFile } from 'node:child_process'
 import readline from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
@@ -85,25 +87,32 @@ Usage:
   node scripts/env-agent.mjs [options]
 
 Options:
+  --no-autofetch              Disable provider autofetch attempts
   --scan-only                 Discover vars and print report (no writing)
   --non-interactive           Do not prompt for missing values
   --overwrite                 Prompt for keys even if already present in output file
   --output <path>             Output env file path (default: .env.local)
+  --vercel-environment <env>  Vercel env to pull (default: development)
+  --vercel-git-branch <name>  Pull branch-specific Vercel vars (optional)
   --template-only             Write template placeholders and exit
   --help                      Show this help
 
 Examples:
   node scripts/env-agent.mjs --scan-only
   node scripts/env-agent.mjs --output .env.local
+  node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
   node scripts/env-agent.mjs --template-only --output .env.example.generated
 `
 
 function parseArgs(argv) {
   const args = {
+    autofetch: true,
     scanOnly: false,
     nonInteractive: false,
     overwrite: false,
     outputPath: DEFAULT_OUTPUT_PATH,
+    vercelEnvironment: 'development',
+    vercelGitBranch: '',
     templateOnly: false,
     help: false,
   }
@@ -113,6 +122,11 @@ function parseArgs(argv) {
 
     if (token === '--scan-only') {
       args.scanOnly = true
+      continue
+    }
+
+    if (token === '--no-autofetch') {
+      args.autofetch = false
       continue
     }
 
@@ -146,8 +160,38 @@ function parseArgs(argv) {
       continue
     }
 
+    if (token === '--vercel-environment') {
+      const value = argv[index + 1]
+      if (!value) {
+        throw new Error('Missing value for --vercel-environment')
+      }
+      args.vercelEnvironment = value
+      index += 1
+      continue
+    }
+
+    if (token === '--vercel-git-branch') {
+      const value = argv[index + 1]
+      if (!value) {
+        throw new Error('Missing value for --vercel-git-branch')
+      }
+      args.vercelGitBranch = value
+      index += 1
+      continue
+    }
+
     if (token.startsWith('--output=')) {
       args.outputPath = token.slice('--output='.length)
+      continue
+    }
+
+    if (token.startsWith('--vercel-environment=')) {
+      args.vercelEnvironment = token.slice('--vercel-environment='.length)
+      continue
+    }
+
+    if (token.startsWith('--vercel-git-branch=')) {
+      args.vercelGitBranch = token.slice('--vercel-git-branch='.length)
       continue
     }
 
@@ -155,6 +199,476 @@ function parseArgs(argv) {
   }
 
   return args
+}
+
+function runCommand(command, args, options = {}) {
+  return new Promise((resolve) => {
+    execFile(
+      command,
+      args,
+      {
+        cwd: options.cwd || process.cwd(),
+        env: options.env || process.env,
+        encoding: 'utf8',
+        timeout: options.timeout || 30000,
+        maxBuffer: 2 * 1024 * 1024,
+      },
+      (error, stdout = '', stderr = '') => {
+        if (error) {
+          resolve({
+            ok: false,
+            errorCode: typeof error.code === 'string' ? error.code : '',
+            errorMessage: error.message,
+            stdout,
+            stderr,
+          })
+          return
+        }
+
+        resolve({
+          ok: true,
+          errorCode: '',
+          errorMessage: '',
+          stdout,
+          stderr,
+        })
+      }
+    )
+  })
+}
+
+function extractPostgresUriFromText(text) {
+  if (!text) {
+    return null
+  }
+
+  const match = text.match(/postgres(?:ql)?:\/\/[^\s'"`]+/i)
+  if (!match) {
+    return null
+  }
+
+  return match[0].replace(/[),.;]+$/, '')
+}
+
+function findPostgresUriInValue(value, depth = 0) {
+  if (depth > 6 || value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return extractPostgresUriFromText(value)
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findPostgresUriInValue(item, depth + 1)
+      if (found) {
+        return found
+      }
+    }
+    return null
+  }
+
+  if (typeof value === 'object') {
+    for (const nested of Object.values(value)) {
+      const found = findPostgresUriInValue(nested, depth + 1)
+      if (found) {
+        return found
+      }
+    }
+  }
+
+  return null
+}
+
+function collectFromProcessEnv(allowedKeys) {
+  const values = new Map()
+
+  for (const key of allowedKeys) {
+    const value = process.env[key]
+    if (typeof value === 'string' && value.trim() !== '') {
+      values.set(key, value.trim())
+    }
+  }
+
+  return values
+}
+
+function mergeValuesFromSource({
+  targetValues,
+  incomingValues,
+  allowedKeys,
+  overwrite,
+  sourceName,
+  keySources,
+}) {
+  let applied = 0
+
+  for (const [key, rawValue] of incomingValues.entries()) {
+    if (!allowedKeys.has(key)) {
+      continue
+    }
+
+    const value = typeof rawValue === 'string' ? rawValue.trim() : ''
+    if (!value) {
+      continue
+    }
+
+    const hasExisting = targetValues.has(key) && targetValues.get(key) !== ''
+    if (hasExisting && !overwrite) {
+      continue
+    }
+
+    targetValues.set(key, value)
+    keySources.set(key, sourceName)
+    applied += 1
+  }
+
+  return applied
+}
+
+function removeCliOptionPair(args, optionName) {
+  const copy = [...args]
+  const index = copy.indexOf(optionName)
+  if (index !== -1) {
+    copy.splice(index, 2)
+  }
+  return copy
+}
+
+async function runVercelCli(args, timeout = 120000) {
+  const directVersion = await runCommand('vercel', ['--version'], { timeout: 20000 })
+  if (directVersion.ok) {
+    return runCommand('vercel', args, { timeout })
+  }
+
+  if (directVersion.errorCode !== 'ENOENT') {
+    return directVersion
+  }
+
+  const npxVersion = await runCommand('npx', ['--yes', 'vercel', '--version'], { timeout: 120000 })
+  if (!npxVersion.ok) {
+    return npxVersion
+  }
+
+  return runCommand('npx', ['--yes', 'vercel', ...args], { timeout })
+}
+
+async function attemptVercelAutofetch(args) {
+  const result = {
+    provider: 'vercel-env-pull',
+    status: 'skipped',
+    pulled: 0,
+    applied: 0,
+    values: new Map(),
+    message: '',
+  }
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'env-agent-vercel-'))
+  const tempEnvPath = path.join(tempDir, '.env.vercel.pull')
+
+  try {
+    const pullArgs = ['env', 'pull', tempEnvPath, '--yes']
+
+    if (args.vercelEnvironment) {
+      pullArgs.push('--environment', args.vercelEnvironment)
+    }
+
+    if (args.vercelGitBranch) {
+      pullArgs.push('--git-branch', args.vercelGitBranch)
+    }
+
+    let pullResult = await runVercelCli(pullArgs, 180000)
+
+    // Older CLI versions may not support branch-specific pulls.
+    if (
+      !pullResult.ok &&
+      args.vercelGitBranch &&
+      /unknown option|did you mean|unexpected argument/i.test(`${pullResult.stdout}\n${pullResult.stderr}`)
+    ) {
+      const fallbackArgs = removeCliOptionPair(pullArgs, '--git-branch')
+      pullResult = await runVercelCli(fallbackArgs, 180000)
+    }
+
+    if (!pullResult.ok) {
+      const diagnostics = `${pullResult.stdout}\n${pullResult.stderr}`
+
+      if (/not logged in|login required|run vercel login|no existing credentials/i.test(diagnostics)) {
+        result.status = 'skipped'
+        result.message = 'Vercel CLI is not authenticated. Run `vercel login` then re-run.'
+        return result
+      }
+
+      if (/not linked|link this directory|run vercel link/i.test(diagnostics)) {
+        result.status = 'skipped'
+        result.message = 'Project not linked to Vercel. Run `vercel link` then re-run.'
+        return result
+      }
+
+      result.status = 'failed'
+      result.message = `Vercel env pull failed: ${pullResult.errorMessage || diagnostics.trim() || 'unknown error'}`
+      return result
+    }
+
+    const pulledContent = await fs.readFile(tempEnvPath, 'utf8')
+    const pulledValues = parseEnv(pulledContent)
+
+    result.values = pulledValues
+    result.pulled = pulledValues.size
+    result.status = pulledValues.size > 0 ? 'success' : 'skipped'
+    result.message = pulledValues.size > 0 ? 'Pulled project vars from Vercel.' : 'No variables found in pull result.'
+
+    return result
+  } catch (error) {
+    result.status = 'failed'
+    result.message = `Vercel autofetch error: ${error.message}`
+    return result
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true })
+  }
+}
+
+function boolFromEnv(value) {
+  if (!value) {
+    return false
+  }
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
+}
+
+async function attemptNeonApiAutofetch() {
+  const result = {
+    provider: 'neon-api',
+    status: 'skipped',
+    pulled: 0,
+    applied: 0,
+    values: new Map(),
+    message: '',
+  }
+
+  const apiKey = process.env.NEON_API_KEY
+  const projectId = process.env.NEON_PROJECT_ID
+
+  if (!apiKey || !projectId) {
+    result.message = 'Set NEON_API_KEY and NEON_PROJECT_ID to enable Neon API autofetch.'
+    return result
+  }
+
+  try {
+    const url = new URL(`https://console.neon.tech/api/v2/projects/${encodeURIComponent(projectId)}/connection_uri`)
+
+    if (process.env.NEON_BRANCH_ID) {
+      url.searchParams.set('branch_id', process.env.NEON_BRANCH_ID)
+    }
+    if (process.env.NEON_DATABASE_NAME) {
+      url.searchParams.set('database_name', process.env.NEON_DATABASE_NAME)
+    }
+    if (process.env.NEON_ROLE_NAME) {
+      url.searchParams.set('role_name', process.env.NEON_ROLE_NAME)
+    }
+    if (process.env.NEON_ENDPOINT_ID) {
+      url.searchParams.set('endpoint_id', process.env.NEON_ENDPOINT_ID)
+    }
+    if (process.env.NEON_IS_POOLED) {
+      url.searchParams.set('is_pooled', boolFromEnv(process.env.NEON_IS_POOLED) ? 'true' : 'false')
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const body = await response.text()
+      result.status = 'failed'
+      result.message = `Neon API request failed (${response.status}): ${body.slice(0, 200)}`
+      return result
+    }
+
+    const json = await response.json()
+    const connectionString = findPostgresUriInValue(json)
+
+    if (!connectionString) {
+      result.status = 'failed'
+      result.message = 'Neon API response did not include a PostgreSQL connection string.'
+      return result
+    }
+
+    result.values.set('DATABASE_URL', connectionString)
+    result.pulled = 1
+    result.status = 'success'
+    result.message = 'Retrieved DATABASE_URL from Neon API.'
+    return result
+  } catch (error) {
+    result.status = 'failed'
+    result.message = `Neon API autofetch error: ${error.message}`
+    return result
+  }
+}
+
+function supportsCliFlag(helpText, flagName) {
+  return new RegExp(`--${flagName}(\\b|\\s|=)`).test(helpText)
+}
+
+async function attemptNeonCliAutofetch() {
+  const result = {
+    provider: 'neon-cli',
+    status: 'skipped',
+    pulled: 0,
+    applied: 0,
+    values: new Map(),
+    message: '',
+  }
+
+  const version = await runCommand('neon', ['--version'], { timeout: 20000 })
+  if (!version.ok) {
+    if (version.errorCode === 'ENOENT') {
+      result.message = 'Neon CLI not installed. Install it to enable DATABASE_URL autofetch.'
+      return result
+    }
+
+    result.status = 'failed'
+    result.message = `Neon CLI unavailable: ${version.errorMessage}`
+    return result
+  }
+
+  const help = await runCommand('neon', ['connection-string', '--help'], { timeout: 30000 })
+  const helpText = `${help.stdout}\n${help.stderr}`
+
+  const connectionArgs = ['connection-string']
+  if (process.env.NEON_BRANCH) {
+    connectionArgs.push(process.env.NEON_BRANCH)
+  }
+  if (process.env.NEON_PROJECT_ID && supportsCliFlag(helpText, 'project-id')) {
+    connectionArgs.push('--project-id', process.env.NEON_PROJECT_ID)
+  }
+  if (process.env.NEON_ROLE_NAME && supportsCliFlag(helpText, 'role-name')) {
+    connectionArgs.push('--role-name', process.env.NEON_ROLE_NAME)
+  }
+  if (process.env.NEON_DATABASE_NAME && supportsCliFlag(helpText, 'database-name')) {
+    connectionArgs.push('--database-name', process.env.NEON_DATABASE_NAME)
+  }
+  if (process.env.NEON_IS_POOLED && boolFromEnv(process.env.NEON_IS_POOLED) && supportsCliFlag(helpText, 'pooled')) {
+    connectionArgs.push('--pooled')
+  }
+
+  const connectionResult = await runCommand('neon', connectionArgs, { timeout: 60000 })
+  if (!connectionResult.ok) {
+    const diagnostics = `${connectionResult.stdout}\n${connectionResult.stderr}`
+    if (/login|authenticate|auth required/i.test(diagnostics)) {
+      result.status = 'skipped'
+      result.message = 'Neon CLI is not authenticated. Run `neon auth` and retry.'
+      return result
+    }
+
+    result.status = 'failed'
+    result.message = `Neon CLI connection-string failed: ${connectionResult.errorMessage || diagnostics.trim()}`
+    return result
+  }
+
+  const connectionString = extractPostgresUriFromText(`${connectionResult.stdout}\n${connectionResult.stderr}`)
+  if (!connectionString) {
+    result.status = 'failed'
+    result.message = 'Neon CLI output did not include a PostgreSQL connection string.'
+    return result
+  }
+
+  result.values.set('DATABASE_URL', connectionString)
+  result.pulled = 1
+  result.status = 'success'
+  result.message = 'Retrieved DATABASE_URL from Neon CLI.'
+  return result
+}
+
+async function autofetchValues(report, currentValues, args) {
+  const allowedKeys = new Set(report.map((entry) => entry.key))
+  const values = new Map(currentValues)
+  const keySources = new Map()
+  const details = []
+
+  const localEnvValues = collectFromProcessEnv(allowedKeys)
+  const localApplied = mergeValuesFromSource({
+    targetValues: values,
+    incomingValues: localEnvValues,
+    allowedKeys,
+    overwrite: args.overwrite,
+    sourceName: 'local process.env',
+    keySources,
+  })
+
+  details.push({
+    provider: 'local-process-env',
+    status: localEnvValues.size > 0 ? 'success' : 'skipped',
+    pulled: localEnvValues.size,
+    applied: localApplied,
+    message:
+      localEnvValues.size > 0
+        ? 'Read matching values from current shell environment.'
+        : 'No matching keys were present in current shell environment.',
+  })
+
+  const vercel = await attemptVercelAutofetch(args)
+  vercel.applied = mergeValuesFromSource({
+    targetValues: values,
+    incomingValues: vercel.values,
+    allowedKeys,
+    overwrite: args.overwrite,
+    sourceName: 'vercel env pull',
+    keySources,
+  })
+  details.push(vercel)
+
+  if (allowedKeys.has('DATABASE_URL')) {
+    const neonApi = await attemptNeonApiAutofetch()
+    neonApi.applied = mergeValuesFromSource({
+      targetValues: values,
+      incomingValues: neonApi.values,
+      allowedKeys,
+      overwrite: args.overwrite,
+      sourceName: 'neon api',
+      keySources,
+    })
+    details.push(neonApi)
+
+    const neonCli = await attemptNeonCliAutofetch()
+    neonCli.applied = mergeValuesFromSource({
+      targetValues: values,
+      incomingValues: neonCli.values,
+      allowedKeys,
+      overwrite: args.overwrite,
+      sourceName: 'neon cli',
+      keySources,
+    })
+    details.push(neonCli)
+  }
+
+  return { values, details, keySources }
+}
+
+function printAutofetchSummary(autofetchResult) {
+  output.write('\nAutofetch summary:\n')
+
+  for (const detail of autofetchResult.details) {
+    output.write(
+      `- ${detail.provider}: ${detail.status} (pulled ${detail.pulled}, applied ${detail.applied})\n`
+    )
+    if (detail.message) {
+      output.write(`  ${detail.message}\n`)
+    }
+  }
+
+  if (autofetchResult.keySources.size > 0) {
+    output.write('Applied key sources:\n')
+    const keys = Array.from(autofetchResult.keySources.keys()).sort((a, b) => a.localeCompare(b))
+    for (const key of keys) {
+      output.write(`  ${key} <= ${autofetchResult.keySources.get(key)}\n`)
+    }
+  } else {
+    output.write('No values were auto-applied.\n')
+  }
+
+  output.write('\n')
 }
 
 function toPosixPath(filePath) {
@@ -477,8 +991,9 @@ async function run() {
   }
 
   output.write(
-    'This agent discovers required env vars and helps write .env files. It does not create API keys or fetch secrets automatically.\n\n'
+    'This agent discovers required env vars, attempts provider autofetch from authenticated sessions, and writes .env files.\n'
   )
+  output.write('It never bypasses authentication or creates secrets without provider access.\n\n')
 
   const rootDir = process.cwd()
   const files = await walkFiles(rootDir)
@@ -499,6 +1014,16 @@ async function run() {
 
   const outputPath = path.resolve(rootDir, args.outputPath)
   let values = args.templateOnly ? new Map() : await readExistingEnv(outputPath)
+
+  if (!args.templateOnly && report.length > 0) {
+    if (args.autofetch) {
+      const autofetchResult = await autofetchValues(report, values, args)
+      values = autofetchResult.values
+      printAutofetchSummary(autofetchResult)
+    } else {
+      output.write('Autofetch disabled. Use default mode (without --no-autofetch) to attempt provider pulls.\n\n')
+    }
+  }
 
   if (!args.nonInteractive && report.length > 0 && !args.templateOnly) {
     values = await promptForValues(report, values, args.overwrite)

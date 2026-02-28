@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "env:scan": "node scripts/env-agent.mjs --scan-only",
-    "env:setup": "node scripts/env-agent.mjs"
+    "env:setup": "node scripts/env-agent.mjs",
+    "env:setup:manual": "node scripts/env-agent.mjs --no-autofetch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -157,7 +157,7 @@ Or run the env setup agent:
 ```bash
 pnpm env:setup
 ```
-It scans your project for required environment variables, links provider docs, and writes `.env.local` with prompted values.
+It scans your project, attempts provider autofetch from authenticated sessions, then prompts only for remaining values before writing `.env.local`.
 
 4. **Run the development server**
 ```bash
@@ -174,19 +174,41 @@ This project includes a secure env setup agent at `scripts/env-agent.mjs`.
 What it does:
 - Detects env vars used in code and docs
 - Suggests likely provider docs (Neon, Vercel Blob, Stack Auth, etc.)
-- Prompts you for values and writes `.env.local`
+- Attempts autofetch from authenticated sources:
+  - Current shell environment (`process.env`)
+  - Vercel project vars via `vercel env pull`
+  - Neon `DATABASE_URL` via Neon API or Neon CLI
+- Prompts you for any missing values and writes `.env.local`
 
 What it does **not** do:
 - It does not create API keys for you
-- It does not fetch secrets from websites/accounts automatically
+- It does not bypass authentication or scrape secrets from websites
+- For account-based retrieval, you must sign in through official provider auth flows
+
+Autofetch prerequisites:
+```bash
+# For Vercel variables
+vercel login
+vercel link
+
+# Optional for Neon API autofetch
+export NEON_API_KEY=...
+export NEON_PROJECT_ID=...
+```
 
 Commands:
 ```bash
 # scan only (no file writes)
 pnpm env:scan
 
-# interactive setup (writes .env.local)
+# setup with autofetch + prompts (writes .env.local)
 pnpm env:setup
+
+# setup with prompts only (disable autofetch)
+pnpm env:setup:manual
+
+# pull from preview or a specific branch on Vercel
+node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
 
 # generate template file without prompts
 node scripts/env-agent.mjs --template-only --non-interactive --output .env.example.generated

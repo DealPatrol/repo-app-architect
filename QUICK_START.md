@@ -22,7 +22,15 @@ Optional helper command:
 ```bash
 pnpm env:setup
 ```
-This scans the codebase for required env vars, links provider docs, and writes `.env.local` from prompted values.
+This scans the codebase, attempts autofetch from authenticated provider sessions (Vercel/Neon), then prompts for any remaining values before writing `.env.local`.
+
+For best automation:
+```bash
+vercel login && vercel link
+# optional Neon API autofetch
+export NEON_API_KEY=...
+export NEON_PROJECT_ID=...
+```
 
 ### 2. Database Ready
 The database schema is already created in Neon with:
