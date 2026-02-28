@@ -1,0 +1,12 @@
+{
+  "name": "@stack-auth/nextjs",
+  "version": "0.0.1",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "react-server": "./server.js",
+      "default": "./index.js"
+    }
+  }
+}
