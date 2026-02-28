@@ -23,6 +23,7 @@ Optional helper command:
 pnpm env:setup
 ```
 This scans the codebase, attempts autofetch from authenticated provider sessions (Vercel/Neon), then prompts for any remaining values before writing `.env.local`.
+Helper keys used only for autofetch are excluded by default unless you pass `--include-agent-keys`.
 
 For best automation:
 ```bash

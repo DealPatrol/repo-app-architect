@@ -43,6 +43,17 @@ const SCAN_EXTENSIONS = new Set([
 
 const SECRET_HINTS = ['SECRET', 'TOKEN', 'KEY', 'PASSWORD', 'PRIVATE', 'DATABASE_URL']
 
+const AGENT_HELPER_KEYS = new Set([
+  'NEON_API_KEY',
+  'NEON_PROJECT_ID',
+  'NEON_BRANCH',
+  'NEON_BRANCH_ID',
+  'NEON_DATABASE_NAME',
+  'NEON_ROLE_NAME',
+  'NEON_ENDPOINT_ID',
+  'NEON_IS_POOLED',
+])
+
 const PROVIDER_HINTS = [
   {
     name: 'Neon',
@@ -88,6 +99,7 @@ Usage:
 
 Options:
   --no-autofetch              Disable provider autofetch attempts
+  --include-agent-keys        Include helper keys used only for autofetch
   --scan-only                 Discover vars and print report (no writing)
   --non-interactive           Do not prompt for missing values
   --overwrite                 Prompt for keys even if already present in output file
@@ -101,12 +113,14 @@ Examples:
   node scripts/env-agent.mjs --scan-only
   node scripts/env-agent.mjs --output .env.local
   node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
+  node scripts/env-agent.mjs --include-agent-keys
   node scripts/env-agent.mjs --template-only --output .env.example.generated
 `
 
 function parseArgs(argv) {
   const args = {
     autofetch: true,
+    includeAgentKeys: false,
     scanOnly: false,
     nonInteractive: false,
     overwrite: false,
@@ -127,6 +141,11 @@ function parseArgs(argv) {
 
     if (token === '--no-autofetch') {
       args.autofetch = false
+      continue
+    }
+
+    if (token === '--include-agent-keys') {
+      args.includeAgentKeys = true
       continue
     }
 
@@ -826,6 +845,14 @@ function buildReport(discovered) {
     })
 }
 
+function filterAgentHelperKeys(discovered, includeAgentKeys) {
+  if (includeAgentKeys) {
+    return discovered
+  }
+
+  return discovered.filter((entry) => !AGENT_HELPER_KEYS.has(entry.key))
+}
+
 function parseEnv(content) {
   const values = new Map()
   const lines = content.split(/\r?\n/)
@@ -1005,7 +1032,8 @@ async function run() {
     extractFromSource(content, relativePath, discoveredMap)
   }
 
-  const report = buildReport(Array.from(discoveredMap.values()))
+  const discovered = filterAgentHelperKeys(Array.from(discoveredMap.values()), args.includeAgentKeys)
+  const report = buildReport(discovered)
   printReport(report)
 
   if (args.scanOnly) {

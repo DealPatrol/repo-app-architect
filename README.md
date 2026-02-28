@@ -180,6 +180,8 @@ What it does:
   - Neon `DATABASE_URL` via Neon API or Neon CLI
 - Prompts you for any missing values and writes `.env.local`
 
+By default it excludes helper keys used only for autofetch (`NEON_API_KEY`, `NEON_PROJECT_ID`, etc.) so your project env file only contains app/runtime values.
+
 What it does **not** do:
 - It does not create API keys for you
 - It does not bypass authentication or scrape secrets from websites
@@ -209,6 +211,9 @@ pnpm env:setup:manual
 
 # pull from preview or a specific branch on Vercel
 node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
+
+# include helper keys used by autofetch logic
+node scripts/env-agent.mjs --include-agent-keys
 
 # generate template file without prompts
 node scripts/env-agent.mjs --template-only --non-interactive --output .env.example.generated
