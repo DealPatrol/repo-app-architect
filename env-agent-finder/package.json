@@ -1,0 +1,27 @@
+{
+  "name": "env-agent-finder",
+  "version": "1.0.0",
+  "description": "CLI tool that scans any codebase to discover required environment variables, API endpoints, and service dependencies.",
+  "main": "src/index.js",
+  "bin": {
+    "env-agent-finder": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "scan": "node src/cli.js",
+    "test": "node src/cli.js --target ."
+  },
+  "keywords": [
+    "env",
+    "environment",
+    "api",
+    "scanner",
+    "agent",
+    "devops",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
