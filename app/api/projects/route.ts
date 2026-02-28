@@ -1,4 +1,4 @@
-import { createProject } from '@/lib/queries';
+import { createProject, markOnboardingStepCompleted } from '@/lib/queries';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentOrganizationId, getCurrentUser } from '@/lib/auth';
 
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       icon: 'P',
       created_by: user.id,
     });
+    await markOnboardingStepCompleted(user.id, 'first_project_created');
 
     return NextResponse.json(project);
   } catch (error) {

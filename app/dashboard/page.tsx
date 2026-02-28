@@ -1,14 +1,18 @@
-import { getProjectsByOrganization } from '@/lib/queries';
+import { getOnboardingChecklist, getProjectsByOrganization } from '@/lib/queries';
 import { getCurrentOrganizationId, requireCurrentUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Plus, Folder, Users } from 'lucide-react';
 import Link from 'next/link';
+import { OnboardingChecklist } from '@/components/onboarding-checklist';
 
 export default async function DashboardPage() {
   const user = await requireCurrentUser();
 
   const orgId = getCurrentOrganizationId(user);
-  const projects = orgId ? await getProjectsByOrganization(orgId) : [];
+  const [projects, onboardingChecklist] = await Promise.all([
+    orgId ? getProjectsByOrganization(orgId) : Promise.resolve([]),
+    getOnboardingChecklist(user.id, orgId),
+  ]);
 
   return (
     <div className="space-y-8 p-4 md:p-8">
@@ -48,6 +52,8 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <OnboardingChecklist checklist={onboardingChecklist} />
 
       {/* Projects section */}
       <div className="space-y-4">

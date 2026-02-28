@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getAppBaseUrl, getStripeServerClient, stripePriceByPlan } from '@/lib/stripe';
-import { getUserSubscription, upsertUserSubscription } from '@/lib/queries';
+import {
+  getUserSubscription,
+  markOnboardingStepCompleted,
+  upsertUserSubscription,
+} from '@/lib/queries';
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +69,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+    await markOnboardingStepCompleted(user.id, 'trial_started');
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {

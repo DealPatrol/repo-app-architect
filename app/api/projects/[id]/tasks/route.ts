@@ -1,4 +1,4 @@
-import { createTask } from '@/lib/queries';
+import { createTask, markOnboardingStepCompleted } from '@/lib/queries';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       due_date: due_date || null,
       order_index: 0,
     });
+    await markOnboardingStepCompleted(user.id, 'first_task_created');
 
     return NextResponse.json(task);
   } catch (error) {
