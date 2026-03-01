@@ -9,6 +9,8 @@ const args = process.argv.slice(2);
 let targetDir = process.cwd();
 let outputFormat = "terminal";
 let outputFile = null;
+let showValues = false;
+let unmask = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--target" && args[i + 1]) {
@@ -20,6 +22,11 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === "--output" && args[i + 1]) {
     outputFile = path.resolve(args[i + 1]);
     i++;
+  } else if (args[i] === "--show-values" || args[i] === "-v") {
+    showValues = true;
+  } else if (args[i] === "--unmask") {
+    showValues = true;
+    unmask = true;
   } else if (args[i] === "--help" || args[i] === "-h") {
     console.log(`
 env-agent-finder — Scan a codebase for env vars, APIs, and service dependencies.
@@ -31,10 +38,14 @@ Options:
   --target <dir>      Directory to scan (default: current directory)
   --format <type>     Output format: terminal, json, markdown (default: terminal)
   --output <file>     Write output to file instead of stdout
+  --show-values, -v   Show env variable values (masked by default)
+  --unmask            Show full unmasked values (implies --show-values)
   -h, --help          Show this help message
 
 Examples:
   env-agent-finder --target ./my-project
+  env-agent-finder --target ./my-project --show-values
+  env-agent-finder --target ./my-project --unmask
   env-agent-finder --target ./my-project --format markdown --output report.md
   env-agent-finder --format json
 `);
@@ -49,7 +60,7 @@ async function main() {
 
   try {
     const report = await scanProject(targetDir);
-    const output = renderReport(report, outputFormat);
+    const output = renderReport(report, outputFormat, { showValues, unmask });
 
     if (outputFile) {
       const fs = require("fs");

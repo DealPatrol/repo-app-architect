@@ -1,15 +1,27 @@
-function renderTerminal(report) {
+function maskValue(val) {
+  if (!val || val.length === 0) return "(empty)";
+  if (val.length <= 8) return val.substring(0, 2) + "•".repeat(val.length - 2);
+  return val.substring(0, 4) + "•".repeat(val.length - 8) + val.substring(val.length - 4);
+}
+
+function displayValue(val, source, opts) {
+  if (!val) return null;
+  if (opts.unmask) return val;
+  return maskValue(val);
+}
+
+function renderTerminal(report, opts) {
   const lines = [];
   const { meta, envVars, apiRoutes, services } = report;
 
-  lines.push("═".repeat(60));
+  lines.push("═".repeat(70));
   lines.push("  ENV AGENT FINDER — Scan Report");
-  lines.push("═".repeat(60));
+  lines.push("═".repeat(70));
   lines.push("");
 
   // Project meta
   lines.push("📦 PROJECT INFO");
-  lines.push("─".repeat(40));
+  lines.push("─".repeat(50));
   if (meta.name) lines.push(`  Name:            ${meta.name}`);
   if (meta.framework) lines.push(`  Framework:       ${meta.framework}`);
   if (meta.language) lines.push(`  Language:        ${meta.language}`);
@@ -20,9 +32,32 @@ function renderTerminal(report) {
 
   // Env vars
   lines.push(`🔑 ENVIRONMENT VARIABLES (${envVars.length} found)`);
-  lines.push("─".repeat(40));
+  lines.push("─".repeat(50));
+
   if (envVars.length === 0) {
     lines.push("  No environment variables detected.");
+  } else if (opts.showValues) {
+    for (const v of envVars) {
+      const status = v.hasValue ? "✅" : v.required === false ? "⚪" : "❌";
+      lines.push("");
+      lines.push(`  ${status} ${v.name}`);
+      if (v.service) lines.push(`     Service:  ${v.service}`);
+      lines.push(`     Refs:     ${v.references.length} reference(s) in code`);
+
+      if (v.values && v.values.length > 0) {
+        for (const entry of v.values) {
+          const shown = displayValue(entry.value, entry.source, opts);
+          lines.push(`     Value:    ${shown}`);
+          lines.push(`     Source:   ${entry.source}`);
+        }
+      } else if (v.hasValue && v.value) {
+        const shown = displayValue(v.value, v.valueSource, opts);
+        lines.push(`     Value:    ${shown}`);
+        if (v.valueSource) lines.push(`     Source:   ${v.valueSource}`);
+      } else {
+        lines.push(`     Value:    (not set)`);
+      }
+    }
   } else {
     const maxName = Math.max(...envVars.map((v) => v.name.length), 10);
     lines.push(
@@ -36,12 +71,14 @@ function renderTerminal(report) {
         `  ${v.name.padEnd(maxName)}  ${service.padEnd(25)}  ${String(v.references.length).padEnd(4)}  ${status}`
       );
     }
+    lines.push("");
+    lines.push("  💡 Use --show-values to see values, or --unmask for full values.");
   }
   lines.push("");
 
   // Services
   lines.push(`🔌 DETECTED SERVICES (${services.length} found)`);
-  lines.push("─".repeat(40));
+  lines.push("─".repeat(50));
   if (services.length === 0) {
     lines.push("  No external services detected.");
   } else {
@@ -67,7 +104,7 @@ function renderTerminal(report) {
 
   // API routes
   lines.push(`🌐 API ROUTES (${apiRoutes.length} found)`);
-  lines.push("─".repeat(40));
+  lines.push("─".repeat(50));
   if (apiRoutes.length === 0) {
     lines.push("  No API routes detected.");
   } else {
@@ -79,11 +116,11 @@ function renderTerminal(report) {
   }
   lines.push("");
 
-  // .env template
+  // .env template for missing vars
   const missingVars = envVars.filter((v) => !v.hasValue);
   if (missingVars.length > 0) {
     lines.push("📋 SUGGESTED .env.local TEMPLATE");
-    lines.push("─".repeat(40));
+    lines.push("─".repeat(50));
     lines.push("");
     let currentService = null;
     for (const v of missingVars) {
@@ -98,19 +135,54 @@ function renderTerminal(report) {
     lines.push("");
   }
 
-  lines.push("═".repeat(60));
+  // Current .env snapshot (when --show-values is used)
+  const setVars = envVars.filter((v) => v.hasValue && v.values && v.values.length > 0);
+  if (opts.showValues && setVars.length > 0) {
+    lines.push("📄 CURRENT .env VALUES");
+    lines.push("─".repeat(50));
+    lines.push("");
+    for (const v of setVars) {
+      const val = opts.unmask ? v.values[0].value : maskValue(v.values[0].value);
+      lines.push(`  ${v.name}=${val}`);
+    }
+    lines.push("");
+    if (!opts.unmask) {
+      lines.push("  🔒 Values are masked. Use --unmask to reveal full values.");
+      lines.push("");
+    }
+  }
+
+  lines.push("═".repeat(70));
   lines.push(`  Scanned: ${report.targetDir}`);
   lines.push(`  Time:    ${report.scannedAt}`);
-  lines.push("═".repeat(60));
+  lines.push("═".repeat(70));
 
   return lines.join("\n");
 }
 
-function renderJson(report) {
-  return JSON.stringify(report, null, 2);
+function renderJson(report, opts) {
+  const output = { ...report };
+
+  if (!opts.showValues) {
+    output.envVars = output.envVars.map((v) => {
+      const { value, values, ...rest } = v;
+      return rest;
+    });
+  } else if (!opts.unmask) {
+    output.envVars = output.envVars.map((v) => ({
+      ...v,
+      value: v.value ? maskValue(v.value) : null,
+      values: (v.values || []).map((entry) => ({
+        ...entry,
+        value: maskValue(entry.value),
+      })),
+    }));
+  }
+
+  return JSON.stringify(output, null, 2);
 }
 
-function renderMarkdown(report) {
+function renderMarkdown(report, opts) {
   const lines = [];
   const { meta, envVars, apiRoutes, services } = report;
 
@@ -136,14 +208,35 @@ function renderMarkdown(report) {
   // Env vars
   lines.push(`## Environment Variables (${envVars.length})`);
   lines.push("");
+
   if (envVars.length > 0) {
-    lines.push("| Variable | Service | References | Status |");
-    lines.push("|----------|---------|------------|--------|");
-    for (const v of envVars) {
-      const status = v.hasValue ? "Set" : v.required === false ? "Optional" : "**Missing**";
-      lines.push(
-        `| \`${v.name}\` | ${v.service || "—"} | ${v.references.length} | ${status} |`
-      );
+    if (opts.showValues) {
+      lines.push("| Variable | Service | Value | Source | Status |");
+      lines.push("|----------|---------|-------|--------|--------|");
+      for (const v of envVars) {
+        const status = v.hasValue ? "Set" : v.required === false ? "Optional" : "**Missing**";
+        let val = "(not set)";
+        let source = "—";
+        if (v.values && v.values.length > 0) {
+          val = opts.unmask ? v.values[0].value : maskValue(v.values[0].value);
+          source = v.values[0].source;
+        } else if (v.hasValue && v.value) {
+          val = opts.unmask ? v.value : maskValue(v.value);
+          source = v.valueSource || "—";
+        }
+        lines.push(
+          `| \`${v.name}\` | ${v.service || "—"} | \`${val}\` | ${source} | ${status} |`
+        );
+      }
+    } else {
+      lines.push("| Variable | Service | References | Status |");
+      lines.push("|----------|---------|------------|--------|");
+      for (const v of envVars) {
+        const status = v.hasValue ? "Set" : v.required === false ? "Optional" : "**Missing**";
+        lines.push(
+          `| \`${v.name}\` | ${v.service || "—"} | ${v.references.length} | ${status} |`
+        );
+      }
     }
   } else {
     lines.push("No environment variables detected.");
@@ -209,19 +302,38 @@ function renderMarkdown(report) {
     lines.push("```");
   }
 
+  // Current .env snapshot
+  const setVars = envVars.filter((v) => v.hasValue && v.values && v.values.length > 0);
+  if (opts.showValues && setVars.length > 0) {
+    lines.push("");
+    lines.push("## Current `.env` Values");
+    lines.push("");
+    lines.push("```bash");
+    for (const v of setVars) {
+      const val = opts.unmask ? v.values[0].value : maskValue(v.values[0].value);
+      lines.push(`${v.name}=${val}`);
+    }
+    lines.push("```");
+    if (!opts.unmask) {
+      lines.push("");
+      lines.push("> Values are masked. Use `--unmask` to reveal full values.");
+    }
+  }
+
   return lines.join("\n");
 }
 
-function renderReport(report, format) {
+function renderReport(report, format, opts = {}) {
+  const options = { showValues: false, unmask: false, ...opts };
   switch (format) {
     case "json":
-      return renderJson(report);
+      return renderJson(report, options);
     case "markdown":
     case "md":
-      return renderMarkdown(report);
+      return renderMarkdown(report, options);
     case "terminal":
     default:
-      return renderTerminal(report);
+      return renderTerminal(report, options);
   }
 }
 

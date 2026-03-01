@@ -17,11 +17,17 @@ node src/cli.js
 # Scan a specific project
 node src/cli.js --target /path/to/project
 
+# Show env values (masked for security)
+node src/cli.js --target ./my-app --show-values
+
+# Show full unmasked values
+node src/cli.js --target ./my-app --unmask
+
 # Output as Markdown
 node src/cli.js --target ./my-app --format markdown --output report.md
 
-# Output as JSON
-node src/cli.js --format json
+# Output as JSON (with values)
+node src/cli.js --format json --show-values
 ```
 
 ## Installation
@@ -40,62 +46,56 @@ Or use npx (after publishing):
 npx env-agent-finder --target ./my-project
 ```
 
-## Output Example
+## Output Modes
 
+### Default — summary table
 ```
-════════════════════════════════════════════════════════════
-  ENV AGENT FINDER — Scan Report
-════════════════════════════════════════════════════════════
-
-📦 PROJECT INFO
-────────────────────────────────────
-  Name:            my-project
-  Framework:       Next.js 16.1.6
-  Language:        JavaScript/TypeScript
-  Package Manager: pnpm
-
 🔑 ENVIRONMENT VARIABLES (5 found)
-────────────────────────────────────
   Variable                   Service                    Refs  Status
-  DATABASE_URL               Database (PostgreSQL)      3     ❌ Missing
+  DATABASE_URL               Database (PostgreSQL)      3     ✅ Set
   BLOB_READ_WRITE_TOKEN      Vercel Blob Storage        1     ⚪ Optional
   STACK_PROJECT_ID           Stack Auth                 1     ❌ Missing
-  STACK_PUBLISHED_CLIENT_KEY Stack Auth                 1     ❌ Missing
-  STACK_SECRET_SERVER_KEY    Stack Auth                 1     ❌ Missing
 
-🔌 DETECTED SERVICES (4 found)
-────────────────────────────────────
-  PostgreSQL
-    Category:   database
-    Confidence: ████████░░ 80%
-    Packages:   pg, @neondatabase/serverless
-    Env Vars:   DATABASE_URL
-
-  Stack Auth
-    Category:   auth
-    Confidence: ██████████ 100%
-    Packages:   @stack-auth/nextjs
-    Env Vars:   STACK_PROJECT_ID, STACK_SECRET_SERVER_KEY
-
-🌐 API ROUTES (8 found)
-────────────────────────────────────
-  /api/projects                                    [GET, POST]
-  /api/projects/[id]/activity                      [GET, POST]
-  /api/projects/[id]/analytics                     [GET]
-  /api/projects/[id]/members                       [GET, POST, DELETE]
-  /api/projects/[id]/tasks                         [GET, POST, PUT, DELETE]
-  /api/projects/[id]/tasks/[taskId]/attachments     [GET, POST, DELETE]
-  /api/projects/[id]/tasks/[taskId]/comments        [GET, POST, DELETE]
-  /api/upload                                      [POST]
+  💡 Use --show-values to see values, or --unmask for full values.
 ```
 
-## Output Formats
+### `--show-values` — masked values with source
+```
+  ✅ DATABASE_URL
+     Service:  Database (PostgreSQL/MySQL)
+     Refs:     3 reference(s) in code
+     Value:    post••••••••••••••••••••••••••••••flow
+     Source:   .env.local
 
-| Format | Flag | Description |
-|--------|------|-------------|
-| Terminal | `--format terminal` | Colorful CLI output (default) |
-| Markdown | `--format markdown` | Markdown report for docs/PRs |
-| JSON | `--format json` | Machine-readable for pipelines |
+  ❌ BLOB_READ_WRITE_TOKEN
+     Service:  Vercel Blob Storage
+     Refs:     1 reference(s) in code
+     Value:    (not set)
+```
+
+### `--unmask` — full raw values
+```
+  ✅ DATABASE_URL
+     Service:  Database (PostgreSQL/MySQL)
+     Refs:     3 reference(s) in code
+     Value:    postgresql://user:pass@host:5432/mydb
+     Source:   .env.local
+
+📄 CURRENT .env VALUES
+  DATABASE_URL=postgresql://user:pass@host:5432/mydb
+  STACK_PROJECT_ID=proj_abc123
+```
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `--target <dir>` | Directory to scan (default: current directory) |
+| `--show-values`, `-v` | Show env variable values (masked by default) |
+| `--unmask` | Show full unmasked values (implies `--show-values`) |
+| `--format <type>` | Output format: `terminal`, `json`, `markdown` (default: `terminal`) |
+| `--output <file>` | Write output to file instead of stdout |
+| `-h`, `--help` | Show help message |
 
 ## What It Detects
 

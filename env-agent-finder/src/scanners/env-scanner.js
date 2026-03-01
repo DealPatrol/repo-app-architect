@@ -112,6 +112,14 @@ function extractEnvReferences(content, filePath) {
   return refs;
 }
 
+function stripQuotes(val) {
+  if ((val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))) {
+    return val.slice(1, -1);
+  }
+  return val;
+}
+
 function parseEnvFile(filePath) {
   const vars = [];
   try {
@@ -123,11 +131,13 @@ function parseEnvFile(filePath) {
       const eqIdx = line.indexOf("=");
       if (eqIdx > 0) {
         const name = line.substring(0, eqIdx).trim();
-        const value = line.substring(eqIdx + 1).trim();
+        const rawValue = line.substring(eqIdx + 1).trim();
+        const value = stripQuotes(rawValue);
         if (/^[A-Z_][A-Z0-9_]*$/.test(name)) {
           vars.push({
             name,
-            hasValue: value.length > 0 && value !== '""' && value !== "''",
+            value: value || null,
+            hasValue: value.length > 0,
             file: filePath,
             line: i + 1,
           });
@@ -170,25 +180,54 @@ async function scanEnvVars(targetDir) {
         service: known?.service || null,
         required: known?.required ?? null,
         hasValue: false,
+        value: null,
+        valueSource: null,
+        values: [],
       });
     }
     varMap.get(ref.name).references.push({ file: ref.file, line: ref.line });
   }
 
   for (const envVar of envFileVars) {
+    const relFile = path.relative(targetDir, envVar.file);
     if (!varMap.has(envVar.name)) {
       const known = WELL_KNOWN_SERVICES[envVar.name];
       varMap.set(envVar.name, {
         name: envVar.name,
-        references: [{ file: path.relative(targetDir, envVar.file), line: envVar.line }],
+        references: [{ file: relFile, line: envVar.line }],
         service: known?.service || null,
         required: known?.required ?? null,
         hasValue: envVar.hasValue,
+        value: envVar.value,
+        valueSource: envVar.hasValue ? relFile : null,
+        values: envVar.hasValue
+          ? [{ value: envVar.value, source: relFile }]
+          : [],
       });
     } else {
       const existing = varMap.get(envVar.name);
-      existing.hasValue = existing.hasValue || envVar.hasValue;
-      existing.references.push({ file: path.relative(targetDir, envVar.file), line: envVar.line });
+      existing.references.push({ file: relFile, line: envVar.line });
+      if (envVar.hasValue) {
+        existing.values.push({ value: envVar.value, source: relFile });
+        if (!existing.hasValue) {
+          existing.hasValue = true;
+          existing.value = envVar.value;
+          existing.valueSource = relFile;
+        }
+      }
+    }
+  }
+
+  // Also check live process.env for any vars we found in code
+  for (const [name, entry] of varMap) {
+    const liveValue = process.env[name];
+    if (liveValue !== undefined && liveValue.length > 0) {
+      entry.values.push({ value: liveValue, source: "process.env (runtime)" });
+      if (!entry.hasValue) {
+        entry.hasValue = true;
+        entry.value = liveValue;
+        entry.valueSource = "process.env (runtime)";
+      }
     }
   }
 
