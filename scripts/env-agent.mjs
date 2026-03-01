@@ -555,7 +555,10 @@ async function attemptVercelAutofetch(args) {
 
     let pullResult = await runPull()
 
-    if (!pullResult.ok && args.bootstrapVercel && hasInteractiveTty()) {
+    let bootstrapAttempted = false
+
+    if (!pullResult.ok && args.bootstrapVercel && !args.nonInteractive && hasInteractiveTty()) {
+      bootstrapAttempted = true
       const diagnostics = `${pullResult.stdout}\n${pullResult.stderr}`
       const bootstrapResult = await tryBootstrapVercel(runner, diagnostics)
       if (bootstrapResult.ok) {
@@ -575,7 +578,7 @@ async function attemptVercelAutofetch(args) {
         result.message =
           `Vercel CLI is not authenticated. Run \`${formatRunnerCommand(runner, [
             'login',
-          ])}\` then re-run.` + (args.bootstrapVercel ? ' (Auto-bootstrap attempted but did not complete.)' : '')
+          ])}\` then re-run.` + (bootstrapAttempted ? ' (Auto-bootstrap attempted but did not complete.)' : '')
         return result
       }
 
@@ -584,7 +587,7 @@ async function attemptVercelAutofetch(args) {
         result.message =
           `Project not linked to Vercel. Run \`${formatRunnerCommand(runner, [
             'link',
-          ])}\` then re-run.` + (args.bootstrapVercel ? ' (Auto-bootstrap attempted but did not complete.)' : '')
+          ])}\` then re-run.` + (bootstrapAttempted ? ' (Auto-bootstrap attempted but did not complete.)' : '')
         return result
       }
 
