@@ -157,10 +157,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
-                      {(member.name?.charAt(0) || 'U').toUpperCase()}
+                      U
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{member.name || 'Team Member'}</p>
+                      <p className="text-sm font-medium text-foreground truncate">Team Member</p>
                       <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
                     </div>
                   </div>
