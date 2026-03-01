@@ -3,7 +3,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import readline from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
@@ -100,6 +100,7 @@ Usage:
 Options:
   --no-autofetch              Disable provider autofetch attempts
   --include-agent-keys        Include helper keys used only for autofetch
+  --bootstrap-vercel          Auto-run Vercel login/link when needed (interactive)
   --scan-only                 Discover vars and print report (no writing)
   --non-interactive           Do not prompt for missing values
   --overwrite                 Prompt for keys even if already present in output file
@@ -112,6 +113,7 @@ Options:
 Examples:
   node scripts/env-agent.mjs --scan-only
   node scripts/env-agent.mjs --output .env.local
+  node scripts/env-agent.mjs --bootstrap-vercel
   node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
   node scripts/env-agent.mjs --include-agent-keys
   node scripts/env-agent.mjs --template-only --output .env.example.generated
@@ -121,6 +123,7 @@ function parseArgs(argv) {
   const args = {
     autofetch: true,
     includeAgentKeys: false,
+    bootstrapVercel: false,
     scanOnly: false,
     nonInteractive: false,
     overwrite: false,
@@ -146,6 +149,11 @@ function parseArgs(argv) {
 
     if (token === '--include-agent-keys') {
       args.includeAgentKeys = true
+      continue
+    }
+
+    if (token === '--bootstrap-vercel') {
+      args.bootstrapVercel = true
       continue
     }
 
@@ -355,22 +363,146 @@ function removeCliOptionPair(args, optionName) {
   return copy
 }
 
-async function runVercelCli(args, timeout = 120000) {
-  const directVersion = await runCommand('vercel', ['--version'], { timeout: 20000 })
-  if (directVersion.ok) {
-    return runCommand('vercel', args, { timeout })
+const VERCEL_RUNNER_CANDIDATES = [
+  { label: 'vercel', command: 'vercel', prefix: [] },
+  { label: 'npx vercel', command: 'npx', prefix: ['--yes', 'vercel'] },
+  { label: 'pnpm dlx vercel', command: 'pnpm', prefix: ['dlx', 'vercel'] },
+]
+
+function formatRunnerCommand(runner, args = []) {
+  return [runner.command, ...runner.prefix, ...args].join(' ')
+}
+
+function hasInteractiveTty() {
+  return Boolean(input.isTTY && output.isTTY)
+}
+
+async function resolveVercelRunner() {
+  const attempts = []
+
+  for (const candidate of VERCEL_RUNNER_CANDIDATES) {
+    const result = await runCommand(candidate.command, [...candidate.prefix, '--version'], { timeout: 120000 })
+    attempts.push({ candidate, result })
+
+    if (result.ok) {
+      return {
+        ok: true,
+        runner: candidate,
+        attempts,
+      }
+    }
   }
 
-  if (directVersion.errorCode !== 'ENOENT') {
-    return directVersion
+  return {
+    ok: false,
+    runner: null,
+    attempts,
+  }
+}
+
+async function runVercelCli(runner, args, timeout = 120000) {
+  return runCommand(runner.command, [...runner.prefix, ...args], { timeout })
+}
+
+function runInteractiveCommand(command, args, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd || process.cwd(),
+      env: options.env || process.env,
+      stdio: 'inherit',
+      shell: false,
+    })
+
+    child.on('error', (error) => {
+      resolve({
+        ok: false,
+        errorCode: typeof error.code === 'string' ? error.code : '',
+        errorMessage: error.message,
+      })
+    })
+
+    child.on('exit', (code, signal) => {
+      if (code === 0) {
+        resolve({
+          ok: true,
+          errorCode: '',
+          errorMessage: '',
+        })
+        return
+      }
+
+      resolve({
+        ok: false,
+        errorCode: signal || String(code ?? ''),
+        errorMessage: `Interactive command exited with code ${String(code ?? signal ?? 'unknown')}`,
+      })
+    })
+  })
+}
+
+async function runVercelCliInteractive(runner, args) {
+  return runInteractiveCommand(runner.command, [...runner.prefix, ...args])
+}
+
+function isVercelAuthFailure(diagnostics) {
+  return /not logged in|login required|run vercel login|no existing credentials|auth/i.test(diagnostics)
+}
+
+function isVercelLinkFailure(diagnostics) {
+  return /not linked|link this directory|run vercel link/i.test(diagnostics)
+}
+
+async function tryBootstrapVercel(runner, diagnostics) {
+  const needsLogin = isVercelAuthFailure(diagnostics)
+  const needsLink = isVercelLinkFailure(diagnostics)
+
+  if (!needsLogin && !needsLink) {
+    return { ok: false, message: '' }
   }
 
-  const npxVersion = await runCommand('npx', ['--yes', 'vercel', '--version'], { timeout: 120000 })
-  if (!npxVersion.ok) {
-    return npxVersion
+  if (needsLogin) {
+    output.write(`Vercel auth required. Running: ${formatRunnerCommand(runner, ['login'])}\n`)
+    const login = await runVercelCliInteractive(runner, ['login'])
+    if (!login.ok) {
+      return {
+        ok: false,
+        message: 'Vercel login did not complete successfully.',
+      }
+    }
   }
 
-  return runCommand('npx', ['--yes', 'vercel', ...args], { timeout })
+  if (needsLogin || needsLink) {
+    output.write(`Vercel project link required. Running: ${formatRunnerCommand(runner, ['link'])}\n`)
+    const link = await runVercelCliInteractive(runner, ['link'])
+    if (!link.ok) {
+      return {
+        ok: false,
+        message: 'Vercel project link did not complete successfully.',
+      }
+    }
+  }
+
+  return { ok: true, message: 'Bootstrapped Vercel authentication/linking.' }
+}
+
+function vercelRunnerInstallHelp() {
+  return 'Install/access Vercel CLI with one of: `npm i -g vercel`, `pnpm dlx vercel`, or `npx vercel`.'
+}
+
+function summarizeRunnerAttempts(attempts) {
+  if (!attempts || attempts.length === 0) {
+    return ''
+  }
+
+  const parts = attempts.map(({ candidate, result }) => {
+    if (result.ok) {
+      return `${candidate.label}: ok`
+    }
+    const detail = result.errorMessage || result.errorCode || 'failed'
+    return `${candidate.label}: ${detail}`
+  })
+
+  return parts.join(' | ')
 }
 
 async function attemptVercelAutofetch(args) {
@@ -387,6 +519,16 @@ async function attemptVercelAutofetch(args) {
   const tempEnvPath = path.join(tempDir, '.env.vercel.pull')
 
   try {
+    const runnerResolution = await resolveVercelRunner()
+    if (!runnerResolution.ok || !runnerResolution.runner) {
+      result.status = 'skipped'
+      result.message = `No Vercel CLI runner available. ${vercelRunnerInstallHelp()} (${summarizeRunnerAttempts(
+        runnerResolution.attempts
+      )})`
+      return result
+    }
+
+    const runner = runnerResolution.runner
     const pullArgs = ['env', 'pull', tempEnvPath, '--yes']
 
     if (args.vercelEnvironment) {
@@ -397,30 +539,52 @@ async function attemptVercelAutofetch(args) {
       pullArgs.push('--git-branch', args.vercelGitBranch)
     }
 
-    let pullResult = await runVercelCli(pullArgs, 180000)
+    const runPull = async () => {
+      let pull = await runVercelCli(runner, pullArgs, 180000)
+      if (
+        !pull.ok &&
+        args.vercelGitBranch &&
+        /unknown option|did you mean|unexpected argument/i.test(`${pull.stdout}\n${pull.stderr}`)
+      ) {
+        // Older CLI versions may not support branch-specific pulls.
+        const fallbackArgs = removeCliOptionPair(pullArgs, '--git-branch')
+        pull = await runVercelCli(runner, fallbackArgs, 180000)
+      }
+      return pull
+    }
 
-    // Older CLI versions may not support branch-specific pulls.
-    if (
-      !pullResult.ok &&
-      args.vercelGitBranch &&
-      /unknown option|did you mean|unexpected argument/i.test(`${pullResult.stdout}\n${pullResult.stderr}`)
-    ) {
-      const fallbackArgs = removeCliOptionPair(pullArgs, '--git-branch')
-      pullResult = await runVercelCli(fallbackArgs, 180000)
+    let pullResult = await runPull()
+
+    if (!pullResult.ok && args.bootstrapVercel && hasInteractiveTty()) {
+      const diagnostics = `${pullResult.stdout}\n${pullResult.stderr}`
+      const bootstrapResult = await tryBootstrapVercel(runner, diagnostics)
+      if (bootstrapResult.ok) {
+        pullResult = await runPull()
+      } else if (bootstrapResult.message) {
+        result.status = 'skipped'
+        result.message = bootstrapResult.message
+        return result
+      }
     }
 
     if (!pullResult.ok) {
       const diagnostics = `${pullResult.stdout}\n${pullResult.stderr}`
 
-      if (/not logged in|login required|run vercel login|no existing credentials/i.test(diagnostics)) {
+      if (isVercelAuthFailure(diagnostics)) {
         result.status = 'skipped'
-        result.message = 'Vercel CLI is not authenticated. Run `vercel login` then re-run.'
+        result.message =
+          `Vercel CLI is not authenticated. Run \`${formatRunnerCommand(runner, [
+            'login',
+          ])}\` then re-run.` + (args.bootstrapVercel ? ' (Auto-bootstrap attempted but did not complete.)' : '')
         return result
       }
 
-      if (/not linked|link this directory|run vercel link/i.test(diagnostics)) {
+      if (isVercelLinkFailure(diagnostics)) {
         result.status = 'skipped'
-        result.message = 'Project not linked to Vercel. Run `vercel link` then re-run.'
+        result.message =
+          `Project not linked to Vercel. Run \`${formatRunnerCommand(runner, [
+            'link',
+          ])}\` then re-run.` + (args.bootstrapVercel ? ' (Auto-bootstrap attempted but did not complete.)' : '')
         return result
       }
 

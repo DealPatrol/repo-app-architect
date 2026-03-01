@@ -190,8 +190,8 @@ What it does **not** do:
 Autofetch prerequisites:
 ```bash
 # For Vercel variables
-vercel login
-vercel link
+pnpm dlx vercel login
+pnpm dlx vercel link
 
 # Optional for Neon API autofetch
 export NEON_API_KEY=...
@@ -206,6 +206,9 @@ pnpm env:scan
 # setup with autofetch + prompts (writes .env.local)
 pnpm env:setup
 
+# setup with autofetch + auto-bootstrap vercel auth/link when needed
+pnpm env:setup:auto
+
 # setup with prompts only (disable autofetch)
 pnpm env:setup:manual
 
@@ -214,6 +217,9 @@ node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
 
 # include helper keys used by autofetch logic
 node scripts/env-agent.mjs --include-agent-keys
+
+# enable automatic Vercel login/link bootstrap in CLI mode
+node scripts/env-agent.mjs --bootstrap-vercel
 
 # generate template file without prompts
 node scripts/env-agent.mjs --template-only --non-interactive --output .env.example.generated

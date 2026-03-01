@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "env:scan": "node scripts/env-agent.mjs --scan-only",
     "env:setup": "node scripts/env-agent.mjs",
-    "env:setup:manual": "node scripts/env-agent.mjs --no-autofetch"
+    "env:setup:manual": "node scripts/env-agent.mjs --no-autofetch",
+    "env:setup:auto": "node scripts/env-agent.mjs --bootstrap-vercel"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

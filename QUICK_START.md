@@ -21,13 +21,16 @@ Check your Vercel project settings and ensure these are set:
 Optional helper command:
 ```bash
 pnpm env:setup
+# or to auto-bootstrap Vercel auth/link:
+pnpm env:setup:auto
 ```
 This scans the codebase, attempts autofetch from authenticated provider sessions (Vercel/Neon), then prompts for any remaining values before writing `.env.local`.
 Helper keys used only for autofetch are excluded by default unless you pass `--include-agent-keys`.
 
 For best automation:
 ```bash
-vercel login && vercel link
+pnpm dlx vercel login
+pnpm dlx vercel link
 # optional Neon API autofetch
 export NEON_API_KEY=...
 export NEON_PROJECT_ID=...
