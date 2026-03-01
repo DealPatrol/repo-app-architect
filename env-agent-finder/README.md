@@ -125,13 +125,88 @@ npx env-agent-finder --target ./my-project
 | Cache | Redis, Upstash |
 | Messaging | Twilio |
 
+## Setup Mode — Auto-Provision Your `.env`
+
+The killer feature: point it at any project and it **builds your `.env.local` for you**.
+
+### `--setup` (Interactive)
+
+Scans the project, auto-generates secrets and DB URLs, then walks you through each external service with step-by-step signup instructions and prompts you to paste your keys:
+
+```bash
+node src/cli.js --target ./my-project --setup
+```
+
+```
+════════════════════════════════════════════════════════════
+  ENV AGENT FINDER — Setup Mode
+════════════════════════════════════════════════════════════
+
+  Found 8 environment variable(s) needed.
+  Detected 4 service(s): PostgreSQL, Stripe, OpenAI, Auth.js
+
+⚡ AUTO-GENERATING values...
+────────────────────────────────────────
+  ✅ DATABASE_URL = postgresql://postgres:postgres@localhost:5432/app_dev
+  ✅ NEXTAUTH_SECRET = a8Kx9mP2qR7...
+  ✅ NEXTAUTH_URL = http://localhost:PORT
+
+🔑 STRIPE
+────────────────────────────────────────
+  How to get your keys:
+  1. Go to https://dashboard.stripe.com/register and create an account
+  2. Go to https://dashboard.stripe.com/apikeys
+  3. Copy your Publishable key → STRIPE_PUBLISHABLE_KEY
+  4. Copy your Secret key → STRIPE_SECRET_KEY
+
+  Enter STRIPE_SECRET_KEY (or press Enter to skip): sk_test_abc123
+  ✅ STRIPE_SECRET_KEY saved
+
+🔑 OPENAI
+────────────────────────────────────────
+  How to get your keys:
+  1. Go to https://platform.openai.com/api-keys
+  2. Click 'Create new secret key'
+
+  Enter OPENAI_API_KEY (or press Enter to skip): sk-proj-abc123
+  ✅ OPENAI_API_KEY saved
+
+════════════════════════════════════════════════════════════
+  SETUP COMPLETE — Written to: ./my-project/.env.local
+════════════════════════════════════════════════════════════
+```
+
+### `--auto` (Non-Interactive)
+
+Auto-generates everything it can (secrets, database URLs) without prompting. Perfect for CI or AI agents:
+
+```bash
+node src/cli.js --target ./my-project --auto
+```
+
+### What Gets Auto-Generated vs What You Need to Provide
+
+| Type | Example Variables | How It's Handled |
+|------|-------------------|------------------|
+| **Secrets** | `NEXTAUTH_SECRET`, `JWT_SECRET`, `AUTH_SECRET` | Auto-generated (random 48-char string) |
+| **Database URLs** | `DATABASE_URL`, `POSTGRES_URL`, `MONGODB_URI` | Auto-generated (local dev defaults) |
+| **App URLs** | `NEXTAUTH_URL`, `APP_URL` | Auto-generated (localhost dev URL) |
+| **API Keys** | `STRIPE_SECRET_KEY`, `OPENAI_API_KEY` | Interactive prompt with signup instructions |
+| **OAuth Creds** | `GOOGLE_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Interactive prompt with setup guide |
+| **Existing Values** | Any var already in `.env` | Kept as-is (never overwritten) |
+
+### Supported Services (with signup guides)
+
+Stripe, OpenAI, Anthropic, Clerk, Stack Auth, Supabase, Firebase, Vercel Blob, AWS S3, SendGrid, Resend, Sentry, Google OAuth, GitHub OAuth, Twilio, Cloudinary, Upstash Redis
+
 ## Use Cases
 
-- **AI Agents**: Automatically discover what env vars and services a project needs before setting up
-- **Onboarding**: Generate a setup checklist for new developers
-- **CI/CD**: Validate that all required secrets are configured
-- **Documentation**: Auto-generate env var docs for your README
-- **Security Audits**: Find all external service dependencies
+- **New project setup**: Clone a repo, run `--setup`, get a working `.env.local` in 60 seconds
+- **AI Agents**: Run `--auto` to provision env vars without human interaction
+- **Onboarding**: New developer? Run `--setup` and follow the guided prompts
+- **CI/CD**: Validate that all required secrets are configured with scan mode
+- **Documentation**: Auto-generate env var docs with `--format markdown`
+- **Security Audits**: Find all external service dependencies and API key usage
 
 ## License
 
