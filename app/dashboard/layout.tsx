@@ -1,117 +1,100 @@
-"use client"
+'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderKanban, Settings, Menu, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Layers, Github, BarChart3, FolderGit2, Sparkles } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/dashboard', label: 'Overview', icon: BarChart3 },
+  { href: '/dashboard/repositories', label: 'Repositories', icon: FolderGit2 },
+  { href: '/dashboard/analyses', label: 'Analyses', icon: Sparkles },
 ]
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card transition-transform duration-300 md:static md:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="border-b border-border px-6 py-4">
-            <Link href="/dashboard">
-              <h1 className="text-xl font-bold text-foreground">TaskFlow</h1>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+                <Layers className="h-5 w-5 text-background" />
+              </div>
+              <span className="font-semibold text-lg">App Architect</span>
+            </Link>
+            
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || 
+                  (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Link
+              href="https://github.com"
+              target="_blank"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github className="h-5 w-5" />
             </Link>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* User Section */}
-          <div className="border-t border-border px-3 py-4">
-            <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
-                U
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">User</p>
-                <p className="truncate text-xs text-muted-foreground">TaskFlow</p>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
-                <Link href="/dashboard/settings">
-                  <Settings className="h-4 w-4" />
-                  <span className="sr-only">Settings</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
         </div>
+      </header>
 
-        {/* Close button for mobile */}
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="absolute right-4 top-4 md:hidden"
-          aria-label="Close sidebar"
-        >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
-      </aside>
+      {/* Mobile Navigation */}
+      <nav className="md:hidden border-b border-border">
+        <div className="container mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || 
+              (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                  isActive
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="border-b border-border bg-card px-4 py-3 md:px-6">
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden"
-              aria-label="Open sidebar"
-            >
-              <Menu className="h-5 w-5 text-foreground" />
-            </button>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          {children}
-        </main>
-      </div>
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {children}
+      </main>
     </div>
   )
 }
