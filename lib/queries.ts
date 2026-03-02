@@ -89,11 +89,20 @@ export async function getProjectById(projectId: string): Promise<Project | null>
   return (projects[0] as Project) || null
 }
 
-export async function createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
+export async function createProject(data: {
+  name: string
+  description: string | null
+  slug: string
+  status: string
+  visibility: string
+  color: string
+  icon: string | null
+}): Promise<Project> {
   const sql = getDb()
+  // Create project without organization_id and created_by constraints for demo mode
   const result = await sql`
-    INSERT INTO projects (organization_id, name, description, slug, status, visibility, color, icon, created_by) 
-    VALUES (${data.organization_id}, ${data.name}, ${data.description}, ${data.slug}, ${data.status}, ${data.visibility}, ${data.color}, ${data.icon}, ${data.created_by}) 
+    INSERT INTO projects (name, description, slug, status, visibility, color, icon) 
+    VALUES (${data.name}, ${data.description}, ${data.slug}, ${data.status}, ${data.visibility}, ${data.color}, ${data.icon}) 
     RETURNING *
   `
   return result[0] as Project
