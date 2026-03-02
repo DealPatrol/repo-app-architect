@@ -1,7 +1,7 @@
 {
   "name": "env-agent-finder",
-  "version": "1.0.0",
-  "description": "CLI tool that scans any codebase to discover required environment variables, API endpoints, and service dependencies.",
+  "version": "2.0.0",
+  "description": "CLI + Web tool that scans projects, discovers env vars, auto-generates secrets, and grabs API keys from service dashboards via browser automation.",
   "main": "src/index.js",
   "bin": {
     "env-agent-finder": "src/cli.js"
@@ -10,7 +10,13 @@
     "start": "node src/server.js",
     "app": "node src/server.js",
     "scan": "node src/cli.js",
+    "grab": "node src/cli.js --grab",
+    "setup": "node src/cli.js --setup",
+    "generate-key": "node src/cli.js --generate-key",
     "test": "node src/cli.js --target ."
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.0.0"
   },
   "keywords": [
     "env",
@@ -19,7 +25,9 @@
     "scanner",
     "agent",
     "devops",
-    "cli"
+    "cli",
+    "browser-automation",
+    "api-keys"
   ],
   "license": "MIT",
   "engines": {
