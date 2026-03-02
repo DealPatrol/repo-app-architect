@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, MoreVertical, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import {
@@ -31,8 +32,10 @@ interface ProjectsPageProps {
 }
 
 export function ProjectsList({ projects }: ProjectsPageProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', description: '' });
 
   const filteredProjects = projects.filter(
@@ -44,13 +47,27 @@ export function ProjectsList({ projects }: ProjectsPageProps) {
   const handleCreateProject = async () => {
     if (!newProject.name.trim()) return;
 
+    setIsLoading(true);
     try {
-      // This will be connected to the API route
-      // For now, just reset the form
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProject),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to create project');
+      }
+
+      const project = await res.json();
       setNewProject({ name: '', description: '' });
       setIsOpen(false);
+      router.refresh();
+      router.push(`/dashboard/projects/${project.id}`);
     } catch (error) {
       console.error('Failed to create project:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,10 +112,19 @@ export function ProjectsList({ projects }: ProjectsPageProps) {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateProject}>Create Project</Button>
+              <Button onClick={handleCreateProject} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Project'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
