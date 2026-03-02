@@ -54,6 +54,26 @@ const AGENT_HELPER_KEYS = new Set([
   'NEON_IS_POOLED',
 ])
 
+const STACK_AUTH_REQUIRED_KEYS = [
+  'NEXT_PUBLIC_STACK_PROJECT_ID',
+  'NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY',
+  'NEXT_PUBLIC_STACK_PUBLISHED_CLIENT_KEY',
+  'STACK_SECRET_SERVER_KEY',
+  'STACK_PROJECT_ID',
+  'STACK_PUBLISHABLE_CLIENT_KEY',
+  'STACK_PUBLISHED_CLIENT_KEY',
+]
+
+const ENV_ALIAS_GROUPS = [
+  ['NEXT_PUBLIC_STACK_PROJECT_ID', 'STACK_PROJECT_ID'],
+  [
+    'NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY',
+    'NEXT_PUBLIC_STACK_PUBLISHED_CLIENT_KEY',
+    'STACK_PUBLISHABLE_CLIENT_KEY',
+    'STACK_PUBLISHED_CLIENT_KEY',
+  ],
+]
+
 const PROVIDER_HINTS = [
   {
     name: 'Neon',
@@ -70,7 +90,7 @@ const PROVIDER_HINTS = [
   {
     name: 'Stack Auth',
     url: 'https://docs.stack-auth.com',
-    matches: (key) => key.startsWith('STACK_'),
+    matches: (key) => key.startsWith('STACK_') || key.startsWith('NEXT_PUBLIC_STACK_'),
     note: 'Create a Stack Auth project and copy project/public/secret keys.',
   },
   {
@@ -349,6 +369,52 @@ function mergeValuesFromSource({
     targetValues.set(key, value)
     keySources.set(key, sourceName)
     applied += 1
+  }
+
+  return applied
+}
+
+function firstNonEmptyValue(values, keys) {
+  for (const key of keys) {
+    const value = values.get(key)
+    if (typeof value === 'string' && value.trim() !== '') {
+      return {
+        key,
+        value: value.trim(),
+      }
+    }
+  }
+
+  return null
+}
+
+function applyDerivedAliasValues(values, allowedKeys, keySources) {
+  let applied = 0
+
+  for (const group of ENV_ALIAS_GROUPS) {
+    const source = firstNonEmptyValue(values, group)
+    if (!source) {
+      continue
+    }
+
+    for (const aliasKey of group) {
+      if (!allowedKeys.has(aliasKey)) {
+        continue
+      }
+
+      const existingValue = values.get(aliasKey)
+      if (typeof existingValue === 'string' && existingValue.trim() !== '') {
+        continue
+      }
+
+      values.set(aliasKey, source.value)
+
+      if (!keySources.has(aliasKey)) {
+        keySources.set(aliasKey, `alias from ${source.key}`)
+      }
+
+      applied += 1
+    }
   }
 
   return applied
@@ -829,6 +895,18 @@ async function autofetchValues(report, currentValues, args) {
     details.push(neonCli)
   }
 
+  const aliasApplied = applyDerivedAliasValues(values, allowedKeys, keySources)
+  details.push({
+    provider: 'derived-aliases',
+    status: aliasApplied > 0 ? 'success' : 'skipped',
+    pulled: aliasApplied,
+    applied: aliasApplied,
+    message:
+      aliasApplied > 0
+        ? 'Filled equivalent env var names from discovered aliases.'
+        : 'No alias-based env values were applied.',
+  })
+
   return { values, details, keySources }
 }
 
@@ -1192,11 +1270,22 @@ async function run() {
   const rootDir = process.cwd()
   const files = await walkFiles(rootDir)
   const discoveredMap = new Map()
+  let usesStackAuth = false
 
   for (const filePath of files) {
     const content = await fs.readFile(filePath, 'utf8')
     const relativePath = toPosixPath(path.relative(rootDir, filePath))
     extractFromSource(content, relativePath, discoveredMap)
+
+    if (content.includes('@stack-auth/nextjs')) {
+      usesStackAuth = true
+    }
+  }
+
+  if (usesStackAuth) {
+    for (const key of STACK_AUTH_REQUIRED_KEYS) {
+      addMatch(discoveredMap, key, 'framework:stack-auth', 'stack-auth default requirement')
+    }
   }
 
   const discovered = filterAgentHelperKeys(Array.from(discoveredMap.values()), args.includeAgentKeys)

@@ -16,7 +16,9 @@ A fully functional, production-ready project management SaaS with:
 Check your Vercel project settings and ensure these are set:
 - `DATABASE_URL` - Your Neon PostgreSQL connection string
 - `BLOB_READ_WRITE_TOKEN` - Your Vercel Blob token
-- Stack Auth credentials (if not auto-configured)
+- `NEXT_PUBLIC_STACK_PROJECT_ID` - Your Stack project ID
+- `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY` - Your Stack publishable client key
+- `STACK_SECRET_SERVER_KEY` - Your Stack server key
 
 Optional helper command:
 ```bash
