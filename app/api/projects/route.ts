@@ -1,10 +1,9 @@
-import { createProject, getProjectsByOrganization } from '@/lib/queries'
+import { createProject, getAllProjects } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // TODO: Replace with real org ID from auth when auth is integrated
-    const projects = await getProjectsByOrganization('demo-org')
+    const projects = await getAllProjects()
     return NextResponse.json(projects)
   } catch (error) {
     console.error('Error fetching projects:', error)

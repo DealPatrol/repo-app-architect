@@ -71,6 +71,12 @@ export interface ActivityLog {
 }
 
 // Project queries
+export async function getAllProjects(): Promise<Project[]> {
+  const sql = getDb()
+  const projects = await sql`SELECT * FROM projects WHERE status != 'deleted' ORDER BY created_at DESC`
+  return projects as Project[]
+}
+
 export async function getProjectsByOrganization(orgId: string): Promise<Project[]> {
   const sql = getDb()
   const projects = await sql`SELECT * FROM projects WHERE organization_id = ${orgId} AND status != 'deleted' ORDER BY created_at DESC`
