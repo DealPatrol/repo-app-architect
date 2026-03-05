@@ -199,81 +199,6 @@ export function AppSuggestions({ suggestions, analysisId }: AppSuggestionsProps)
                     <FileText className="h-4 w-4 mr-2" />
                     Report
                   </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Partial Apps (Fast Cash) */}
-      {partialSuggestions.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-400" />
-            <h2 className="text-xl font-semibold text-foreground">Quick Wins</h2>
-            <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-700">
-              {partialSuggestions.filter(s => s.missing_files_count <= 3).length} apps
-            </Badge>
-          </div>
-
-          <div className="grid gap-4">
-            {partialSuggestions.map((app) => (
-              <Card key={app.app_name} className="p-6 border-yellow-900/30 hover:border-yellow-700 transition-all">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-foreground">{app.app_name}</h3>
-                      {app.fast_cash_label && (
-                        <Badge className="bg-yellow-900/30 text-yellow-400">{app.fast_cash_label}</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{app.description}</p>
-                  </div>
-                  <Code2 className="h-6 w-6 text-yellow-400/50 flex-shrink-0" />
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2 mb-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Missing Files</p>
-                    <p className="text-sm font-medium text-yellow-400">{app.missing_files_count} files</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Reusable Code</p>
-                    <p className="text-sm font-medium text-foreground">{app.reuse_percentage}%</p>
-                  </div>
-                </div>
-
-                {app.missing_files.length > 0 && (
-                  <div className="mb-4 p-3 rounded-lg bg-yellow-900/10 border border-yellow-900/20">
-                    <p className="text-xs text-yellow-400 font-medium mb-2">Missing to complete:</p>
-                    <ul className="text-xs text-yellow-400/80 space-y-1">
-                      {app.missing_files.slice(0, 3).map((file) => (
-                        <li key={file}>• {file}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-4 border-t border-border">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadBlueprint(app)}
-                    disabled={downloadingId === app.app_name}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Blueprint
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadPDF(app)}
-                    disabled={downloadingId === app.app_name}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Report
-                  </Button>
                   <Button
                     size="sm"
                     onClick={() => setCreatingRepoFor(app.app_name)}
@@ -288,7 +213,7 @@ export function AppSuggestions({ suggestions, analysisId }: AppSuggestionsProps)
         </section>
       )}
 
-      {/* Partial Apps (Fast Cash) */}
+      {/* Partial Apps (Quick Wins) */}
       {partialSuggestions.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center gap-2">
@@ -418,3 +343,4 @@ export function AppSuggestions({ suggestions, analysisId }: AppSuggestionsProps)
       </Dialog>
     </div>
   )
+}
