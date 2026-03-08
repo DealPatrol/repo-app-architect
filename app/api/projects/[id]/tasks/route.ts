@@ -35,10 +35,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: taskId } = await params
-
     const body = await request.json()
-    const { status } = body
+    const { status, taskId } = body
+
+    // id in this route is the project id; task id must be provided explicitly.
+    if (!taskId || typeof taskId !== 'string') {
+      return NextResponse.json({ error: 'taskId is required' }, { status: 400 })
+    }
+    if (!status || typeof status !== 'string') {
+      return NextResponse.json({ error: 'status is required' }, { status: 400 })
+    }
     const updatedTask = await updateTask(taskId, status)
 
     return NextResponse.json(updatedTask)

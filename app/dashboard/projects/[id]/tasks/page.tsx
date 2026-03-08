@@ -8,15 +8,27 @@ interface TasksPageProps {
   params: Promise<{ id: string }>;
 }
 
+const DEMO_PROJECTS = {
+  '1': { id: '1', name: 'Website Redesign' },
+  '2': { id: '2', name: 'Mobile App' },
+  '3': { id: '3', name: 'API Development' },
+} as const
+
 export default async function TasksPage({ params }: TasksPageProps) {
   const { id } = await params;
-  const project = await getProjectById(id);
+  let project = null
+  let tasks = []
+
+  try {
+    ;[project, tasks] = await Promise.all([getProjectById(id), getTasksByProject(id)])
+  } catch (error) {
+    console.error('[v0] Database connection error - showing demo task board:', error)
+    project = DEMO_PROJECTS[id as keyof typeof DEMO_PROJECTS] ?? null
+  }
 
   if (!project) {
     notFound();
   }
-
-  const tasks = await getTasksByProject(id);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
