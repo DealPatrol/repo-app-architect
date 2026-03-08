@@ -19,10 +19,10 @@ export default function HomePage() {
               Dashboard
             </Link>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard">
+              <a href={`https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`}>
                 <Github className="h-4 w-4 mr-2" />
-                Get Started
-              </Link>
+                Sign In
+              </a>
             </Button>
           </nav>
         </div>
@@ -47,16 +47,11 @@ export default function HomePage() {
 
           <div className="flex items-center justify-center gap-4 pt-4">
             <Button size="lg" asChild>
-              <Link href="/dashboard">
-                Get Started
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="https://github.com" target="_blank">
+              <a href={`https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`}>
                 <Github className="h-4 w-4 mr-2" />
-                View on GitHub
-              </Link>
+                Sign In with GitHub
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </a>
             </Button>
           </div>
         </div>
