@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'TaskFlow - Project Management',
-  description: 'Modern project and task management platform for teams',
+  title: 'App Architect - Discover Apps in Your Code',
+  description: 'AI-powered GitHub repository analyzer that discovers what apps you can build from your existing code',
   generator: 'v0.app',
   icons: {
     icon: [
