@@ -2,7 +2,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Github, Sparkles, Code2, Layers, ArrowRight } from 'lucide-react'
 
+const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL
+
 export default function HomePage() {
+  const getGitHubAuthUrl = () => {
+    if (!GITHUB_CLIENT_ID || !APP_URL) return '#'
+    return `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${APP_URL}/api/auth/github/callback`
+  }
+
+  const authUrl = getGitHubAuthUrl()
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -19,7 +29,7 @@ export default function HomePage() {
               Dashboard
             </Link>
             <Button variant="outline" size="sm" asChild>
-              <a href={`https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`}>
+              <a href={authUrl}>
                 <Github className="h-4 w-4 mr-2" />
                 Sign In
               </a>
@@ -47,7 +57,7 @@ export default function HomePage() {
 
           <div className="flex items-center justify-center gap-4 pt-4">
             <Button size="lg" asChild>
-              <a href={`https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`}>
+              <a href={authUrl}>
                 <Github className="h-4 w-4 mr-2" />
                 Sign In with GitHub
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -55,6 +65,98 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
+
+        {/* Feature Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mt-24 max-w-5xl mx-auto">
+          <div className="p-6 rounded-xl border border-border bg-card">
+            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
+              <Github className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Connect Repositories</h3>
+            <p className="text-muted-foreground text-sm">
+              Link your GitHub repos and we will scan all files to understand your codebase structure.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-xl border border-border bg-card">
+            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">AI Analysis</h3>
+            <p className="text-muted-foreground text-sm">
+              Our AI analyzes each file to identify its purpose, exports, and reusability potential.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-xl border border-border bg-card">
+            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
+              <Code2 className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">App Blueprints</h3>
+            <p className="text-muted-foreground text-sm">
+              Get detailed blueprints showing what apps you can build and what files you need to add.
+            </p>
+          </div>
+        </div>
+
+        {/* How It Works */}
+        <div className="mt-32 max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          <div className="space-y-8">
+            <div className="flex gap-6 items-start">
+              <div className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center font-bold flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Add Your Repositories</h3>
+                <p className="text-muted-foreground">
+                  Enter your GitHub repository URLs or connect via OAuth to import multiple repos at once.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-6 items-start">
+              <div className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center font-bold flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">AI Scans Your Code</h3>
+                <p className="text-muted-foreground">
+                  Our AI examines every file - components, utilities, hooks, APIs - identifying what each piece does and how reusable it is.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-6 items-start">
+              <div className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center font-bold flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Discover App Possibilities</h3>
+                <p className="text-muted-foreground">
+                  See a list of applications you can build using your existing code. Each blueprint shows which files to reuse and what few extras you might need.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border mt-24">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              <span>App Architect</span>
+            </div>
+            <p>Built with Next.js and Vercel AI SDK</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
 
         {/* Feature Cards */}
         <div className="grid md:grid-cols-3 gap-6 mt-24 max-w-5xl mx-auto">

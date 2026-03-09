@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +7,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')
 
     if (!code) {
-      return NextResponse.redirect(new URL('/auth/error?message=No+code+provided', request.url))
+      return NextResponse.redirect(new URL('/?error=no_code', request.url))
     }
 
     // Exchange code for access token
@@ -27,10 +26,17 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      return NextResponse.redirect(new URL('/auth/error?message=Failed+to+get+token', request.url))
+      console.error('[v0] Token response error:', tokenResponse.status)
+      return NextResponse.redirect(new URL('/?error=token_failed', request.url))
     }
 
-    const { access_token } = await tokenResponse.json()
+    const tokenData = await tokenResponse.json()
+    const access_token = tokenData.access_token
+
+    if (!access_token) {
+      console.error('[v0] No access token in response:', tokenData)
+      return NextResponse.redirect(new URL('/?error=no_token', request.url))
+    }
 
     // Get user info from GitHub
     const userResponse = await fetch('https://api.github.com/user', {
@@ -41,33 +47,40 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      return NextResponse.redirect(new URL('/auth/error?message=Failed+to+get+user', request.url))
+      console.error('[v0] User response error:', userResponse.status)
+      return NextResponse.redirect(new URL('/?error=user_failed', request.url))
     }
 
     const githubUser = await userResponse.json()
 
-    // Save/update user in database
-    const sql = getDb()
-    await sql`
-      INSERT INTO user_auth (github_id, github_username, github_avatar_url, access_token)
-      VALUES (${githubUser.id}, ${githubUser.login}, ${githubUser.avatar_url}, ${access_token})
-      ON CONFLICT (github_id) 
-      DO UPDATE SET 
-        access_token = ${access_token},
-        updated_at = CURRENT_TIMESTAMP
-    `
-
-    // Set session cookie
-    const response = NextResponse.redirect(new URL('/dashboard', request.url))
+    // Set session cookie with user data
+    const response = NextResponse.redirect(new URL('/dashboard/repositories', request.url))
+    
+    // Store user info and token in cookies
+    response.cookies.set('github_access_token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    })
+    
     response.cookies.set('github_user_id', String(githubUser.id), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    })
+
+    response.cookies.set('github_username', githubUser.login, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
     })
 
     return response
   } catch (error) {
-    console.error('OAuth callback error:', error)
-    return NextResponse.redirect(new URL('/auth/error?message=Server+error', request.url))
+    console.error('[v0] OAuth callback error:', error)
+    return NextResponse.redirect(new URL('/?error=server_error', request.url))
   }
 }
