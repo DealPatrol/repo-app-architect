@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const githubUser = await userResponse.json()
 
     // Set session cookie with user data
-    const response = NextResponse.redirect(new URL('/dashboard/repositories', request.url))
+    const response = NextResponse.redirect(new URL('/dashboard', request.url))
     
     // Store user info and token in cookies
     response.cookies.set('github_access_token', access_token, {
