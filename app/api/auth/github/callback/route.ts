@@ -11,6 +11,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange code for access token
+    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+
+    if (!clientId || !clientSecret || !appUrl) {
+      console.error('[v0] Missing OAuth environment variables')
+      return NextResponse.redirect(new URL('/?error=config_error', request.url))
+    }
+
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -18,16 +27,18 @@ export async function GET(request: NextRequest) {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GITHUB_CLIENT_ID,
-        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`,
+        redirect_uri: `${appUrl}/api/auth/github/callback`,
       }),
     })
 
     if (!tokenResponse.ok) {
-      console.error('[v0] Token response error:', tokenResponse.status)
-      return NextResponse.redirect(new URL('/?error=token_failed', request.url))
+      console.error('[v0] Token response error:', tokenResponse.status, tokenResponse.statusText)
+      const errorData = await tokenResponse.text()
+      console.error('[v0] Token error details:', errorData)
+      return NextResponse.json({ error: 'Failed to get token from GitHub' }, { status: 400 })
     }
 
     const tokenData = await tokenResponse.json()
@@ -35,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (!access_token) {
       console.error('[v0] No access token in response:', tokenData)
-      return NextResponse.redirect(new URL('/?error=no_token', request.url))
+      return NextResponse.json({ error: 'No access token received from GitHub' }, { status: 400 })
     }
 
     // Get user info from GitHub
@@ -47,14 +58,17 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error('[v0] User response error:', userResponse.status)
-      return NextResponse.redirect(new URL('/?error=user_failed', request.url))
+      console.error('[v0] User response error:', userResponse.status, userResponse.statusText)
+      return NextResponse.json({ error: 'Failed to get user info from GitHub' }, { status: 400 })
     }
 
     const githubUser = await userResponse.json()
+    
+    console.log('[v0] GitHub user authenticated:', githubUser.login)
 
     // Set session cookie with user data
-    const response = NextResponse.redirect(new URL('/dashboard', request.url))
+    const dashboardUrl = new URL('/dashboard', appUrl)
+    const response = NextResponse.redirect(dashboardUrl)
     
     // Store user info and token in cookies
     response.cookies.set('github_access_token', access_token, {
