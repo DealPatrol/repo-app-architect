@@ -69,28 +69,39 @@ Format as JSON array with objects containing these fields.`
 
     const appsData = JSON.parse(jsonMatch[0])
 
-    return appsData.map((app: any) => ({
-      name: app['App name'] || app.name,
-      description: app.Description || app.description,
-      type: app.Type || app.type,
-      reusablePercentage: calculateReusablePercentage(
-        app['Existing files'] || app.existingFiles || [],
-        app['Missing files'] || app.missingFiles || []
-      ),
-      missingFiles: app['Missing files'] || app.missingFiles || [],
-      existingFiles: app['Existing files'] || app.existingFiles || [],
-      estimatedBuildTime: app['Estimated build time'] || app.estimatedBuildTime,
-      technologies: app['Core technologies'] || app.technologies || [],
-      difficulty: (app['Difficulty level'] || app.difficulty || 'medium').toLowerCase() as 'easy' | 'medium' | 'hard',
-      explanation: app['Why this is a good idea'] || app.explanation || '',
-      fastCashLabel: (app['Missing files'] || app.missingFiles || []).length <= 2 ? 'QUICK WIN' : undefined,
-    }))
+    return appsData.map((app: any) => {
+      const existingFiles = app['Existing files'] || app.existingFiles || []
+      const missingFiles = app['Missing files'] || app.missingFiles || []
+      
+      // Parse missing files with detailed information
+      const parsedMissingFiles = Array.isArray(missingFiles) 
+        ? missingFiles.map((f: any) => typeof f === 'string' ? { name: f, description: 'Implementation needed', estimatedLines: 100 } : f)
+        : []
+      
+      const total = existingFiles.length + parsedMissingFiles.length
+      const completionPercentage = total > 0 ? Math.round((existingFiles.length / total) * 100) : 0
+      
+      return {
+        name: app['App name'] || app.name,
+        description: app.Description || app.description,
+        type: app.Type || app.type,
+        reusablePercentage: completionPercentage,
+        missingFiles: parsedMissingFiles,
+        existingFiles: existingFiles,
+        estimatedBuildTime: app['Estimated build time'] || app.estimatedBuildTime,
+        technologies: app['Core technologies'] || app.technologies || [],
+        difficulty: (app['Difficulty level'] || app.difficulty || 'medium').toLowerCase() as 'easy' | 'medium' | 'hard',
+        explanation: app['Why this is a good idea'] || app.explanation || '',
+        completionPercentage,
+        buildSteps: app['Build steps'] || app.buildSteps || [],
+        fastCashLabel: parsedMissingFiles.length <= 2 && completionPercentage >= 80 ? 'QUICK WIN' : undefined,
+      }
+    })
   } catch (error) {
     console.error('[v0] Error parsing Claude response:', content.text, error)
     return []
   }
 }
-
 function calculateReusablePercentage(existing: any[], missing: any[]): number {
   const total = existing.length + missing.length
   if (total === 0) return 0
