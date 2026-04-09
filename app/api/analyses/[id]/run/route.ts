@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { generateText, Output } from 'ai'
+import { openai } from '@ai-sdk/openai'
 import { z } from 'zod'
 import { 
   getAnalysisById, 
@@ -126,7 +127,7 @@ export async function POST(
 
         // Use AI to analyze and discover app blueprints
         const { output } = await generateText({
-          model: 'openai/gpt-4o-mini',
+          model: openai('gpt-4o-mini'),
           output: Output.object({ schema: AnalysisOutputSchema }),
           prompt: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
 

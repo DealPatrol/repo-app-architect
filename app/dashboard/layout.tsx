@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Github, BarChart3, FolderGit2, Sparkles } from 'lucide-react'
+import { Layers, Github, BarChart3, FolderGit2, Sparkles, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -61,6 +61,13 @@ export default function DashboardLayout({
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Github className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/api/auth/logout"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
             </Link>
           </div>
         </div>

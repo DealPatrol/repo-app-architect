@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
       fileStructure: generateFileStructure(app),
       setupInstructions: generateSetupInstructions(app),
-      dependencies: app.technologies.map(tech => ({
+      dependencies: app.technologies.map((tech: string) => ({
         name: tech,
         version: 'latest',
       })),

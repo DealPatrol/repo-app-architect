@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
-
-const model = 'openai/gpt-4-turbo'
+import { openai } from '@ai-sdk/openai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,10 +38,8 @@ Your task is to discover what applications could be built by combining files fro
 Return as JSON array of app suggestions. Focus on practical, buildable applications.`
 
     const result = await generateText({
-      model,
+      model: openai('gpt-4-turbo'),
       prompt,
-      temperature: 0.7,
-      maxTokens: 2000,
     })
 
     // Parse AI response and save suggestions
