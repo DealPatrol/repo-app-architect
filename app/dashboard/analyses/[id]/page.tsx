@@ -9,24 +9,24 @@ export default async function AnalysisPage({
 }) {
   const { id } = await params
 
-  let analysis, repositories, blueprints
-
   try {
-    analysis = await getAnalysisById(id)
+    const analysis = await getAnalysisById(id)
     if (!analysis) notFound()
 
-    repositories = await getRepositoriesForAnalysis(id)
-    blueprints = await getBlueprintsByAnalysis(id)
+    const [repositories, blueprints] = await Promise.all([
+      getRepositoriesForAnalysis(id),
+      getBlueprintsByAnalysis(id),
+    ])
+
+    return (
+      <AnalysisDetail
+        analysis={analysis}
+        repositories={repositories}
+        blueprints={blueprints}
+      />
+    )
   } catch {
     notFound()
   }
-
-  return (
-    <AnalysisDetail
-      analysis={analysis!}
-      repositories={repositories ?? []}
-      blueprints={blueprints ?? []}
-    />
-  )
 }
 
