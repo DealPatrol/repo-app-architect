@@ -1,69 +1,52 @@
-# Vercel Deployment Setup
+# CodeVault - Vercel Deployment Setup
 
-Your TaskFlow app is built and ready to deploy! Follow these steps to make it fully functional on Vercel:
+## 1. Set Environment Variables on Vercel
 
-## 1. **Set Environment Variables on Vercel**
+Go to your Vercel project → **Settings** → **Environment Variables** and add:
 
-The app needs the `DATABASE_URL` environment variable from your Neon database connection.
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
+| `NEXT_PUBLIC_APP_URL` | Your production URL (e.g. `https://codevault.vercel.app`) |
+| `OPENAI_API_KEY` | OpenAI API key for AI analysis |
 
-### Steps:
-1. Go to your Vercel project settings: https://vercel.com/projects
-2. Find your `repo-app-architect` project
-3. Click **Settings** → **Environment Variables**
-4. Add a new variable:
-   - **Name**: `DATABASE_URL`
-   - **Value**: Your Neon connection string (postgres://...)
-   
-   You can find your Neon connection string at:
-   - https://console.neon.tech/app/projects
-   - Select your project
-   - Copy the connection string from the "Connect" section
+## 2. Update GitHub OAuth App
 
-5. Click **Save** and **Redeploy**
+Once deployed, update your GitHub OAuth App callback URL:
 
-## 2. **What's Working Right Now**
+1. Go to https://github.com/settings/developers
+2. Edit your OAuth App
+3. Set **Authorization callback URL** to:
+   `https://your-app.vercel.app/api/auth/github/callback`
 
-✅ Full SaaS UI with dashboards, task boards, and analytics  
-✅ Database schema ready (Neon PostgreSQL)  
-✅ All API endpoints built  
-✅ Demo fallback (shows sample projects when DB not connected)  
-✅ Mobile-responsive design  
+## 3. Run Database Migration
 
-## 3. **After Setting DATABASE_URL**
+Run the schema SQL in your Neon console:
 
-Once you set the environment variable and redeploy, you'll be able to:
-
-- ✅ Create projects
-- ✅ Add tasks with drag-and-drop Kanban board
-- ✅ Manage team members
-- ✅ View analytics and activity logs
-- ✅ Upload files to tasks
-- ✅ Add comments and collaborate
-
-## 4. **Testing Locally**
-
-The app works perfectly locally! To test locally:
-
-```bash
-# Make sure DATABASE_URL is in your .env.local
-echo "DATABASE_URL=postgres://..." >> .env.local
-
-pnpm dev
+```sql
+-- Paste contents of scripts/01-create-schema.sql
 ```
 
-Visit http://localhost:3000/dashboard to see everything working.
+Or use psql:
 
-## 5. **Next Steps (Optional)**
+```bash
+psql $DATABASE_URL -f scripts/01-create-schema.sql
+```
 
-- Add authentication (Stack Auth is pre-configured)
-- Connect additional team members
-- Set up webhooks for notifications
-- Customize branding and theme
+## 4. Deploy
+
+```bash
+git push origin main
+```
+
+Vercel will automatically deploy on push.
 
 ## Troubleshooting
 
-**"No buttons work on Vercel"** → Set DATABASE_URL environment variable and redeploy  
-**"Projects aren't saving"** → Check that DATABASE_URL is set correctly in Vercel  
-**"Database connection error"** → Verify Neon project is still running at https://console.neon.tech
+**GitHub OAuth redirects fail** → Check `NEXT_PUBLIC_APP_URL` matches your Vercel URL exactly
 
-Need help? Check the docs at https://neon.tech/docs or reach out to support.
+**Database errors** → Verify `DATABASE_URL` is correct and Neon project is active
+
+**AI analysis fails** → Check `OPENAI_API_KEY` has sufficient credits

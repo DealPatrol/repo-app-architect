@@ -1,220 +1,107 @@
-# TaskFlow - Quick Start Guide
+# CodeVault Backend - Quick Start Guide
 
-## What You Have
+## Prerequisites
 
-A fully functional, production-ready project management SaaS with:
-- Database schema for projects, tasks, comments, attachments, and team management
-- Complete REST API with 8+ endpoints
-- Beautiful React UI with kanban board, analytics, and team collaboration
-- Real-time activity tracking
-- File upload capability with Vercel Blob
-- Dark theme with responsive mobile design
+- Node.js 20+ and pnpm
+- A [Neon](https://neon.tech) PostgreSQL database
+- A GitHub OAuth App (for GitHub integration)
+- An OpenAI API key (for AI analysis)
 
-## Essential Setup Steps
+## Setup Steps
 
-### 1. Verify Environment Variables
-Check your Vercel project settings and ensure these are set:
-- `DATABASE_URL` - Your Neon PostgreSQL connection string
-- `BLOB_READ_WRITE_TOKEN` - Your Vercel Blob token
-- Stack Auth credentials (if not auto-configured)
+### 1. Install Dependencies
 
-### 2. Database Ready
-The database schema is already created in Neon with:
-- All 6 tables set up
-- Indexes for performance
-- Foreign key relationships
-- Ready for data
+```bash
+pnpm install
+```
 
-### 3. Start Development Server
+### 2. Configure Environment Variables
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your values:
+
+```
+DATABASE_URL=postgresql://...          # From Neon dashboard
+GITHUB_CLIENT_ID=...                   # From GitHub OAuth App
+GITHUB_CLIENT_SECRET=...               # From GitHub OAuth App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+OPENAI_API_KEY=sk-...                  # From OpenAI dashboard
+```
+
+### 3. Create GitHub OAuth App
+
+1. Go to https://github.com/settings/developers
+2. Click **New OAuth App**
+3. Set **Authorization callback URL** to:
+   `http://localhost:3000/api/auth/github/callback`
+4. Copy the **Client ID** and generate a **Client Secret**
+
+### 4. Set Up the Database
+
+Run the migration in your Neon SQL Editor or with psql:
+
+```bash
+psql $DATABASE_URL -f scripts/01-create-schema.sql
+```
+
+This creates the following tables:
+- `user_auth` — GitHub OAuth users
+- `repositories` — Tracked repos
+- `repo_files` — Scanned files
+- `analyses` — Analysis runs
+- `analysis_repositories` — Junction table
+- `app_blueprints` — Discovered app ideas
+
+### 5. Start the Development Server
+
 ```bash
 pnpm dev
 ```
 
-Then navigate to:
-- **http://localhost:3000/dashboard** - Main app
-- **http://localhost:3000/dashboard/projects** - Projects list
-- **http://localhost:3000/dashboard/projects/[id]/tasks** - Kanban board
+Navigate to **http://localhost:3000** to see the app.
 
-## File Structure Overview
+## Key Pages
 
-```
-Key Files to Know:
+| URL | Description |
+|-----|-------------|
+| `/` | Landing page |
+| `/dashboard` | Overview stats |
+| `/dashboard/repositories` | Add and manage repos |
+| `/dashboard/analyses` | Create and run analyses |
+| `/dashboard/analyses/[id]` | Analysis results + blueprints |
 
-📂 /app
-  📂 /api - All your API endpoints
-    📂 /projects - Project CRUD
-    📂 /upload - File upload
-    
-  📂 /dashboard - User interface
-    📂 /projects/[id] - Project pages
+## How to Use
 
-📂 /components
-  kanban-board.tsx - Drag & drop tasks
-  task-comments.tsx - Task discussion
-  file-uploader.tsx - File uploads
-  analytics-dashboard.tsx - Charts & stats
-  
-📂 /lib
-  db.ts - Database connection
-  queries.ts - SQL queries
+1. **Add Repositories** — Go to Repositories and either paste a GitHub URL or connect via OAuth to import all your repos at once
 
-📂 /scripts
-  01-create-schema.sql - Database setup (already executed)
-```
+2. **Create Analysis** — Go to Analyses, click "New Analysis", select repositories, and give it a name
 
-## How to Extend
+3. **Run the Analysis** — Click "Run Analysis" to start AI scanning. Watch real-time progress via the SSE stream
 
-### Add a New Feature
-1. Create database migration if needed
-2. Add API route in `/app/api`
-3. Create React component in `/components`
-4. Add page in `/app/dashboard`
+4. **Explore Blueprints** — See what apps you can build! Each blueprint shows:
+   - What existing files you can reuse
+   - What files you're missing
+   - Estimated build effort
+   - Technologies needed
 
-### Add a New API Endpoint
-```typescript
-// /app/api/projects/[id]/new-feature/route.ts
-import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
-
-export async function GET(req, { params }) {
-  const result = await db.query('SELECT * FROM table WHERE id = $1', [params.id])
-  return NextResponse.json(result.rows)
-}
-```
-
-### Add a New Component
-```typescript
-// /components/my-component.tsx
-'use client'
-import { Button } from '@/components/ui/button'
-
-export function MyComponent() {
-  return <div>My Component</div>
-}
-```
-
-## Database Query Examples
-
-```typescript
-// Get projects for user
-const projects = await db.query(
-  'SELECT * FROM projects WHERE organization_id = $1',
-  [orgId]
-)
-
-// Get tasks with status
-const tasks = await db.query(
-  'SELECT * FROM tasks WHERE project_id = $1 AND status = $2',
-  [projectId, 'in_progress']
-)
-
-// Add comment
-const comment = await db.query(
-  `INSERT INTO task_comments (task_id, author_id, content)
-   VALUES ($1, $2, $3) RETURNING *`,
-  [taskId, userId, 'Comment text']
-)
-```
-
-## Available API Endpoints
-
-### Projects
-```
-GET    /api/projects
-POST   /api/projects
-GET    /api/projects/[id]
-PUT    /api/projects/[id]
-DELETE /api/projects/[id]
-```
-
-### Tasks
-```
-GET    /api/projects/[id]/tasks
-POST   /api/projects/[id]/tasks
-PUT    /api/projects/[id]/tasks/[taskId]
-DELETE /api/projects/[id]/tasks/[taskId]
-```
-
-### Comments
-```
-GET    /api/projects/[id]/tasks/[taskId]/comments
-POST   /api/projects/[id]/tasks/[taskId]/comments
-DELETE /api/projects/[id]/tasks/[taskId]/comments/[id]
-```
-
-### Attachments
-```
-GET    /api/projects/[id]/tasks/[taskId]/attachments
-POST   /api/projects/[id]/tasks/[taskId]/attachments
-DELETE /api/projects/[id]/tasks/[taskId]/attachments/[id]
-```
-
-### Team & Analytics
-```
-GET    /api/projects/[id]/members
-POST   /api/projects/[id]/members
-DELETE /api/projects/[id]/members/[id]
-
-GET    /api/projects/[id]/activity
-GET    /api/projects/[id]/analytics
-```
-
-## Component Hierarchy
-
-```
-<RootLayout>
-  <DashboardLayout>
-    ├── <Sidebar>
-    ├── <ProjectsList>
-    ├── <ProjectDetail>
-    │   ├── <KanbanBoard>
-    │   │   └── <TaskCard>
-    │   ├── <TaskDetail>
-    │   │   ├── <TaskComments>
-    │   │   └── <FileUploader>
-    │   ├── <AnalyticsDashboard>
-    │   │   └── <Charts>
-    │   └── <TeamSettings>
-```
-
-## Performance Tips
-
-1. **Database Queries**: Use the indexes on project_id, status, assigned_to
-2. **Images**: All tasks and projects use hex color codes (no images needed)
-3. **Caching**: Consider adding ISR for projects list
-4. **Pagination**: Implement for large task lists
+5. **Export or Build** — Download the blueprint JSON or click "Create Repo" to scaffold the project on GitHub
 
 ## Troubleshooting
 
-**Database Connection Error?**
-- Check DATABASE_URL is correct
-- Verify Neon project is active
-- Test connection string in psql
+**Database connection error?**
+- Check `DATABASE_URL` is correct
+- Verify your Neon project is active
 
-**Blob Upload Not Working?**
-- Verify BLOB_READ_WRITE_TOKEN is set
-- Check file size < 100MB
-- Ensure API route returns proper JSON
+**GitHub OAuth not working?**
+- Check `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
+- Verify the callback URL matches your OAuth App settings
+- For production, update `NEXT_PUBLIC_APP_URL`
 
-**Components Not Rendering?**
-- Check 'use client' directive for interactive components
-- Verify imports are correct
-- Check console for errors
-
-## What's Next?
-
-1. **Deploy to Vercel** - One-click deployment
-2. **Add Email Notifications** - Send task updates to team
-3. **Custom Workflows** - Automate task transitions
-4. **Mobile App** - React Native version
-5. **Integration APIs** - Slack, GitHub, Zapier
-
-## Support & Resources
-
-- **Documentation**: See README.md for full docs
-- **Database Schema**: See IMPLEMENTATION_SUMMARY.md
-- **Code Examples**: Check existing API routes and components
-
----
-
-You now have a production-grade SaaS! Start testing, customize colors/branding, and you're ready to sell. 🚀
+**AI analysis failing?**
+- Check `OPENAI_API_KEY` is set and has credits
+- Look at server logs for the specific error

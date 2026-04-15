@@ -5,29 +5,30 @@ import { getDb } from '@/lib/db'
 export async function initializeDemoData() {
   try {
     const sql = getDb()
-    
-    // Create a demo organization if it doesn't exist
-    const orgs = await sql`SELECT id FROM neon_auth.organization WHERE slug = 'demo'`
-    
-    let orgId = orgs[0]?.id
-    if (!orgId) {
-      const newOrg = await sql`INSERT INTO neon_auth.organization (name, slug) VALUES ('Demo Org', 'demo') RETURNING id`
-      orgId = newOrg[0].id
-    }
-    
-    // Create a demo project
-    const projects = await sql`SELECT id FROM projects WHERE organization_id = ${orgId} AND name = 'Welcome Project'`
-    
-    if (projects.length === 0) {
+
+    // Insert a demo repository if none exist
+    const existing = await sql`SELECT id FROM repositories LIMIT 1`
+
+    if (existing.length === 0) {
       await sql`
-        INSERT INTO projects (organization_id, name, description, slug, status, visibility, color, created_by)
-        VALUES (${orgId}, 'Welcome Project', 'Your first project - start by creating tasks!', 'welcome-project', 'active', 'private', '#3b82f6', ${orgId})
+        INSERT INTO repositories (github_id, name, full_name, description, url, default_branch, language, stars)
+        VALUES (
+          -1,
+          'demo-repo',
+          'demo-user/demo-repo',
+          'A sample repository to demonstrate CodeVault analysis',
+          'https://github.com/demo-user/demo-repo',
+          'main',
+          'TypeScript',
+          42
+        )
+        ON CONFLICT (github_id) DO NOTHING
       `
     }
-    
-    return { success: true, orgId }
+
+    return { success: true }
   } catch (error) {
-    console.error('[v0] Error initializing demo data:', error)
+    console.error('[CodeVault] Error initializing demo data:', error)
     return { success: false, error: String(error) }
   }
 }
