@@ -2,12 +2,16 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Github, ArrowRight, Check, X } from 'lucide-react'
 
-const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL
-
 function getGitHubAuthUrl() {
-  if (!GITHUB_CLIENT_ID || !APP_URL) return '/dashboard'
-  return `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${APP_URL}/api/auth/github/callback`
+  // Read all possible env var names — works for both NEXT_PUBLIC_ and server-only variants
+  const clientId =
+    process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ||
+    process.env.GITHUB_CLIENT_ID
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL
+  if (!clientId || !appUrl) return '/dashboard'
+  return `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo,read:user&redirect_uri=${appUrl}/api/auth/github/callback`
 }
 
 const stats = [
