@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { createRepository } from '@/lib/queries'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Fetch all repos from GitHub
-    const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+    // Fetch all repos from GitHub (including private repos via repo scope)
+    const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated&type=all', {
       headers: {
         'Authorization': `Bearer ${accessToken.value}`,
         'Accept': 'application/vnd.github+json',
@@ -25,20 +26,41 @@ export async function GET(request: NextRequest) {
 
     const repos = await reposResponse.json()
 
-    // Return repos with essential info
-    const repositoryList = repos.map((repo: any) => ({
-      github_id: repo.id,
-      name: repo.name,
-      full_name: repo.full_name,
-      description: repo.description,
-      url: repo.html_url,
-      language: repo.language,
-      stars: repo.stargazers_count,
-      default_branch: repo.default_branch,
-    }))
+    // Upsert each repo into the database and collect results with DB ids
+    const repositoryList = await Promise.all(
+      repos.map(async (repo: any) => {
+        try {
+          const saved = await createRepository({
+            github_id: repo.id,
+            name: repo.name,
+            full_name: repo.full_name,
+            description: repo.description,
+            url: repo.html_url,
+            default_branch: repo.default_branch,
+            language: repo.language,
+            stars: repo.stargazers_count,
+          })
+          return {
+            id: saved.id,
+            github_id: repo.id,
+            name: repo.name,
+            full_name: repo.full_name,
+            description: repo.description,
+            url: repo.html_url,
+            language: repo.language,
+            stars: repo.stargazers_count,
+            default_branch: repo.default_branch,
+          }
+        } catch (err) {
+          console.error('[v0] Error upserting repo:', repo.name, err)
+          return null
+        }
+      })
+    )
 
-    console.log('[v0] Fetched', repositoryList.length, 'repositories')
-    return NextResponse.json(repositoryList)
+    const filtered = repositoryList.filter(Boolean)
+    console.log('[v0] Fetched and saved', filtered.length, 'repositories')
+    return NextResponse.json(filtered)
   } catch (error) {
     console.error('[v0] Error fetching repos:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

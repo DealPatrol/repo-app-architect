@@ -7,7 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { FolderGit2, Sparkles, AlertCircle, Loader2 } from 'lucide-react'
 
 interface Repository {
-  id: number
+  id: string
+  github_id: number
   name: string
   full_name: string
   description: string | null
@@ -19,7 +20,7 @@ interface Repository {
 
 export function RepositorySelector() {
   const [repos, setRepos] = useState<Repository[]>([])
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,7 +42,7 @@ export function RepositorySelector() {
     }
   }
 
-  const toggleRepo = (id: number) => {
+  const toggleRepo = (id: string) => {
     const newSelected = new Set(selected)
     if (newSelected.has(id)) {
       newSelected.delete(id)
@@ -67,7 +68,7 @@ export function RepositorySelector() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: `Analysis - ${new Date().toLocaleDateString()}`,
-          repo_ids: Array.from(selected),
+          repositoryIds: Array.from(selected),
         }),
       })
 
