@@ -1,29 +1,74 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ArrowRight, Github, Sparkles, Zap, GitBranch, BarChart3, Plus } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ArrowRight, Github, Sparkles, Zap, GitBranch, BarChart3, Plus, CheckCircle2 } from 'lucide-react'
 
-const platforms = [
-  { name: 'GitHub', icon: Github, connected: true, repos: 24 },
-  { name: 'Vercel', icon: Zap, connected: false, repos: 0 },
-  { name: 'Replit', icon: GitBranch, connected: false, repos: 0 },
-]
+interface Repo {
+  github_id: number
+  name: string
+  full_name: string
+  description: string | null
+  language: string | null
+  stars: number
+}
 
-const recentIdeas = [
-  { name: 'SaaS Dashboard', match: 94, status: 'Ready to build', files: 12, missing: 1 },
-  { name: 'Auth Starter Kit', match: 88, status: 'Quick win', files: 8, missing: 2 },
-  { name: 'API Boilerplate', match: 76, status: 'Good match', files: 9, missing: 3 },
-]
+interface UserState {
+  username: string | null
+  repoCount: number
+  loading: boolean
+}
 
 export default function DashboardPage() {
+  const [user, setUser] = useState<UserState>({ username: null, repoCount: 0, loading: true })
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/github/repos')
+        if (res.ok) {
+          const repos: Repo[] = await res.json()
+          // Get username from the user API
+          const userRes = await fetch('/api/auth/me')
+          const userData = userRes.ok ? await userRes.json() : {}
+          setUser({ username: userData.username ?? null, repoCount: repos.length, loading: false })
+        } else {
+          setUser({ username: null, repoCount: 0, loading: false })
+        }
+      } catch {
+        setUser({ username: null, repoCount: 0, loading: false })
+      }
+    }
+    loadUser()
+  }, [])
+
+  const isConnected = !user.loading && user.username !== null
+
+  const platforms = [
+    { name: 'GitHub', icon: Github, connected: isConnected, repos: user.repoCount },
+    { name: 'Vercel', icon: Zap, connected: false, repos: 0 },
+    { name: 'Replit', icon: GitBranch, connected: false, repos: 0 },
+  ]
+
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-        <p className="text-sm text-muted-foreground mt-1">Connect platforms and discover what you can ship from your existing code.</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {user.loading ? (
+            <Skeleton className="h-7 w-48" />
+          ) : user.username ? (
+            <>Welcome back, <span className="text-cv-indigo">{user.username}</span></>
+          ) : (
+            'Overview'
+          )}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Connect platforms and discover what you can ship from your existing code.
+        </p>
       </div>
 
       {/* Stats row */}
@@ -31,79 +76,107 @@ export default function DashboardPage() {
         {[
           { label: 'Ideas found', value: '0' },
           { label: 'Ready to build', value: '0' },
-          { label: 'Platforms connected', value: '1' },
-          { label: 'Files scanned', value: '0' },
+          { label: 'Platforms connected', value: isConnected ? '1' : '0' },
+          { label: 'Repos scanned', value: user.loading ? '…' : String(user.repoCount) },
         ].map((s) => (
           <Card key={s.label} className="p-4 border-border bg-card">
-            <p className="text-2xl font-bold">{s.value}</p>
+            {user.loading ? (
+              <Skeleton className="h-7 w-12 mb-1" />
+            ) : (
+              <p className="text-2xl font-bold">{s.value}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
           </Card>
         ))}
       </div>
 
+      {/* Not logged in CTA */}
+      {!user.loading && !isConnected && (
+        <Card className="p-6 border border-amber-500/30 bg-amber-500/5">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold">Sign in with GitHub to get started</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Connect your GitHub account to scan your repos and discover apps you can build.
+              </p>
+            </div>
+            <Button asChild className="bg-foreground text-background hover:bg-foreground/90 shrink-0">
+              <a href={`https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`}>
+                <Github className="h-4 w-4 mr-2" />
+                Sign in with GitHub
+              </a>
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Platforms */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-foreground">Connected Platforms</h2>
-          <Button variant="ghost" size="sm" className="text-cv-indigo hover:text-cv-indigo h-7 text-xs gap-1">
-            <Plus className="h-3.5 w-3.5" /> Add platform
+          <Button variant="ghost" size="sm" className="text-accent hover:text-accent h-7 text-xs gap-1" asChild>
+            <Link href="/dashboard/repositories">
+              <Plus className="h-3.5 w-3.5" /> Add platform
+            </Link>
           </Button>
         </div>
         <div className="grid md:grid-cols-3 gap-3">
           {platforms.map((p) => (
             <Card
               key={p.name}
-              className={`p-4 border flex items-center gap-3 ${
+              className={`p-4 border flex items-center gap-3 transition-colors ${
                 p.connected ? 'border-cv-indigo-border bg-cv-indigo-dim' : 'border-border bg-card'
               }`}
             >
               <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 p.connected ? 'bg-cv-indigo/20' : 'bg-muted'
               }`}>
-                <p.icon className={`h-4 w-4 ${p.connected ? 'text-cv-indigo' : 'text-muted-foreground'}`} />
+                <p.icon className={`h-4 w-4 ${p.connected ? 'text-accent' : 'text-muted-foreground'}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {p.connected ? `${p.repos} repos connected` : 'Not connected'}
+                  {p.connected ? `${p.repos} repos` : 'Not connected'}
                 </p>
               </div>
-              {p.connected
-                ? <span className="text-xs text-cv-indigo font-mono">Active</span>
-                : (
-                  <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">
-                    Connect
-                  </Button>
-                )}
+              {p.connected ? (
+                <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
+              ) : (
+                <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">
+                  Connect
+                </Button>
+              )}
             </Card>
           ))}
         </div>
       </div>
 
-      {/* CTA to scan */}
-      <Card className="p-6 border border-cv-indigo-border bg-cv-indigo-dim">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="h-10 w-10 rounded-lg bg-cv-indigo/20 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="h-5 w-5 text-cv-indigo" />
+      {/* CTA to scan — only show when connected */}
+      {isConnected && (
+        <Card className="p-6 border border-cv-indigo-border bg-cv-indigo-dim">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-lg bg-cv-indigo/20 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Run your first scan</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Select repos to analyze and discover apps you can build. The average developer finds 7 ideas.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold">Run your first scan</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Select repos to analyze and discover apps you can build. The average developer finds 7 ideas.
-              </p>
-            </div>
+            <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground shrink-0 rounded-lg">
+              <Link href="/dashboard/repositories">
+                Start scanning
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
           </div>
-          <Button asChild className="bg-cv-indigo hover:bg-cv-indigo/90 text-white shrink-0 rounded-lg">
-            <Link href="/dashboard/repositories">
-              Start scanning
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
-        </div>
-      </Card>
+        </Card>
+      )}
 
-      {/* Recent ideas (placeholder) */}
+      {/* Recent ideas */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-foreground">Recent Ideas</h2>
@@ -112,55 +185,9 @@ export default function DashboardPage() {
           </Link>
         </div>
         <div className="rounded-xl border border-border overflow-hidden">
-          {recentIdeas.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground text-sm">
-              No ideas yet. Run a scan to discover what you can build.
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">App</th>
-                  <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden md:table-cell">Match</th>
-                  <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden md:table-cell">Status</th>
-                  <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Missing</th>
-                  <th className="px-4 py-2.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {recentIdeas.map((idea, i) => (
-                  <tr key={idea.name} className={`${i < recentIdeas.length - 1 ? 'border-b border-border' : ''} hover:bg-muted/20 transition-colors`}>
-                    <td className="px-4 py-3 font-medium">{idea.name}</td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full bg-muted max-w-16">
-                          <div className="h-1.5 rounded-full bg-cv-indigo" style={{ width: `${idea.match}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{idea.match}%</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${
-                        idea.match >= 90 ? 'bg-green-500/10 text-green-400' :
-                        idea.match >= 80 ? 'bg-cv-indigo-dim text-cv-indigo' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {idea.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{idea.missing} file{idea.missing !== 1 ? 's' : ''}</td>
-                    <td className="px-4 py-3">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-                        <Link href="/dashboard/analyses">
-                          View <ArrowRight className="h-3 w-3 ml-1" />
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <div className="p-12 text-center text-muted-foreground text-sm">
+            No ideas yet. Run a scan to discover what you can build.
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, GitBranch, Sparkles, Map, Settings, ChevronRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LayoutDashboard, GitBranch, Sparkles, Map, Settings, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -14,6 +15,14 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [username, setUsername] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.username) setUsername(d.username) })
+      .catch(() => {})
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -46,14 +55,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/dashboard/analyses"
-              className="hidden md:flex items-center gap-1.5 text-xs bg-cv-indigo/10 border border-cv-indigo-border text-cv-indigo px-3 py-1.5 rounded-full hover:bg-cv-indigo/20 transition-colors"
+              className="hidden md:flex items-center gap-1.5 text-xs bg-accent/10 border border-cv-indigo-border text-accent px-3 py-1.5 rounded-full hover:bg-accent/20 transition-colors"
             >
               <Sparkles className="h-3 w-3" />
               New Scan
             </Link>
-            <button className="h-7 w-7 rounded-full bg-cv-indigo-dim border border-cv-indigo-border flex items-center justify-center text-xs font-bold text-cv-indigo">
-              U
-            </button>
+            {username && (
+              <span className="hidden md:block text-xs text-muted-foreground font-mono">
+                @{username}
+              </span>
+            )}
+            <div className="h-7 w-7 rounded-full bg-accent/20 border border-cv-indigo-border flex items-center justify-center text-xs font-bold text-accent uppercase">
+              {username ? username[0] : 'U'}
+            </div>
+            <Link
+              href="/api/auth/signout"
+              className="hidden md:flex h-7 w-7 rounded-lg items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
       </header>
@@ -84,6 +105,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </nav>
 
           <div className="mt-auto px-3 pb-4 border-t border-border pt-4 space-y-0.5">
+            {username && (
+              <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground font-mono truncate">
+                <div className="h-5 w-5 rounded-full bg-accent/20 flex items-center justify-center text-accent text-[10px] font-bold uppercase flex-shrink-0">
+                  {username[0]}
+                </div>
+                @{username}
+              </div>
+            )}
             <Link
               href="/dashboard/settings"
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
@@ -92,8 +121,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Settings
             </Link>
             <Link
-              href="#pricing"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-cv-indigo hover:bg-cv-indigo-dim transition-colors"
+              href="/api/auth/signout"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Link>
+            <Link
+              href="/#pricing"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-accent hover:bg-accent/10 transition-colors"
             >
               <Sparkles className="h-3.5 w-3.5" />
               Upgrade to Pro
