@@ -11,6 +11,7 @@ Go to your Vercel project → **Settings** → **Environment Variables** and add
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 | `NEXT_PUBLIC_APP_URL` | Your production URL (e.g. `https://codevault.vercel.app`) |
 | `OPENAI_API_KEY` | OpenAI API key for AI analysis |
+| `ANTHROPIC_API_KEY` | Anthropic API key for scaffold generation |
 
 ## 2. Update GitHub OAuth App
 
@@ -50,3 +51,5 @@ Vercel will automatically deploy on push.
 **Database errors** → Verify `DATABASE_URL` is correct and Neon project is active
 
 **AI analysis fails** → Check `OPENAI_API_KEY` has sufficient credits
+
+**Scaffold generation fails** → Check `ANTHROPIC_API_KEY` is set and valid
