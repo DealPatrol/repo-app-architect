@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getDb } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const userIdCookie = cookieStore.get('github_user_id')
+    const accessTokenCookie = cookieStore.get('github_access_token')
+    const usernameCookie = cookieStore.get('github_username')
 
-    if (!userIdCookie) {
+    if (!accessTokenCookie) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -17,15 +17,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Repository name required' }, { status: 400 })
     }
 
-    const sql = getDb()
-    const user = await sql`SELECT * FROM user_auth WHERE github_id = ${parseInt(userIdCookie.value)}`
-
-    if (user.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const accessToken = user[0].access_token
-    const githubUsername = user[0].github_username
+    const accessToken = accessTokenCookie.value
+    const githubUsername = usernameCookie?.value || ''
 
     // Create repository on GitHub
     const createRepoRes = await fetch('https://api.github.com/user/repos', {

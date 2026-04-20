@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, FolderGit2, Code2, Sparkles, AlertCircle } from 'lucide-react'
 
 interface Repo {
+  id: string
   github_id: number
   name: string
   full_name: string
@@ -19,7 +20,7 @@ interface Repo {
 
 export function RepoPicker() {
   const [repos, setRepos] = useState<Repo[]>([])
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,12 +42,12 @@ export function RepoPicker() {
     fetchRepos()
   }, [])
 
-  const toggleRepo = (id: number) => {
+  const toggleRepo = (id: string) => {
     const newSelected = new Set(selected)
     if (newSelected.has(id)) {
       newSelected.delete(id)
     } else {
-      if (newSelected.size >= 20) return // Max 20 repos
+      if (newSelected.size >= 20) return
       newSelected.add(id)
     }
     setSelected(newSelected)
@@ -59,21 +60,20 @@ export function RepoPicker() {
     }
 
     setAnalyzing(true)
+    setError(null)
     try {
-      // Create a new analysis with selected repos
       const analysisRes = await fetch('/api/analyses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `Analysis - ${Array.from(selected).length} repos`,
-          repos: Array.from(selected),
+          name: `Analysis - ${selected.size} repos`,
+          repositoryIds: Array.from(selected),
         }),
       })
 
       if (!analysisRes.ok) throw new Error('Failed to create analysis')
       const analysis = await analysisRes.json()
 
-      // Redirect to analysis page
       window.location.href = `/dashboard/analyses/${analysis.id}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start analysis')
@@ -92,13 +92,23 @@ export function RepoPicker() {
     )
   }
 
+  if (error && repos.length === 0) {
+    return (
+      <Card className="border-red-900/30 bg-red-900/10 p-8 text-center">
+        <AlertCircle className="mx-auto h-10 w-10 text-red-400 mb-3" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load repositories</h3>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </Card>
+    )
+  }
+
   if (repos.length === 0) {
     return (
       <Card className="border-dashed p-8 text-center">
         <FolderGit2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-2">No repositories found</h3>
         <p className="text-sm text-muted-foreground">
-          Make sure you have public repositories on your GitHub account and that the OAuth app has the correct permissions.
+          Make sure you have repositories on your GitHub account and that you signed in with GitHub.
         </p>
       </Card>
     )
@@ -130,24 +140,24 @@ export function RepoPicker() {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {repos.map((repo) => (
           <Card
-            key={repo.github_id}
+            key={repo.id}
             className={`p-4 cursor-pointer transition-all ${
-              selected.has(repo.github_id)
+              selected.has(repo.id)
                 ? 'border-primary bg-primary/5'
                 : 'hover:border-muted-foreground/50'
             }`}
-            onClick={() => toggleRepo(repo.github_id)}
+            onClick={() => toggleRepo(repo.id)}
           >
             <div className="flex items-start gap-3">
               <Checkbox
-                checked={selected.has(repo.github_id)}
-                onChange={() => toggleRepo(repo.github_id)}
+                checked={selected.has(repo.id)}
+                onChange={() => toggleRepo(repo.id)}
                 className="mt-1"
               />
               <div className="min-w-0 flex-1">
                 <h3 className="font-medium text-foreground truncate">{repo.name}</h3>
                 <p className="text-xs text-muted-foreground truncate">{repo.full_name}</p>
-                
+
                 {repo.description && (
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{repo.description}</p>
                 )}
@@ -172,23 +182,22 @@ export function RepoPicker() {
       </div>
 
       <Card className="border-primary/20 bg-primary/5 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-foreground mb-1">Ready to discover apps?</h3>
-              <p className="text-sm text-muted-foreground">
-                AI will scan {selected.size} {selected.size === 1 ? 'repository' : 'repositories'} and find all possible applications you can build
-                {selected.size > 0 && selected.size <= 20 ? ' by combining their code' : ''}.
-              </p>
-            </div>
+        <div className="flex items-start gap-3 mb-4">
+          <Sparkles className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="font-semibold text-foreground mb-1">Ready to discover apps?</h3>
+            <p className="text-sm text-muted-foreground">
+              AI will scan {selected.size > 0 ? selected.size : 'your selected'}{' '}
+              {selected.size === 1 ? 'repository' : 'repositories'} and find all possible applications
+              you can build by combining their code.
+            </p>
           </div>
         </div>
 
         <Button
           onClick={handleAnalyze}
           disabled={selected.size < 2 || selected.size > 20 || analyzing}
-          className="mt-4 w-full md:w-auto"
+          className="w-full md:w-auto"
           size="lg"
         >
           {analyzing ? (
