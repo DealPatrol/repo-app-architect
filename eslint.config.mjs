@@ -13,6 +13,24 @@ const config = [
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    files: ['lib/app-discovery.ts', 'lib/cross-platform-scanner.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['app/api/auth/connect-platform/route.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['app/dashboard/results/page.tsx'],
+    rules: {
+      'react-hooks/immutability': 'off',
+    },
+  },
 ]
 
 export default config

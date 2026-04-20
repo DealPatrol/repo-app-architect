@@ -5,9 +5,9 @@ import { PLATFORMS } from '@/lib/platform-config'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Github, Zap, GitBranch, Code2, CheckCircle2 } from 'lucide-react'
+import { Github, Zap, GitBranch, Code2, CheckCircle2, type LucideIcon } from 'lucide-react'
 
-const platformIcons: Record<string, any> = {
+const platformIcons: Record<string, LucideIcon> = {
   github: Github,
   vercel: Zap,
   gitlab: GitBranch,
@@ -40,7 +40,7 @@ export function PlatformSelector() {
     authUrl.searchParams.set('redirect_uri', `${appUrl}/auth/callback?platform=${platformId}`)
     authUrl.searchParams.set('response_type', 'code')
 
-    window.location.href = authUrl.toString()
+    window.location.assign(authUrl.toString())
   }
 
   return (
