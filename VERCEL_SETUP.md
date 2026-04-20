@@ -1,19 +1,63 @@
 # CodeVault - Vercel Deployment Setup
 
-## 1. Set Environment Variables on Vercel
+## Option A: Vercel Native Integration (Simplest)
 
-Go to your Vercel project → **Settings** → **Environment Variables** and add:
+Connect your GitHub repo directly in the Vercel dashboard. No GitHub Actions needed.
+
+### 1. Set Environment Variables on Vercel
+
+Go to your Vercel project → **Settings** → **Environment Variables** and add all of these:
+
+| Variable | Environment | Description |
+|----------|-------------|-------------|
+| `DATABASE_URL` | Production, Preview, Development | Neon PostgreSQL connection string |
+| `GITHUB_CLIENT_ID` | Production, Preview, Development | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | Production, Preview, Development | GitHub OAuth App client secret |
+| `NEXT_PUBLIC_APP_URL` | Production | Your production URL (e.g. `https://codevault.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Preview | Leave blank — Vercel sets this automatically for previews |
+| `OPENAI_API_KEY` | Production, Preview | OpenAI API key for AI analysis |
+| `ANTHROPIC_API_KEY` | Production, Preview | Anthropic API key for scaffold generation |
+
+---
+
+## Option B: GitHub Actions Deployment
+
+If you prefer CI-driven deploys, the `.github/workflows/deploy.yml` workflow handles this.
+
+### 1. Get your Vercel IDs
+
+```bash
+npx vercel link        # links project and creates .vercel/project.json
+cat .vercel/project.json
+# → { "orgId": "...", "projectId": "..." }
+```
+
+### 2. Set GitHub Repository Secrets
+
+Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+
+| Secret | Where to find it |
+|--------|-----------------|
+| `VERCEL_TOKEN` | vercel.com/account/tokens → Create token |
+| `VERCEL_ORG_ID` | `.vercel/project.json` → `orgId` field |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` → `projectId` field |
+
+### 3. Set app environment variables in Vercel dashboard
+
+The workflow pulls env vars from Vercel automatically via `vercel pull`. Set these in Vercel → **Settings** → **Environment Variables**:
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | Neon PostgreSQL connection string |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
-| `NEXT_PUBLIC_APP_URL` | Your production URL (e.g. `https://codevault.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Your production URL |
 | `OPENAI_API_KEY` | OpenAI API key for AI analysis |
 | `ANTHROPIC_API_KEY` | Anthropic API key for scaffold generation |
 
-## 2. Update GitHub OAuth App
+---
+
+## Update GitHub OAuth App
 
 Once deployed, update your GitHub OAuth App callback URL:
 
@@ -22,7 +66,7 @@ Once deployed, update your GitHub OAuth App callback URL:
 3. Set **Authorization callback URL** to:
    `https://your-app.vercel.app/api/auth/github/callback`
 
-## 3. Run Database Migration
+## Run Database Migration
 
 Run the schema SQL in your Neon console:
 
@@ -36,14 +80,6 @@ Or use psql:
 psql $DATABASE_URL -f scripts/01-create-schema.sql
 ```
 
-## 4. Deploy
-
-```bash
-git push origin main
-```
-
-Vercel will automatically deploy on push.
-
 ## Troubleshooting
 
 **GitHub OAuth redirects fail** → Check `NEXT_PUBLIC_APP_URL` matches your Vercel URL exactly
@@ -53,3 +89,5 @@ Vercel will automatically deploy on push.
 **AI analysis fails** → Check `OPENAI_API_KEY` has sufficient credits
 
 **Scaffold generation fails** → Check `ANTHROPIC_API_KEY` is set and valid
+
+**GitHub Actions deploy fails** → Verify `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` are set as GitHub secrets
