@@ -27,7 +27,13 @@ interface AnalysisDetailProps {
   blueprints: AppBlueprint[]
 }
 
-const statusConfig = {
+const statusConfig: Record<Analysis['status'], {
+  icon: typeof Clock
+  label: string
+  color: string
+  spin?: boolean
+  pulse?: boolean
+}> = {
   pending: { icon: Clock, label: 'Pending', color: 'text-muted-foreground' },
   scanning: { icon: Loader2, label: 'Scanning repositories...', color: 'text-chart-1', spin: true },
   analyzing: { icon: Sparkles, label: 'AI analyzing files...', color: 'text-chart-1', pulse: true },
@@ -194,7 +200,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
             <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">Ready to analyze</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Click "Run Analysis" to let AI discover what applications you can build from your code.
+              Click Run Analysis to let AI discover what applications you can build from your code.
             </p>
             <Button onClick={runAnalysis}>
               <Sparkles className="h-4 w-4 mr-2" />

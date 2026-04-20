@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+interface TemplateApp {
+  app_name: string
+  app_type: string
+  description: string
+  technologies: string[]
+  difficulty_level: string
+  ai_explanation: string
+  missing_files: string[]
+}
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -11,7 +21,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { app, repoName } = await request.json()
+    const { app, repoName } = (await request.json()) as {
+      app: TemplateApp
+      repoName: string
+    }
 
     if (!repoName || repoName.trim().length === 0) {
       return NextResponse.json({ error: 'Repository name required' }, { status: 400 })
@@ -96,7 +109,7 @@ async function createFileInRepo(
   )
 }
 
-function generateTemplateFiles(app: any): Record<string, string> {
+function generateTemplateFiles(app: TemplateApp): Record<string, string> {
   return {
     'README.md': `# ${app.app_name}
 

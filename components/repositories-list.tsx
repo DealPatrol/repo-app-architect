@@ -1,69 +1,174 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { FolderGit2, Plus, ExternalLink, Trash2, Loader2, Star, GitBranch } from 'lucide-react'
+  ExternalLink,
+  FolderGit2,
+  Github,
+  GitBranch,
+  Loader2,
+  Plus,
+  ShieldCheck,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import type { Repository } from '@/lib/queries'
 
 interface RepositoriesListProps {
   repositories: Repository[]
 }
 
+interface AuthStatus {
+  authenticated: boolean
+  user?: {
+    github_id: number
+    github_username: string
+    github_avatar_url: string | null
+  }
+  error?: string
+}
+
+interface GitHubRepository {
+  id: number
+  name: string
+  full_name: string
+  description: string | null
+  url: string
+  language: string | null
+  stars: number
+  default_branch: string
+  private: boolean
+}
+
 export function RepositoriesList({ repositories }: RepositoriesListProps) {
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [repoUrl, setRepoUrl] = useState('')
+  const searchParams = useSearchParams()
+  const [auth, setAuth] = useState<AuthStatus | null>(null)
+  const [githubRepos, setGitHubRepos] = useState<GitHubRepository[]>([])
+  const [selectedRepos, setSelectedRepos] = useState<number[]>([])
+  const [loadingAuth, setLoadingAuth] = useState(true)
+  const [loadingGitHubRepos, setLoadingGitHubRepos] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [manualUrl, setManualUrl] = useState('')
+  const [addingManualRepo, setAddingManualRepo] = useState(false)
   const [error, setError] = useState('')
 
-  const handleAddRepository = async () => {
-    if (!repoUrl.trim()) {
+  const importedGithubIds = useMemo(
+    () => new Set(repositories.map((repo) => repo.github_id)),
+    [repositories],
+  )
+  const oauthError = searchParams.get('error')
+  const oauthConnected = searchParams.get('connected')
+
+  const loadGitHubRepos = useCallback(async () => {
+    setLoadingGitHubRepos(true)
+    setError('')
+    try {
+      const res = await fetch('/api/github/repos', { cache: 'no-store' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Failed to load GitHub repositories' }))
+        throw new Error(data.error || 'Failed to load GitHub repositories')
+      }
+
+      const data = await res.json()
+      setGitHubRepos(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load GitHub repositories')
+    } finally {
+      setLoadingGitHubRepos(false)
+    }
+  }, [])
+
+  const loadAuthStatus = useCallback(async () => {
+    setLoadingAuth(true)
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' })
+      if (!res.ok) {
+        setAuth({ authenticated: false })
+        return
+      }
+
+      const data = await res.json()
+      setAuth(data)
+      if (data.authenticated) {
+        await loadGitHubRepos()
+      }
+    } catch (err) {
+      setAuth({ authenticated: false, error: err instanceof Error ? err.message : 'Failed to load auth status' })
+    } finally {
+      setLoadingAuth(false)
+    }
+  }, [loadGitHubRepos])
+
+  useEffect(() => {
+    void loadAuthStatus()
+  }, [loadAuthStatus])
+
+  const handleImportSelected = async () => {
+    const reposToImport = selectedRepos.filter((id) => !importedGithubIds.has(id))
+    if (reposToImport.length === 0) {
+      setError('Select at least one repository that has not already been imported.')
+      return
+    }
+
+    setImporting(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/repositories/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repositoryIds: reposToImport }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Failed to import repositories' }))
+        throw new Error(data.error || 'Failed to import repositories')
+      }
+
+      setSelectedRepos([])
+      router.refresh()
+      await loadGitHubRepos()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to import repositories')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleManualAdd = async () => {
+    if (!manualUrl.trim()) {
       setError('Please enter a repository URL')
       return
     }
 
-    // Parse GitHub URL
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/i)
-    if (!match) {
-      setError('Please enter a valid GitHub repository URL')
-      return
-    }
-
-    setIsLoading(true)
+    setAddingManualRepo(true)
     setError('')
 
     try {
       const res = await fetch('/api/repositories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: repoUrl }),
+        body: JSON.stringify({ url: manualUrl.trim() }),
       })
 
       if (!res.ok) {
-        const data = await res.json()
+        const data = await res.json().catch(() => ({ error: 'Failed to add repository' }))
         throw new Error(data.error || 'Failed to add repository')
       }
 
-      setRepoUrl('')
-      setIsOpen(false)
+      setManualUrl('')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add repository')
     } finally {
-      setIsLoading(false)
+      setAddingManualRepo(false)
     }
   }
 
@@ -76,130 +181,226 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
         router.refresh()
       }
     } catch {
-      // Handle error silently
+      setError('Failed to remove repository')
     }
   }
 
+  const toggleSelection = (id: number) => {
+    setSelectedRepos((current) =>
+      current.includes(id) ? current.filter((repoId) => repoId !== id) : [...current, id],
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-          <p className="text-muted-foreground">Connect your GitHub repositories for analysis.</p>
+          <p className="text-muted-foreground">Sign in with GitHub, import repositories, and track them in CodeVault.</p>
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Repository
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Repository</DialogTitle>
-              <DialogDescription>
-                Enter the URL of a public GitHub repository to add it for analysis.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="repo-url">Repository URL</Label>
-                <Input
-                  id="repo-url"
-                  placeholder="https://github.com/owner/repo"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  disabled={isLoading}
-                />
-                {error && <p className="text-sm text-destructive">{error}</p>}
-              </div>
+        {loadingAuth ? (
+          <Button variant="outline" disabled>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Checking GitHub
+          </Button>
+        ) : auth?.authenticated ? (
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">@{auth.user?.github_username}</span>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddRepository} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Repository'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' })
+                setAuth({ authenticated: false })
+                setGitHubRepos([])
+                setSelectedRepos([])
+              }}
+            >
+              Sign out
+            </Button>
+          </div>
+        ) : (
+          <Button asChild>
+            <a href="/api/auth/github/login">
+              <Github className="h-4 w-4 mr-2" />
+              Sign in with GitHub
+            </a>
+          </Button>
+        )}
       </div>
 
-      {/* Repository List */}
-      {repositories.length === 0 ? (
-        <Card className="border-dashed p-12 text-center">
-          <FolderGit2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No repositories connected</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Add your first GitHub repository to start discovering what apps you can build.
-          </p>
-          <Button onClick={() => setIsOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First Repository
-          </Button>
+      {(oauthConnected || error || auth?.error || oauthError) && (
+        <Card className={oauthConnected ? 'border-primary/30 bg-primary/5 p-4 text-sm text-primary' : 'border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'}>
+          {oauthConnected
+            ? 'GitHub connected successfully. You can import repositories now.'
+            : error || auth?.error || `GitHub sign-in failed: ${oauthError}`}
         </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {repositories.map((repo) => (
-            <Card key={repo.id} className="p-5 group">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                  <FolderGit2 className="h-5 w-5" />
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    asChild
-                  >
-                    <a href={repo.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(repo.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <h3 className="font-semibold text-foreground mb-1">{repo.name}</h3>
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                {repo.description || 'No description'}
-              </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {repo.language && (
-                  <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-chart-1" />
-                    {repo.language}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <Star className="h-3 w-3" />
-                  {repo.stars}
-                </span>
-                <span className="flex items-center gap-1">
-                  <GitBranch className="h-3 w-3" />
-                  {repo.default_branch}
-                </span>
-              </div>
-            </Card>
-          ))}
-        </div>
       )}
+
+      <Card className="p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">GitHub import</h2>
+            <p className="text-sm text-muted-foreground">
+              Connect GitHub to import public and private repositories directly into the app.
+            </p>
+          </div>
+          {auth?.authenticated ? (
+            <Button variant="outline" onClick={() => void loadGitHubRepos()} disabled={loadingGitHubRepos}>
+              {loadingGitHubRepos ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
+            </Button>
+          ) : null}
+        </div>
+
+        {!auth?.authenticated ? (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+            <h3 className="font-semibold text-foreground">Connect your GitHub account</h3>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+              Once you sign in, CodeVault can read your repositories and show what you can build from the code you already own.
+            </p>
+            <Button className="mt-4" asChild>
+              <a href="/api/auth/github/login">
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Continue with GitHub
+              </a>
+            </Button>
+          </div>
+        ) : loadingGitHubRepos ? (
+          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Loading repositories from GitHub...
+          </div>
+        ) : githubRepos.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+            <h3 className="font-semibold text-foreground">No GitHub repositories found</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We could not find any repositories on the connected GitHub account yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{githubRepos.length} repositories available from GitHub</span>
+              <span>{selectedRepos.length} selected</span>
+            </div>
+            <div className="grid gap-3">
+              {githubRepos.map((repo) => {
+                const alreadyImported = importedGithubIds.has(repo.id)
+                return (
+                  <Card key={repo.id} className="p-4">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox
+                        checked={alreadyImported || selectedRepos.includes(repo.id)}
+                        disabled={alreadyImported || importing}
+                        onCheckedChange={() => toggleSelection(repo.id)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-foreground">{repo.full_name}</span>
+                          {repo.private ? (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Private</span>
+                          ) : null}
+                          {alreadyImported ? (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Imported</span>
+                          ) : null}
+                        </div>
+                        {repo.description ? (
+                          <p className="mt-1 text-sm text-muted-foreground">{repo.description}</p>
+                        ) : null}
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          {repo.language ? <span>{repo.language}</span> : null}
+                          <span className="flex items-center gap-1"><Star className="h-3 w-3" />{repo.stars}</span>
+                          <span className="flex items-center gap-1"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
+                        </div>
+                      </div>
+                    </label>
+                  </Card>
+                )
+              })}
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleImportSelected} disabled={importing || selectedRepos.length === 0}>
+                {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                Import selected repositories
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Tracked repositories</h2>
+          <p className="text-sm text-muted-foreground">These are the repositories CodeVault can analyze right now.</p>
+        </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="manual-repo-url">Add a public repository by URL</Label>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Input
+              id="manual-repo-url"
+              value={manualUrl}
+              onChange={(event) => setManualUrl(event.target.value)}
+              placeholder="https://github.com/owner/repo"
+              disabled={addingManualRepo}
+            />
+            <Button onClick={handleManualAdd} disabled={addingManualRepo}>
+              {addingManualRepo ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Add repository
+            </Button>
+          </div>
+        </div>
+
+        {repositories.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-10 text-center">
+            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+            <h3 className="font-semibold text-foreground">No repositories imported yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Import repositories from GitHub above, or add a public repository URL manually.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {repositories.map((repo) => (
+              <Card key={repo.id} className="group p-5">
+                <div className="mb-3 flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                    <FolderGit2 className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                      <a href={repo.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(repo.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <h3 className="mb-1 font-semibold text-foreground">{repo.name}</h3>
+                <p className="mb-1 text-xs text-muted-foreground">{repo.full_name}</p>
+                <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                  {repo.description || 'No description'}
+                </p>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  {repo.language ? <span>{repo.language}</span> : null}
+                  <span className="flex items-center gap-1"><Star className="h-3 w-3" />{repo.stars}</span>
+                  <span className="flex items-center gap-1"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

@@ -232,6 +232,11 @@ export async function getBlueprintsByAnalysis(analysisId: string): Promise<AppBl
   return blueprints as AppBlueprint[]
 }
 
+export async function deleteBlueprintsByAnalysis(analysisId: string): Promise<void> {
+  const sql = getDb()
+  await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId}`
+}
+
 export async function createBlueprint(data: {
   analysis_id: string
   name: string

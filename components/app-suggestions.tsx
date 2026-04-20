@@ -56,7 +56,7 @@ export function AppSuggestions({ suggestions, analysisId }: AppSuggestionsProps)
       a.href = url
       a.download = `${app.app_name.toLowerCase().replace(/\s+/g, '-')}-blueprint.json`
       a.click()
-    } catch (err) {
+    } catch {
       alert('Failed to download blueprint')
     } finally {
       setDownloadingId(null)
@@ -77,7 +77,7 @@ export function AppSuggestions({ suggestions, analysisId }: AppSuggestionsProps)
       a.href = url
       a.download = `${app.app_name.toLowerCase().replace(/\s+/g, '-')}-report.pdf`
       a.click()
-    } catch (err) {
+    } catch {
       alert('Failed to download PDF')
     } finally {
       setDownloadingId(null)

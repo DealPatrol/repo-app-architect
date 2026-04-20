@@ -1,18 +1,8 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Github, Sparkles, Code2, Layers, ArrowRight, Zap, GitBranch } from 'lucide-react'
-
-const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL
+import { Github, Sparkles, Code2, Layers, ArrowRight } from 'lucide-react'
 
 export default function HomePage() {
-  const getGitHubAuthUrl = () => {
-    if (!GITHUB_CLIENT_ID || !APP_URL) return '#'
-    return `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${APP_URL}/api/auth/github/callback`
-  }
-
-  const authUrl = getGitHubAuthUrl()
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -20,7 +10,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
-              <Zap className="h-5 w-5 text-background" />
+              <Layers className="h-5 w-5 text-background" />
             </div>
             <span className="font-semibold text-lg">CodeVault</span>
           </div>
@@ -29,10 +19,10 @@ export default function HomePage() {
               Dashboard
             </Link>
             <Button variant="outline" size="sm" asChild>
-              <a href={authUrl}>
+              <Link href="/api/auth/github/login">
                 <Github className="h-4 w-4 mr-2" />
-                Sign In
-              </a>
+                Sign in with GitHub
+              </Link>
             </Button>
           </nav>
         </div>
@@ -43,44 +33,30 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/50 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4" />
-            Multi-Platform Code Intelligence
+            AI-Powered Code Analysis
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">
-            Ship 5 Apps in 7 Days
+            Discover Apps Hidden in Your Code
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-            Connect all your code platforms. Let AI discover which applications you can build from your existing code. Get ready-to-run scaffolds and ship immediately.
+            Connect your GitHub repositories and let AI analyze your codebase to discover 
+            what applications you can build by combining existing files and components.
           </p>
 
           <div className="flex items-center justify-center gap-4 pt-4">
             <Button size="lg" asChild>
-              <a href={authUrl}>
-                <Github className="h-4 w-4 mr-2" />
-                Sign In with GitHub
+              <Link href="/api/auth/github/login">
+                Sign in with GitHub
                 <ArrowRight className="h-4 w-4 ml-2" />
-              </a>
+              </Link>
             </Button>
-          </div>
-
-          {/* Platform Icons */}
-          <div className="flex items-center justify-center gap-4 pt-8">
-            <div className="text-xs text-muted-foreground">Supported platforms:</div>
-            <div className="flex gap-3">
-              <div className="p-2 rounded-lg bg-card border border-border">
-                <Github className="h-4 w-4" />
-              </div>
-              <div className="p-2 rounded-lg bg-card border border-border">
-                <Code2 className="h-4 w-4" />
-              </div>
-              <div className="p-2 rounded-lg bg-card border border-border">
-                <GitBranch className="h-4 w-4" />
-              </div>
-              <div className="p-2 rounded-lg bg-card border border-border">
-                <Zap className="h-4 w-4" />
-              </div>
-            </div>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/dashboard/repositories">
+                Open Dashboard
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -88,11 +64,11 @@ export default function HomePage() {
         <div className="grid md:grid-cols-3 gap-6 mt-24 max-w-5xl mx-auto">
           <div className="p-6 rounded-xl border border-border bg-card">
             <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
-              <Layers className="h-6 w-6" />
+              <Github className="h-6 w-6" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Multi-Platform Connect</h3>
+            <h3 className="font-semibold text-lg mb-2">Connect Repositories</h3>
             <p className="text-muted-foreground text-sm">
-              Connect GitHub, Vercel, Replit, GitLab, and Netlify. CodeVault scans all your code in one place.
+              Link your GitHub repos and we will scan all files to understand your codebase structure.
             </p>
           </div>
 
@@ -100,9 +76,9 @@ export default function HomePage() {
             <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">AI Pattern Detection</h3>
+            <h3 className="font-semibold text-lg mb-2">AI Analysis</h3>
             <p className="text-muted-foreground text-sm">
-              Claude AI analyzes cross-platform code to find reusable patterns, architecture, and buildable apps.
+              Our AI analyzes each file to identify its purpose, exports, and reusability potential.
             </p>
           </div>
 
@@ -110,25 +86,25 @@ export default function HomePage() {
             <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mb-4">
               <Code2 className="h-6 w-6" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Auto Scaffolding</h3>
+            <h3 className="font-semibold text-lg mb-2">App Blueprints</h3>
             <p className="text-muted-foreground text-sm">
-              Generate complete project scaffolds with missing files auto-created by AI. Ship production-ready code.
+              Get detailed blueprints showing what apps you can build and what files you need to add.
             </p>
           </div>
         </div>
 
         {/* How It Works */}
         <div className="mt-32 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How CodeVault Works</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="space-y-8">
             <div className="flex gap-6 items-start">
               <div className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center font-bold flex-shrink-0">
                 1
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">Connect Your Platforms</h3>
+                <h3 className="font-semibold text-lg mb-1">Add Your Repositories</h3>
                 <p className="text-muted-foreground">
-                  One-click OAuth to connect GitHub, Vercel, Replit, GitLab, Netlify. CodeVault gets read access to scan your code.
+                  Enter your GitHub repository URLs or connect via OAuth to import multiple repos at once.
                 </p>
               </div>
             </div>
@@ -138,9 +114,9 @@ export default function HomePage() {
                 2
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">AI Analyzes Everything</h3>
+                <h3 className="font-semibold text-lg mb-1">AI Scans Your Code</h3>
                 <p className="text-muted-foreground">
-                  Claude AI scans 1000+ files across all platforms, detects patterns, identifies reusable components, and finds gaps in functionality.
+                  Our AI examines every file - components, utilities, hooks, APIs - identifying what each piece does and how reusable it is.
                 </p>
               </div>
             </div>
@@ -150,21 +126,9 @@ export default function HomePage() {
                 3
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">Discover Apps You Can Build</h3>
+                <h3 className="font-semibold text-lg mb-1">Discover App Possibilities</h3>
                 <p className="text-muted-foreground">
-                  See all possible applications sorted by build time. Ready-to-build apps (100% code exists), Quick Wins (80%+), and Concepts (patterns detected).
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-6 items-start">
-              <div className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center font-bold flex-shrink-0">
-                4
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Ship in Days</h3>
-                <p className="text-muted-foreground">
-                  AI generates missing files, creates GitHub repos with complete scaffolds, and you deploy production-ready code immediately.
+                  See a list of applications you can build using your existing code. Each blueprint shows which files to reuse and what few extras you might need.
                 </p>
               </div>
             </div>
@@ -177,10 +141,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
+              <Layers className="h-4 w-4" />
               <span>CodeVault</span>
             </div>
-            <p>Built with Next.js, Claude AI, and Vercel</p>
+            <p>Built with Next.js and Vercel AI SDK</p>
           </div>
         </div>
       </footer>

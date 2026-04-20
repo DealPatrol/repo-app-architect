@@ -1,9 +1,9 @@
-import { getAllAnalyses, getAllRepositories } from '@/lib/queries'
+import { getAllAnalyses, getAllRepositories, type Analysis, type Repository } from '@/lib/queries'
 import { AnalysesList } from '@/components/analyses-list'
 
 export default async function AnalysesPage() {
-  let analyses: any[] = []
-  let repositories: any[] = []
+  let analyses: Analysis[] = []
+  let repositories: Repository[] = []
 
   try {
     analyses = await getAllAnalyses()

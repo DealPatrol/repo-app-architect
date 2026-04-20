@@ -14,7 +14,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, repositoryIds } = body
+    const { name } = body
+    const repositoryIds = Array.isArray(body.repositoryIds)
+      ? body.repositoryIds
+      : Array.isArray(body.repo_ids)
+        ? body.repo_ids
+        : []
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Analysis name is required' }, { status: 400 })

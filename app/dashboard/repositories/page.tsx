@@ -1,15 +1,30 @@
-import { RepoPicker } from '@/components/repo-picker'
+import { Suspense } from 'react'
+import { RepositoriesList } from '@/components/repositories-list'
+import { getAllRepositories, type Repository } from '@/lib/queries'
 
-export default function RepositoriesPage() {
+function RepositoriesFallback() {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Select Repositories</h1>
-        <p className="text-muted-foreground">
-          Choose which GitHub repositories to analyze for discovering buildable applications.
-        </p>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
+        <p className="text-muted-foreground">Loading your repository workspace...</p>
       </div>
-      <RepoPicker />
     </div>
+  )
+}
+
+export default async function RepositoriesPage() {
+  let repositories: Repository[] = []
+
+  try {
+    repositories = await getAllRepositories()
+  } catch {
+    // Database not available yet
+  }
+
+  return (
+    <Suspense fallback={<RepositoriesFallback />}>
+      <RepositoriesList repositories={repositories} />
+    </Suspense>
   )
 }

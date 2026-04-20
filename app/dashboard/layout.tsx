@@ -28,7 +28,7 @@ export default function DashboardLayout({
               <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
                 <Layers className="h-5 w-5 text-background" />
               </div>
-              <span className="font-semibold text-lg">App Architect</span>
+              <span className="font-semibold text-lg">CodeVault</span>
             </Link>
             
             <nav className="hidden md:flex items-center gap-1">
@@ -56,11 +56,11 @@ export default function DashboardLayout({
 
           <div className="flex items-center gap-4">
             <Link
-              href="https://github.com"
-              target="_blank"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              href="/api/auth/github/login"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Github className="h-5 w-5" />
+              <span className="hidden sm:inline">Connect GitHub</span>
             </Link>
           </div>
         </div>

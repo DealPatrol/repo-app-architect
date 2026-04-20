@@ -3,12 +3,12 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'CodeVault - Ship Apps from Your Code',
-  description: 'Connect GitHub, Vercel, Replit, GitLab, and Netlify. AI discovers buildable apps from your existing code across all platforms. Ship in days, not weeks.',
+  title: 'CodeVault - Discover Apps Hidden in Your Code',
+  description: 'AI-powered GitHub repository analyzer that discovers what apps you can build from your existing code',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}>
         {children}
         <Analytics />
       </body>

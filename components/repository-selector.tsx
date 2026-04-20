@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -24,11 +24,7 @@ export function RepositorySelector() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchRepositories()
-  }, [])
-
-  const fetchRepositories = async () => {
+  const fetchRepositories = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/github/repos')
@@ -40,7 +36,11 @@ export function RepositorySelector() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void fetchRepositories()
+  }, [fetchRepositories])
 
   const toggleRepo = (id: string) => {
     const newSelected = new Set(selected)
@@ -110,7 +110,7 @@ export function RepositorySelector() {
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">Select Repositories</h2>
         <p className="text-muted-foreground">
-          Choose between 2 and 20 repositories to analyze. We'll discover what apps you can build from your code.
+          Choose between 2 and 20 repositories to analyze. We will discover what apps you can build from your code.
         </p>
       </div>
 
@@ -173,7 +173,7 @@ export function RepositorySelector() {
           <FolderGit2 className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
           <h3 className="font-semibold text-foreground mb-1">No repositories found</h3>
           <p className="text-sm text-muted-foreground">
-            Create some repositories on GitHub to get started with App Architect.
+            Create some repositories on GitHub to get started with CodeVault.
           </p>
         </Card>
       )}

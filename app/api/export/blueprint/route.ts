@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+interface ExportApp {
+  app_name: string
+  app_type: string
+  description: string
+  is_complete: boolean
+  reuse_percentage: number
+  missing_files_count: number
+  missing_files: string[]
+  technologies: string[]
+  difficulty_level: string
+  ai_explanation: string
+  fast_cash_label?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { app, analysisId } = await request.json()
+    const { app } = (await request.json()) as { app: ExportApp }
 
     const blueprint = {
       id: `${app.app_name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
@@ -18,9 +32,9 @@ export async function POST(request: NextRequest) {
       explanation: app.ai_explanation,
       fastCashLabel: app.fast_cash_label,
       createdAt: new Date().toISOString(),
-      fileStructure: generateFileStructure(app),
+      fileStructure: generateFileStructure(),
       setupInstructions: generateSetupInstructions(app),
-      dependencies: app.technologies.map(tech => ({
+      dependencies: app.technologies.map((tech: string) => ({
         name: tech,
         version: 'latest',
       })),
@@ -38,7 +52,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateFileStructure(app: any): any {
+function generateFileStructure(): Record<string, unknown> {
   return {
     root: {
       'README.md': 'Project documentation',
@@ -55,7 +69,7 @@ function generateFileStructure(app: any): any {
   }
 }
 
-function generateSetupInstructions(app: any): string[] {
+function generateSetupInstructions(app: ExportApp): string[] {
   return [
     `Create new project: npx create-${app.app_type}-app ${app.app_name.toLowerCase().replace(/\s+/g, '-')}`,
     'Install dependencies from the reused repositories',
