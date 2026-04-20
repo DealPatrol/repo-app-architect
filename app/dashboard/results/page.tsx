@@ -22,7 +22,7 @@ export default function ResultsPage() {
 
   const fetchResults = async (analysisId: string) => {
     try {
-      const res = await fetch(`/api/analysis/${analysisId}`)
+      const res = await fetch(`/api/analyses/${analysisId}`)
       const data = await res.json()
       setApps(data.apps || [])
     } catch (error) {
