@@ -6,13 +6,39 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Play, AlertCircle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 
+// Map DB AppBlueprint shape → AppSuggestion shape expected by AppSuggestions component
+function normalizeBlueprintsToSuggestions(blueprints: any[]) {
+  return blueprints.map((bp) => {
+    const missingFiles: any[] = Array.isArray(bp.missing_files) ? bp.missing_files : []
+    const missingNames = missingFiles.map((f: any) =>
+      typeof f === 'string' ? f : f.name || f.path || ''
+    )
+    return {
+      app_name: bp.name || bp.app_name,
+      app_type: bp.app_type || 'App',
+      description: bp.description || '',
+      is_complete: (bp.reuse_percentage ?? 0) >= 80 && missingFiles.length === 0,
+      reuse_percentage: bp.reuse_percentage ?? 0,
+      missing_files_count: missingFiles.length,
+      missing_files: missingNames,
+      technologies: bp.technologies || [],
+      difficulty_level: bp.complexity || bp.difficulty_level || 'moderate',
+      ai_explanation: bp.ai_explanation || '',
+      fast_cash_label:
+        missingFiles.length <= 2 && (bp.reuse_percentage ?? 0) >= 70
+          ? 'QUICK WIN'
+          : undefined,
+    }
+  })
+}
+
 export default function AnalysisPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const [id, setId] = useState<string>('')
-  const [blueprints, setBlueprints] = useState<any[]>([])
+  const [suggestions, setSuggestions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [statusMsg, setStatusMsg] = useState('')
@@ -60,7 +86,7 @@ export default function AnalysisPage({
             if (data.status === 'scanning') setStatusMsg('Scanning repositories...')
             else if (data.status === 'analyzing') setStatusMsg('Analyzing with Claude AI...')
             else if (data.status === 'complete') {
-              setBlueprints(data.blueprints || [])
+              setSuggestions(normalizeBlueprintsToSuggestions(data.blueprints || []))
               setHasRun(true)
               setStatusMsg('')
             } else if (data.status === 'failed') {
@@ -150,11 +176,11 @@ export default function AnalysisPage({
         </Card>
       )}
 
-      {hasRun && blueprints.length > 0 && (
-        <AppSuggestions suggestions={blueprints} analysisId={id} />
+      {hasRun && suggestions.length > 0 && (
+        <AppSuggestions suggestions={suggestions} analysisId={id} />
       )}
 
-      {hasRun && blueprints.length === 0 && !loading && (
+      {hasRun && suggestions.length === 0 && !loading && (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">
             No app blueprints found. Try analyzing more repositories.
