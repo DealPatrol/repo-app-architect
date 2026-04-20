@@ -13,9 +13,16 @@ check_cmd() {
   command -v "$1" &>/dev/null || die "'$1' not found. Install it first:  $2"
 }
 
-check_cmd vercel "npm install -g vercel"
-check_cmd gh     "https://cli.github.com"
-check_cmd jq     "brew install jq  /  apt install jq"
+# Use globally installed vercel if available, otherwise fall back to npx
+if command -v vercel &>/dev/null; then
+  VERCEL_CMD="vercel"
+else
+  info "vercel not installed globally — using npx vercel (slower first run)"
+  VERCEL_CMD="npx vercel@latest"
+fi
+
+check_cmd gh  "https://cli.github.com  /  apt install gh"
+check_cmd jq  "brew install jq  /  apt install jq"
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
@@ -44,15 +51,15 @@ prompt_plain() {
 # ── step 1: vercel login & link ────────────────────────────────────────────────
 info "Step 1/5 — Vercel login & project link"
 
-vercel whoami &>/dev/null || { info "Not logged in to Vercel — opening browser…"; vercel login; }
-success "Vercel authenticated as: $(vercel whoami)"
+$VERCEL_CMD whoami &>/dev/null || { info "Not logged in to Vercel — opening browser…"; $VERCEL_CMD login; }
+success "Vercel authenticated as: $($VERCEL_CMD whoami)"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 if [[ ! -f ".vercel/project.json" ]]; then
   info "Linking this directory to a Vercel project…"
-  vercel link --yes
+  $VERCEL_CMD link --yes
 else
   info "Already linked to Vercel project."
 fi
@@ -110,8 +117,8 @@ vercel_env() {
   local key="$1" val="$2" envs="${3:-production preview development}"
   for env in $envs; do
     # Remove existing value silently, then add fresh
-    echo "$val" | vercel env rm "$key" "$env" --yes 2>/dev/null || true
-    echo "$val" | vercel env add "$key" "$env" 2>/dev/null \
+    echo "$val" | $VERCEL_CMD env rm "$key" "$env" --yes 2>/dev/null || true
+    echo "$val" | $VERCEL_CMD env add "$key" "$env" 2>/dev/null \
       && success "Vercel env set [$env]: $key" \
       || warn "Could not set Vercel env '$key' for $env"
   done
@@ -124,8 +131,8 @@ vercel_env OPENAI_API_KEY         "$OPENAI_API_KEY"
 vercel_env ANTHROPIC_API_KEY      "$ANTHROPIC_API_KEY"
 
 # NEXT_PUBLIC_APP_URL: production only (preview URLs are auto-set by Vercel)
-echo "$NEXT_PUBLIC_APP_URL" | vercel env rm NEXT_PUBLIC_APP_URL production --yes 2>/dev/null || true
-echo "$NEXT_PUBLIC_APP_URL" | vercel env add NEXT_PUBLIC_APP_URL production 2>/dev/null \
+echo "$NEXT_PUBLIC_APP_URL" | $VERCEL_CMD env rm NEXT_PUBLIC_APP_URL production --yes 2>/dev/null || true
+echo "$NEXT_PUBLIC_APP_URL" | $VERCEL_CMD env add NEXT_PUBLIC_APP_URL production 2>/dev/null \
   && success "Vercel env set [production]: NEXT_PUBLIC_APP_URL" \
   || warn "Could not set NEXT_PUBLIC_APP_URL"
 
