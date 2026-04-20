@@ -5,8 +5,12 @@ function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
 }
 
+function getGitHubClientId() {
+  return process.env.GITHUB_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
+}
+
 export async function GET(request: NextRequest) {
-  const clientId = process.env.GITHUB_CLIENT_ID
+  const clientId = getGitHubClientId()
 
   if (!clientId) {
     return NextResponse.redirect(new URL('/dashboard/repositories?error=github_oauth_not_configured', getBaseUrl(request)))

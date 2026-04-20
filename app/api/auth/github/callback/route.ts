@@ -6,6 +6,10 @@ function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
 }
 
+function getGitHubClientId() {
+  return process.env.GITHUB_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GITHUB_CLIENT_ID,
+        client_id: getGitHubClientId(),
         client_secret: process.env.GITHUB_CLIENT_SECRET,
         code,
         redirect_uri: `${getBaseUrl(request)}/api/auth/github/callback`,
