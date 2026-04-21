@@ -11,7 +11,16 @@ function getGitHubAuthUrl() {
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL
   if (!clientId || !appUrl) return '/dashboard'
-  return `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo,read:user&redirect_uri=${appUrl}/api/auth/github/callback`
+
+  const normalizedAppUrl = appUrl.endsWith('/') ? appUrl : `${appUrl}/`
+  const redirectUrl = new URL('/api/auth/github/callback', normalizedAppUrl)
+  const authUrl = new URL('https://github.com/login/oauth/authorize')
+
+  authUrl.searchParams.set('client_id', clientId)
+  authUrl.searchParams.set('scope', 'repo,read:user')
+  authUrl.searchParams.set('redirect_uri', redirectUrl.toString())
+
+  return authUrl.toString()
 }
 
 const stats = [
