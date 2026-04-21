@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "env:scan": "node scripts/env-agent.mjs --scan-only",
+    "env:setup": "node scripts/env-agent.mjs",
+    "env:setup:manual": "node scripts/env-agent.mjs --no-autofetch",
+    "env:setup:auto": "node scripts/env-agent.mjs --bootstrap-vercel"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.52",
