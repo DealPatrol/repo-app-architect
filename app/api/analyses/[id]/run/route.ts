@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
-import Anthropic from '@anthropic-ai/sdk'
-import {
-  getAnalysisById,
-  getRepositoriesForAnalysis,
+import { generateText, Output } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { z } from 'zod'
+import { 
+  getAnalysisById, 
+  getRepositoriesForAnalysis, 
   updateAnalysisStatus,
   createRepoFile,
   createBlueprint,
@@ -103,64 +104,11 @@ export async function POST(
 
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
 
-        const message = await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 4096,
-          tools: [
-            {
-              name: 'save_blueprints',
-              description: 'Save the discovered app blueprints',
-              input_schema: {
-                type: 'object' as const,
-                properties: {
-                  blueprints: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name: { type: 'string' },
-                        description: { type: 'string' },
-                        app_type: { type: 'string' },
-                        complexity: { type: 'string', enum: ['simple', 'moderate', 'complex'] },
-                        reuse_percentage: { type: 'number' },
-                        existing_files: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              path: { type: 'string' },
-                              purpose: { type: 'string' },
-                            },
-                            required: ['path', 'purpose'],
-                          },
-                        },
-                        missing_files: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              name: { type: 'string' },
-                              purpose: { type: 'string' },
-                            },
-                            required: ['name', 'purpose'],
-                          },
-                        },
-                        technologies: { type: 'array', items: { type: 'string' } },
-                        explanation: { type: 'string' },
-                      },
-                      required: ['name', 'description', 'app_type', 'complexity', 'reuse_percentage', 'existing_files', 'missing_files', 'technologies', 'explanation'],
-                    },
-                  },
-                },
-                required: ['blueprints'],
-              },
-            },
-          ],
-          tool_choice: { type: 'any' },
-          messages: [
-            {
-              role: 'user',
-              content: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
+        // Use AI to analyze and discover app blueprints
+        const { output } = await generateText({
+          model: openai('gpt-4o-mini'),
+          output: Output.object({ schema: AnalysisOutputSchema }),
+          prompt: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
 
 REPOSITORIES AND FILES:
 ${fileSummary}

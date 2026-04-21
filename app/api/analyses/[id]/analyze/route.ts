@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import Anthropic from '@anthropic-ai/sdk'
-
-const anthropic = new Anthropic()
-
-interface SelectedRepository {
-  name: string
-  full_name: string
-  default_branch: string
-}
-
-interface RepositoryTreeFile {
-  path: string
-  size?: number
-}
-
-interface AppSuggestion {
-  is_complete?: boolean
-}
+import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,9 +37,11 @@ ${repoSummary}
 
 Discover what applications could be built by combining files from these repositories. Return a JSON array of app suggestions, each with: appName, appType, description, isComplete (bool), reusePercentage (number), missingFiles (array), technologies (array), difficultyLevel (easy/medium/hard), fastCashLabel (if missing only 2-3 files), explanation. Focus on practical, buildable applications.
 
-Return only the JSON array with no surrounding text.`,
-        },
-      ],
+Return as JSON array of app suggestions. Focus on practical, buildable applications.`
+
+    const result = await generateText({
+      model: openai('gpt-4-turbo'),
+      prompt,
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
