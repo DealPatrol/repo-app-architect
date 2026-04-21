@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const clientId = process.env.GITHUB_CLIENT_ID
 
   if (!clientId) {
-    return NextResponse.redirect(new URL('/dashboard/repositories?error=github_oauth_not_configured', getBaseUrl(request)))
+    return NextResponse.redirect(new URL('/?error=github_oauth_not_configured', getBaseUrl(request)))
   }
 
   const state = crypto.randomUUID()
