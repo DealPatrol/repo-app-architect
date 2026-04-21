@@ -33,7 +33,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json(task);
   } catch (error) {
-    console.error('Error creating task:', error);
-    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+    console.error('Error creating task:', error)
+    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const body = await request.json()
+    const { status, taskId } = body
+
+    // id in this route is the project id; task id must be provided explicitly.
+    if (!taskId || typeof taskId !== 'string') {
+      return NextResponse.json({ error: 'taskId is required' }, { status: 400 })
+    }
+    if (!status || typeof status !== 'string') {
+      return NextResponse.json({ error: 'status is required' }, { status: 400 })
+    }
+    const updatedTask = await updateTask(taskId, status)
+
+    return NextResponse.json(updatedTask)
+  } catch (error) {
+    console.error('Error updating task:', error)
+    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
   }
 }

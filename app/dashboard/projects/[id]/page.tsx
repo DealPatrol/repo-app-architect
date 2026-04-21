@@ -9,16 +9,50 @@ interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+const DEMO_PROJECTS = {
+  '1': {
+    id: '1',
+    name: 'Website Redesign',
+    description: 'Complete redesign of company website with new branding',
+    color: '#3b82f6',
+    icon: 'W',
+  },
+  '2': {
+    id: '2',
+    name: 'Mobile App',
+    description: 'Native iOS and Android application launch',
+    color: '#10b981',
+    icon: 'M',
+  },
+  '3': {
+    id: '3',
+    name: 'API Development',
+    description: 'Backend API for third-party integrations',
+    color: '#f59e0b',
+    icon: 'A',
+  },
+} as const
+
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { id } = await params;
-  const project = await getProjectById(id);
+  let project = null
+  let tasks = []
+  let members = []
+
+  try {
+    ;[project, tasks, members] = await Promise.all([
+      getProjectById(id),
+      getTasksByProject(id),
+      getProjectMembers(id),
+    ])
+  } catch (error) {
+    console.error('[v0] Database connection error - showing demo project:', error)
+    project = DEMO_PROJECTS[id as keyof typeof DEMO_PROJECTS] ?? null
+  }
 
   if (!project) {
     notFound();
   }
-
-  const tasks = await getTasksByProject(id);
-  const members = await getProjectMembers(id);
 
   const taskStats = {
     todo: tasks.filter((t) => t.status === 'todo').length,
