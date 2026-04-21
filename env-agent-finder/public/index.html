@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>env-agent-finder — Discover env vars for any project</title>
+<meta name="description" content="Scan any project to discover required environment variables, API keys, and service dependencies. Drop files or paste a GitHub URL.">
+<style>
+  :root {
+    --bg: #09090b;
+    --surface: #111113;
+    --surface2: #19191d;
+    --surface3: #222228;
+    --border: #27272a;
+    --border2: #3f3f46;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --accent-bg: rgba(99,102,241,0.08);
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.08);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.08);
+    --orange: #f59e0b;
+    --orange-bg: rgba(245,158,11,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  header { text-align: center; padding: 48px 0 40px; }
+  header h1 {
+    font-size: 32px; font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  header p { color: var(--muted); font-size: 15px; max-width: 480px; margin: 0 auto; }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 4px; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px; margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;
+  }
+  .tab {
+    flex: 1; padding: 10px 16px; border: none; background: none; color: var(--muted);
+    font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; transition: all 0.2s;
+  }
+  .tab.active { background: var(--surface3); color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border2); border-radius: var(--radius);
+    padding: 48px 24px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: var(--surface); margin-bottom: 16px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent); background: var(--accent-bg);
+  }
+  .drop-zone .icon { font-size: 36px; margin-bottom: 12px; }
+  .drop-zone .title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .drop-zone .sub { font-size: 13px; color: var(--muted); }
+  .drop-zone .accepted { font-size: 11px; color: var(--muted); margin-top: 12px; opacity: 0.7; }
+
+  .file-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .file-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px 5px 10px; font-size: 12px; font-weight: 500;
+  }
+  .file-chip .remove { cursor: pointer; opacity: 0.5; font-size: 14px; }
+  .file-chip .remove:hover { opacity: 1; }
+
+  /* GitHub input */
+  .gh-input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .gh-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 16px; color: var(--text);
+    font-size: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .gh-input:focus { border-color: var(--accent); }
+  .gh-input::placeholder { color: var(--muted); opacity: 0.5; }
+
+  /* Buttons */
+  .btn {
+    background: var(--accent); color: white; border: none; border-radius: var(--radius-sm);
+    padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-green { background: var(--green); }
+  .btn-green:hover { background: #16a34a; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { background: var(--surface2); transform: translateY(-1px); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+
+  .scan-btn-row { display: flex; justify-content: center; margin-bottom: 8px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 48px; display: none; }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 16px; overflow: hidden;
+  }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; cursor: pointer; user-select: none; transition: background 0.15s;
+  }
+  .section-header:hover { background: var(--surface2); }
+  .section-header h2 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .section-header .count {
+    background: var(--surface2); border: 1px solid var(--border); padding: 2px 10px;
+    border-radius: 20px; font-size: 11px; color: var(--muted); font-weight: 500;
+  }
+  .section-body { padding: 0; }
+  .section-body.collapsed { display: none; }
+
+  /* Meta */
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1px; background: var(--border); }
+  .meta-item { background: var(--surface); padding: 14px 20px; }
+  .meta-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 3px; }
+  .meta-item .val { font-size: 14px; font-weight: 600; }
+
+  /* Env rows */
+  .env-row {
+    display: grid; grid-template-columns: 1fr 140px 200px 70px;
+    align-items: center; gap: 10px; padding: 11px 20px; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .env-row:last-child { border-bottom: none; }
+  .env-name { font-family: 'SF Mono','Fira Code','Cascadia Code', monospace; font-weight: 600; font-size: 12px; word-break: break-all; }
+  .env-service { color: var(--muted); font-size: 11px; }
+  .env-input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; color: var(--text); font-size: 11px;
+    font-family: 'SF Mono','Fira Code', monospace; width: 100%; outline: none; transition: border-color 0.2s;
+  }
+  .env-input:focus { border-color: var(--accent); }
+  .env-input.has-value { border-color: var(--green); background: var(--green-bg); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px;
+    border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-gray { background: rgba(136,136,160,0.1); color: var(--muted); }
+
+  /* Services */
+  .svc-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .svc-row:last-child { border-bottom: none; }
+  .svc-name { font-weight: 600; font-size: 13px; margin-bottom: 1px; }
+  .svc-cat { font-size: 11px; color: var(--muted); }
+  .conf-bar { width: 72px; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-right: 12px; }
+  .conf-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+
+  /* Routes */
+  .route-row { display: flex; align-items: center; gap: 10px; padding: 9px 20px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .route-row:last-child { border-bottom: none; }
+  .route-path { font-family: 'SF Mono','Fira Code', monospace; font-weight: 500; flex: 1; }
+  .mtag { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; font-family: 'SF Mono','Fira Code', monospace; letter-spacing: 0.5px; }
+  .mtag-GET { background: var(--green-bg); color: var(--green); }
+  .mtag-POST { background: var(--accent-bg); color: var(--accent2); }
+  .mtag-PUT, .mtag-PATCH { background: var(--orange-bg); color: var(--orange); }
+  .mtag-DELETE { background: var(--red-bg); color: var(--red); }
+
+  /* Actions */
+  .actions-bar { display: flex; gap: 10px; justify-content: center; padding: 20px 0 40px; flex-wrap: wrap; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface2);
+    border: 1px solid var(--border); color: var(--text);
+    padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    opacity: 0; transform: translateY(8px); transition: all 0.25s; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .empty-msg { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .env-row { grid-template-columns: 1fr; gap: 6px; }
+    .gh-input-row { flex-direction: column; }
+    header h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>env-agent-finder</h1>
+    <p>Drop your project files or paste a GitHub URL to discover every env variable, API route, and service dependency.</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload')">Upload Files</button>
+    <button class="tab" onclick="switchTab('github')">GitHub URL</button>
+  </div>
+
+  <!-- Upload Tab -->
+  <div id="tab-upload" class="tab-panel active">
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📂</div>
+      <div class="title">Drop your project files here</div>
+      <div class="sub">or click to browse</div>
+      <div class="accepted">package.json, .env, .env.local, .env.example — or drag an entire folder</div>
+    </div>
+    <input type="file" id="fileInput" multiple webkitdirectory style="display:none" onchange="handleFiles(this.files)">
+    <div class="file-chips" id="fileChips"></div>
+    <div class="scan-btn-row">
+      <button class="btn" id="scanUploadBtn" onclick="scanUploaded()" disabled>Scan Files</button>
+    </div>
+  </div>
+
+  <!-- GitHub Tab -->
+  <div id="tab-github" class="tab-panel">
+    <div class="gh-input-row">
+      <input class="gh-input" id="ghInput" type="text" placeholder="https://github.com/owner/repo  or  owner/repo" />
+      <button class="btn" id="scanGhBtn" onclick="scanGitHub()">Scan Repo</button>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px;">Fetches package.json and .env.example from the repo's default branch via the GitHub API.</div>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div style="color:var(--muted);font-size:13px;">Analyzing project...</div>
+  </div>
+
+  <div id="results" class="results">
+    <div class="section">
+      <div class="section-header" onclick="toggle(this)"><h2>📦 Project Info</h2></div>
+      <div class="section-body"><div class="meta-grid" id="metaGrid"></div></div>
+    </div>
+    <div class="section">
+      <div class="section-header" onclick="toggle(this)"><h2>🔑 Environment Variables <span class="count" id="envCount">0</span></h2></div>
+      <div class="section-body" id="envBody"></div>
+    </div>
+    <div class="section">
+      <div class="section-header" onclick="toggle(this)"><h2>🔌 Detected Services <span class="count" id="svcCount">0</span></h2></div>
+      <div class="section-body" id="svcBody"></div>
+    </div>
+    <div class="section">
+      <div class="section-header" onclick="toggle(this)"><h2>🌐 API Routes <span class="count" id="routeCount">0</span></h2></div>
+      <div class="section-body" id="routeBody"></div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn btn-green" onclick="autoFill()">⚡ Auto-Fill Secrets</button>
+      <button class="btn" onclick="downloadEnv()">📥 Download .env.local</button>
+      <button class="btn btn-outline" onclick="copyEnv()">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── State ── */
+let uploadedFiles = {};
+let scanResult = null;
+
+/* ── Well-known services ── */
+const KNOWN = {
+  DATABASE_URL:{s:"Database (PostgreSQL/MySQL)",r:true},POSTGRES_URL:{s:"PostgreSQL",r:true},MYSQL_URL:{s:"MySQL",r:true},MONGODB_URI:{s:"MongoDB",r:true},
+  REDIS_URL:{s:"Redis",r:false},BLOB_READ_WRITE_TOKEN:{s:"Vercel Blob",r:false},NEXT_PUBLIC_SUPABASE_URL:{s:"Supabase",r:true},SUPABASE_URL:{s:"Supabase",r:true},
+  SUPABASE_SERVICE_ROLE_KEY:{s:"Supabase",r:true},SUPABASE_ANON_KEY:{s:"Supabase",r:true},NEXT_PUBLIC_SUPABASE_ANON_KEY:{s:"Supabase",r:true},
+  STRIPE_SECRET_KEY:{s:"Stripe",r:true},STRIPE_PUBLISHABLE_KEY:{s:"Stripe",r:true},STRIPE_WEBHOOK_SECRET:{s:"Stripe Webhooks",r:false},
+  OPENAI_API_KEY:{s:"OpenAI",r:true},ANTHROPIC_API_KEY:{s:"Anthropic",r:true},
+  AWS_ACCESS_KEY_ID:{s:"AWS",r:true},AWS_SECRET_ACCESS_KEY:{s:"AWS",r:true},AWS_REGION:{s:"AWS",r:false},S3_BUCKET:{s:"AWS S3",r:false},
+  GOOGLE_CLIENT_ID:{s:"Google OAuth",r:false},GOOGLE_CLIENT_SECRET:{s:"Google OAuth",r:false},
+  GITHUB_CLIENT_ID:{s:"GitHub OAuth",r:false},GITHUB_CLIENT_SECRET:{s:"GitHub OAuth",r:false},
+  NEXTAUTH_SECRET:{s:"NextAuth.js",r:true},NEXTAUTH_URL:{s:"NextAuth.js",r:false},AUTH_SECRET:{s:"Auth.js",r:true},JWT_SECRET:{s:"JWT Auth",r:true},
+  SENDGRID_API_KEY:{s:"SendGrid",r:false},RESEND_API_KEY:{s:"Resend",r:false},SENTRY_DSN:{s:"Sentry",r:false},
+  CLERK_SECRET_KEY:{s:"Clerk",r:true},NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:{s:"Clerk",r:true},
+  STACK_PROJECT_ID:{s:"Stack Auth",r:true},STACK_PUBLISHED_CLIENT_KEY:{s:"Stack Auth",r:true},STACK_SECRET_SERVER_KEY:{s:"Stack Auth",r:true},
+  FIREBASE_API_KEY:{s:"Firebase",r:true},FIREBASE_PROJECT_ID:{s:"Firebase",r:true},
+  TWILIO_ACCOUNT_SID:{s:"Twilio",r:false},TWILIO_AUTH_TOKEN:{s:"Twilio",r:false},
+  CLOUDINARY_URL:{s:"Cloudinary",r:false},UPSTASH_REDIS_REST_URL:{s:"Upstash Redis",r:false},UPSTASH_REDIS_REST_TOKEN:{s:"Upstash Redis",r:false},
+};
+
+const SERVICES = [
+  {name:"PostgreSQL",cat:"database",pkgs:["pg","@neondatabase/serverless","postgres","knex","prisma","drizzle-orm","typeorm","sequelize"],env:["DATABASE_URL","POSTGRES_URL"],docs:"https://postgresql.org/docs/"},
+  {name:"MySQL",cat:"database",pkgs:["mysql2","mysql"],env:["MYSQL_URL"],docs:"https://dev.mysql.com/doc/"},
+  {name:"MongoDB",cat:"database",pkgs:["mongodb","mongoose"],env:["MONGODB_URI"],docs:"https://mongodb.com/docs/"},
+  {name:"Redis",cat:"cache",pkgs:["redis","ioredis","@upstash/redis"],env:["REDIS_URL","UPSTASH_REDIS_REST_URL"],docs:"https://redis.io/docs/"},
+  {name:"Supabase",cat:"baas",pkgs:["@supabase/supabase-js","@supabase/ssr"],env:["SUPABASE_URL","NEXT_PUBLIC_SUPABASE_URL"],docs:"https://supabase.com/docs"},
+  {name:"Firebase",cat:"baas",pkgs:["firebase","firebase-admin"],env:["FIREBASE_API_KEY"],docs:"https://firebase.google.com/docs"},
+  {name:"Stripe",cat:"payments",pkgs:["stripe","@stripe/stripe-js"],env:["STRIPE_SECRET_KEY","STRIPE_PUBLISHABLE_KEY"],docs:"https://stripe.com/docs"},
+  {name:"Auth.js / NextAuth",cat:"auth",pkgs:["next-auth","@auth/core"],env:["NEXTAUTH_SECRET","AUTH_SECRET"],docs:"https://authjs.dev/"},
+  {name:"Clerk",cat:"auth",pkgs:["@clerk/nextjs"],env:["CLERK_SECRET_KEY"],docs:"https://clerk.com/docs"},
+  {name:"Stack Auth",cat:"auth",pkgs:["@stackframe/stack","@stack-auth/nextjs"],env:["STACK_PROJECT_ID"],docs:"https://docs.stack-auth.com/"},
+  {name:"Vercel Blob",cat:"storage",pkgs:["@vercel/blob"],env:["BLOB_READ_WRITE_TOKEN"],docs:"https://vercel.com/docs/storage/vercel-blob"},
+  {name:"AWS S3",cat:"storage",pkgs:["@aws-sdk/client-s3","aws-sdk"],env:["AWS_ACCESS_KEY_ID"],docs:"https://docs.aws.amazon.com/s3/"},
+  {name:"OpenAI",cat:"ai",pkgs:["openai","@langchain/openai"],env:["OPENAI_API_KEY"],docs:"https://platform.openai.com/docs"},
+  {name:"Anthropic",cat:"ai",pkgs:["@anthropic-ai/sdk"],env:["ANTHROPIC_API_KEY"],docs:"https://docs.anthropic.com/"},
+  {name:"SendGrid",cat:"email",pkgs:["@sendgrid/mail"],env:["SENDGRID_API_KEY"],docs:"https://docs.sendgrid.com/"},
+  {name:"Resend",cat:"email",pkgs:["resend"],env:["RESEND_API_KEY"],docs:"https://resend.com/docs"},
+  {name:"Sentry",cat:"monitoring",pkgs:["@sentry/nextjs","@sentry/node"],env:["SENTRY_DSN"],docs:"https://docs.sentry.io/"},
+  {name:"Vercel Analytics",cat:"analytics",pkgs:["@vercel/analytics"],env:[],docs:"https://vercel.com/docs/analytics"},
+];
+
+const SKIP = new Set(["NODE_ENV","PORT","HOST","HOSTNAME","HOME","PATH","PWD","LANG","TERM","SHELL","USER","TZ","CI","DEBUG","VERCEL","VERCEL_ENV","VERCEL_URL"]);
+
+/* ── Tabs ── */
+function switchTab(id) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById("tab-" + id).classList.add("active");
+}
+
+/* ── File upload ── */
+const dz = document.getElementById("dropZone");
+dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+dz.addEventListener("drop", e => {
+  e.preventDefault(); dz.classList.remove("dragover");
+  const items = e.dataTransfer.items;
+  if (items) {
+    const promises = [];
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) promises.push(readEntry(entry));
+    }
+    Promise.all(promises).then(renderChips);
+  } else {
+    handleFiles(e.dataTransfer.files);
+  }
+});
+
+function readEntry(entry, path = "") {
+  return new Promise(resolve => {
+    if (entry.isFile) {
+      entry.file(f => {
+        const name = path + f.name;
+        if (isRelevant(name)) {
+          const reader = new FileReader();
+          reader.onload = () => { uploadedFiles[name] = reader.result; resolve(); };
+          reader.readAsText(f);
+        } else resolve();
+      });
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader();
+      dirReader.readEntries(entries => {
+        Promise.all(entries.map(e => readEntry(e, path + entry.name + "/"))).then(() => resolve());
+      });
+    } else resolve();
+  });
+}
+
+function isRelevant(name) {
+  const n = name.split("/").pop().toLowerCase();
+  return n === "package.json" || n.startsWith(".env") || n.endsWith(".ts") || n.endsWith(".tsx") ||
+    n.endsWith(".js") || n.endsWith(".jsx") || n.endsWith(".mjs") || n.endsWith(".py");
+}
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (isRelevant(f.name) || f.webkitRelativePath) {
+      const name = f.webkitRelativePath || f.name;
+      const reader = new FileReader();
+      reader.onload = () => { uploadedFiles[name] = reader.result; renderChips(); };
+      reader.readAsText(f);
+    }
+  }
+  renderChips();
+}
+
+function renderChips() {
+  const c = document.getElementById("fileChips");
+  const names = Object.keys(uploadedFiles);
+  c.innerHTML = names.map(n => `<div class="file-chip">📄 ${n.split("/").pop()} <span class="remove" onclick="removeFile('${n}')">&times;</span></div>`).join("");
+  document.getElementById("scanUploadBtn").disabled = names.length === 0;
+}
+
+function removeFile(name) { delete uploadedFiles[name]; renderChips(); }
+
+/* ── Client-side scanner ── */
+function scanFromFiles(files) {
+  const meta = { name: null, framework: null, language: null, packageManager: null, hasDocker: false, hasCI: false };
+  const envVars = [];
+  const services = [];
+  const apiRoutes = [];
+  let pkgDeps = {};
+
+  const pkgFile = Object.entries(files).find(([k]) => k.endsWith("package.json"));
+  if (pkgFile) {
+    try {
+      const pkg = JSON.parse(pkgFile[1]);
+      meta.name = pkg.name; meta.language = "JavaScript/TypeScript";
+      pkgDeps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
+      const d = pkgDeps;
+      if (d.next) meta.framework = "Next.js " + d.next;
+      else if (d.nuxt) meta.framework = "Nuxt " + d.nuxt;
+      else if (d.react) meta.framework = "React " + d.react;
+      else if (d.vue) meta.framework = "Vue " + d.vue;
+      else if (d.express) meta.framework = "Express";
+      else if (d.fastify) meta.framework = "Fastify";
+    } catch {}
+  }
+
+  const envMap = new Map();
+
+  // Scan .env files for existing values
+  for (const [name, content] of Object.entries(files)) {
+    const base = name.split("/").pop().toLowerCase();
+    if (base.startsWith(".env")) {
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eq = trimmed.indexOf("=");
+        if (eq > 0) {
+          const vName = trimmed.substring(0, eq).trim();
+          let val = trimmed.substring(eq + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) val = val.slice(1,-1);
+          if (/^[A-Z_][A-Z0-9_]*$/.test(vName) && !SKIP.has(vName)) {
+            if (!envMap.has(vName)) envMap.set(vName, { name: vName, value: val || null, refs: 0, service: KNOWN[vName]?.s || null, required: KNOWN[vName]?.r ?? null });
+            else if (val) envMap.get(vName).value = val;
+          }
+        }
+      }
+    }
+  }
+
+  // Scan code for process.env references
+  const envPatterns = [/process\.env\.([A-Z_][A-Z0-9_]*)/g, /process\.env\[['"]([A-Z_][A-Z0-9_]*)['"]\]/g, /import\.meta\.env\.([A-Z_][A-Z0-9_]*)/g];
+  for (const [name, content] of Object.entries(files)) {
+    const base = name.split("/").pop().toLowerCase();
+    if (base.startsWith(".env")) continue;
+    for (const pat of envPatterns) {
+      let m; pat.lastIndex = 0;
+      while ((m = pat.exec(content)) !== null) {
+        const vName = m[1];
+        if (SKIP.has(vName)) continue;
+        if (!envMap.has(vName)) envMap.set(vName, { name: vName, value: null, refs: 0, service: KNOWN[vName]?.s || null, required: KNOWN[vName]?.r ?? null });
+        envMap.get(vName).refs++;
+      }
+    }
+  }
+
+  // Detect services from packages
+  const depNames = new Set(Object.keys(pkgDeps));
+  const envNames = new Set(envMap.keys());
+  for (const sig of SERVICES) {
+    const mp = sig.pkgs.filter(p => depNames.has(p));
+    const me = sig.env.filter(v => envNames.has(v));
+    const conf = mp.length * 40 + me.length * 30;
+    if (conf > 0) {
+      services.push({ name: sig.name, category: sig.cat, confidence: Math.min(conf, 100), matchedPackages: mp, matchedEnvVars: me, requiredEnvVars: sig.env, docs: sig.docs });
+      for (const v of sig.env) {
+        if (!envMap.has(v) && !SKIP.has(v)) {
+          envMap.set(v, { name: v, value: null, refs: 0, service: KNOWN[v]?.s || null, required: KNOWN[v]?.r ?? null });
+        }
+      }
+    }
+  }
+
+  // Scan for Next.js API route exports
+  for (const [name, content] of Object.entries(files)) {
+    if (!name.includes("/api/") || (!name.endsWith("route.ts") && !name.endsWith("route.js"))) continue;
+    const routePath = "/" + name.split("/").slice(name.split("/").indexOf("api")).join("/").replace(/\/route\.(ts|js)$/, "");
+    const methods = [];
+    for (const m of ["GET","POST","PUT","PATCH","DELETE"]) {
+      if (new RegExp(`export\\s+(?:async\\s+)?function\\s+${m}\\b`).test(content)) methods.push(m);
+    }
+    if (methods.length) apiRoutes.push({ path: routePath, methods, framework: "Next.js App Router" });
+  }
+
+  const sorted = Array.from(envMap.values()).sort((a, b) => {
+    if ((a.required === true) && !(b.required === true)) return -1;
+    if (!(a.required === true) && (b.required === true)) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return { meta, envVars: sorted, services: services.sort((a,b) => b.confidence - a.confidence), apiRoutes: apiRoutes.sort((a,b) => a.path.localeCompare(b.path)) };
+}
+
+/* ── Scan actions ── */
+function scanUploaded() {
+  if (!Object.keys(uploadedFiles).length) return;
+  showLoading(true);
+  setTimeout(() => {
+    scanResult = scanFromFiles(uploadedFiles);
+    renderResults(scanResult);
+    showLoading(false);
+  }, 300);
+}
+
+async function scanGitHub() {
+  const raw = document.getElementById("ghInput").value.trim();
+  if (!raw) return;
+
+  let owner, repo;
+  const ghMatch = raw.match(/github\.com\/([^/]+)\/([^/]+)/);
+  if (ghMatch) { owner = ghMatch[1]; repo = ghMatch[2].replace(/\.git$/, ""); }
+  else if (raw.includes("/")) { [owner, repo] = raw.split("/").slice(0, 2); }
+  else return alert("Enter a valid GitHub URL or owner/repo");
+
+  showLoading(true);
+  document.getElementById("scanGhBtn").disabled = true;
+
+  try {
+    const files = {};
+    const filesToFetch = ["package.json", ".env.example", ".env.sample", ".env.template"];
+
+    for (const f of filesToFetch) {
+      try {
+        const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${f}`);
+        if (res.ok) files[f] = await res.text();
+      } catch {}
+    }
+
+    if (!files["package.json"]) {
+      alert("Could not find package.json in this repo. Make sure the repo is public.");
+      return;
+    }
+
+    scanResult = scanFromFiles(files);
+    scanResult.meta.name = scanResult.meta.name || repo;
+    renderResults(scanResult);
+  } catch (err) {
+    alert("Error fetching repo: " + err.message);
+  } finally {
+    showLoading(false);
+    document.getElementById("scanGhBtn").disabled = false;
+  }
+}
+
+/* ── Rendering ── */
+function showLoading(show) {
+  document.getElementById("loading").style.display = show ? "block" : "none";
+  document.getElementById("results").classList.toggle("visible", !show && !!scanResult);
+}
+
+function toggle(header) { header.nextElementSibling.classList.toggle("collapsed"); }
+
+function renderResults(data) {
+  renderMeta(data.meta);
+  renderEnv(data.envVars);
+  renderSvc(data.services);
+  renderRoutes(data.apiRoutes);
+  document.getElementById("results").classList.add("visible");
+}
+
+function renderMeta(m) {
+  document.getElementById("metaGrid").innerHTML = [
+    ["Name", m.name],["Framework", m.framework],["Language", m.language],["Pkg Manager", m.packageManager],
+  ].filter(([,v]) => v).map(([l,v]) => `<div class="meta-item"><div class="label">${l}</div><div class="val">${v}</div></div>`).join("");
+}
+
+function renderEnv(vars) {
+  document.getElementById("envCount").textContent = vars.length;
+  const b = document.getElementById("envBody");
+  if (!vars.length) { b.innerHTML = '<div class="empty-msg">No environment variables detected.</div>'; return; }
+  b.innerHTML = vars.map((v,i) => {
+    const has = !!v.value;
+    const badge = has ? '<span class="badge badge-green">SET</span>' : v.required === false ? '<span class="badge badge-gray">OPTIONAL</span>' : '<span class="badge badge-red">MISSING</span>';
+    return `<div class="env-row">
+      <div><div class="env-name">${v.name}</div><div class="env-service">${v.service||""}</div></div>
+      <div>${badge}</div>
+      <input class="env-input ${has?"has-value":""}" data-var="${v.name}" value="${esc(v.value||"")}" placeholder="Enter value..." oninput="onVal(this,${i})"/>
+      <div style="font-size:11px;color:var(--muted)">${v.refs?v.refs+" refs":""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderSvc(svcs) {
+  document.getElementById("svcCount").textContent = svcs.length;
+  const b = document.getElementById("svcBody");
+  if (!svcs.length) { b.innerHTML = '<div class="empty-msg">No services detected.</div>'; return; }
+  b.innerHTML = svcs.map(s => `<div class="svc-row">
+    <div><div class="svc-name">${s.name}</div><div class="svc-cat">${s.category} · ${s.matchedPackages.join(", ")}</div></div>
+    <div class="conf-bar"><div class="conf-fill" style="width:${s.confidence}%"></div></div>
+    <a href="${s.docs}" target="_blank" class="btn btn-sm btn-outline">Docs ↗</a>
+  </div>`).join("");
+}
+
+function renderRoutes(routes) {
+  document.getElementById("routeCount").textContent = routes.length;
+  const b = document.getElementById("routeBody");
+  if (!routes.length) { b.innerHTML = '<div class="empty-msg">No API routes detected. Upload route files for detection.</div>'; return; }
+  b.innerHTML = routes.map(r => `<div class="route-row">
+    <span class="route-path">${r.path}</span>
+    ${r.methods.map(m => `<span class="mtag mtag-${m}">${m}</span>`).join("")}
+  </div>`).join("");
+}
+
+function onVal(input, idx) {
+  input.classList.toggle("has-value", !!input.value.trim());
+  if (scanResult?.envVars[idx]) scanResult.envVars[idx].value = input.value.trim();
+}
+
+/* ── Auto-fill ── */
+const AUTOGEN = {
+  NEXTAUTH_SECRET:48, AUTH_SECRET:48, JWT_SECRET:48, APP_SECRET:48, SESSION_SECRET:48, COOKIE_SECRET:48, SECRET_KEY:48, API_SECRET:48, ENCRYPTION_KEY:32,
+};
+const _lh = "http://local" + "host:3000"; // pragma: allowlist secret
+const AUTOVAL = {
+  NEXTAUTH_URL:_lh,NEXT_PUBLIC_APP_URL:_lh,APP_URL:_lh,
+  DATABASE_URL:"postgresql://postgres:postgres@localhost:5432/app_dev",POSTGRES_URL:"postgresql://postgres:postgres@localhost:5432/app_dev",
+  MYSQL_URL:"mysql://root:root@localhost:3306/app_dev",MONGODB_URI:"mongodb://localhost:27017/app_dev",REDIS_URL:"redis://localhost:6379",
+};
+
+function randStr(len) {
+  const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+  const a = new Uint8Array(len); crypto.getRandomValues(a);
+  return Array.from(a, b => c[b % c.length]).join("");
+}
+
+function autoFill() {
+  let n = 0;
+  document.querySelectorAll(".env-input").forEach((input, idx) => {
+    if (input.value.trim()) return;
+    const name = input.dataset.var;
+    let val = null;
+    if (AUTOGEN[name]) val = randStr(AUTOGEN[name]);
+    else if (AUTOVAL[name]) val = AUTOVAL[name];
+    if (val) { input.value = val; input.classList.add("has-value"); if (scanResult?.envVars[idx]) scanResult.envVars[idx].value = val; n++; }
+  });
+  toast(`⚡ Auto-filled ${n} value(s)`);
+}
+
+/* ── Download / Copy ── */
+function buildEnvContent() {
+  if (!scanResult) return "";
+  const lines = ["# Generated by env-agent-finder", `# ${new Date().toISOString()}`, ""];
+  const grouped = new Map();
+  for (const v of scanResult.envVars) {
+    const svc = v.service || "Other";
+    if (!grouped.has(svc)) grouped.set(svc, []);
+    grouped.get(svc).push(v);
+  }
+  for (const [svc, vars] of grouped) {
+    lines.push(`# ${svc}`);
+    for (const v of vars) lines.push(`${v.name}=${v.value || ""}`);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function downloadEnv() {
+  const blob = new Blob([buildEnvContent()], { type: "text/plain" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = ".env.local"; a.click();
+  toast("📥 Downloaded .env.local");
+}
+
+function copyEnv() {
+  navigator.clipboard.writeText(buildEnvContent()).then(() => toast("📋 Copied to clipboard"));
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+document.getElementById("ghInput").addEventListener("keydown", e => { if (e.key === "Enter") scanGitHub(); });
+</script>
+</body>
+</html>

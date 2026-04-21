@@ -111,24 +111,102 @@ pnpm install
 ```
 
 3. **Set up environment variables**
-Copy `.env.example` to `.env.local` and fill in your values:
-```bash
-cp .env.example .env.local
+Create a `.env.local` file:
+```
+# Neon Database
+DATABASE_URL=postgresql://...
+
+# Vercel Blob
+BLOB_READ_WRITE_TOKEN=...
+
+# Stack Auth
+NEXT_PUBLIC_STACK_PROJECT_ID=...
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=...
+# Optional compatibility alias used by some Stack integrations:
+NEXT_PUBLIC_STACK_PUBLISHED_CLIENT_KEY=...
+STACK_SECRET_SERVER_KEY=...
+
+# Stripe Billing
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_PRICE_ID_PRO=...
+
+# Optional app URL override (used for Stripe redirects)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-4. **Set up the database**
-Run the schema migration in your Neon console or with psql:
+Or run the env setup agent:
 ```bash
-psql $DATABASE_URL -f scripts/01-create-schema.sql
+pnpm env:setup
 ```
+It scans your project, attempts provider autofetch from authenticated sessions, then prompts only for remaining values before writing `.env.local`.
 
-5. **Run the development server**
+4. **Run the development server**
 ```bash
 pnpm dev
 ```
 
 6. **Access the application**
 Open http://localhost:3000 in your browser
+
+## Environment Setup Agent
+
+This project includes a secure env setup agent at `scripts/env-agent.mjs`.
+
+What it does:
+- Detects env vars used in code and docs
+- Suggests likely provider docs (Neon, Vercel Blob, Stack Auth, etc.)
+- Attempts autofetch from authenticated sources:
+  - Current shell environment (`process.env`)
+  - Vercel project vars via `vercel env pull`
+  - Neon `DATABASE_URL` via Neon API or Neon CLI
+- Auto-derives equivalent aliases for common key variants (for example Stack `PUBLISHABLE` / `PUBLISHED` key names)
+- Prompts you for any missing values and writes `.env.local`
+
+By default it excludes helper keys used only for autofetch (`NEON_API_KEY`, `NEON_PROJECT_ID`, etc.) so your project env file only contains app/runtime values.
+
+What it does **not** do:
+- It does not create API keys for you
+- It does not bypass authentication or scrape secrets from websites
+- For account-based retrieval, you must sign in through official provider auth flows
+
+Autofetch prerequisites:
+```bash
+# For Vercel variables
+pnpm dlx vercel login
+pnpm dlx vercel link
+
+# Optional for Neon API autofetch
+export NEON_API_KEY=...
+export NEON_PROJECT_ID=...
+```
+
+Commands:
+```bash
+# scan only (no file writes)
+pnpm env:scan
+
+# setup with autofetch + prompts (writes .env.local)
+pnpm env:setup
+
+# setup with autofetch + auto-bootstrap vercel auth/link when needed
+pnpm env:setup:auto
+
+# setup with prompts only (disable autofetch)
+pnpm env:setup:manual
+
+# pull from preview or a specific branch on Vercel
+node scripts/env-agent.mjs --vercel-environment preview --vercel-git-branch main
+
+# include helper keys used by autofetch logic
+node scripts/env-agent.mjs --include-agent-keys
+
+# enable automatic Vercel login/link bootstrap in CLI mode
+node scripts/env-agent.mjs --bootstrap-vercel
+
+# generate template file without prompts
+node scripts/env-agent.mjs --template-only --non-interactive --output .env.example.generated
+```
 
 ## API Endpoints
 

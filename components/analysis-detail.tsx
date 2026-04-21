@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,13 +27,7 @@ interface AnalysisDetailProps {
   blueprints: AppBlueprint[]
 }
 
-const statusConfig: Record<Analysis['status'], {
-  icon: typeof Clock
-  label: string
-  color: string
-  spin?: boolean
-  pulse?: boolean
-}> = {
+const statusConfig: Record<string, { icon: React.ElementType; label: string; color: string; spin?: boolean; pulse?: boolean }> = {
   pending: { icon: Clock, label: 'Pending', color: 'text-muted-foreground' },
   scanning: { icon: Loader2, label: 'Scanning repositories...', color: 'text-chart-1', spin: true },
   analyzing: { icon: Sparkles, label: 'AI analyzing files...', color: 'text-chart-1', pulse: true },
