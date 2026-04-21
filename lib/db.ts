@@ -1,23 +1,28 @@
-import { neon } from '@neondatabase/serverless'
+import { Pool, type QueryResult, type QueryResultRow } from 'pg';
 
-export function getDb() {
-  const databaseUrl = process.env.DATABASE_URL
-  if (!databaseUrl) {
-    throw new Error(
-      'DATABASE_URL environment variable is not set. ' +
-      'Please configure your Neon database connection string in your environment variables.'
-    )
-  }
-  return neon(databaseUrl)
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  // Keep this as a runtime warning so builds still succeed in CI
+  // where secrets may not be present.
+  console.warn('DATABASE_URL is not set. Database queries will fail until it is configured.');
 }
 
-// Export a validation function for startup checks
-export function validateDatabaseConnection() {
-  try {
-    getDb()
-    return { connected: true }
-  } catch (error) {
-    return { connected: false, error: String(error) }
-  }
-}
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+});
 
+export const db = {
+  query<T extends QueryResultRow = QueryResultRow>(text: string, params?: unknown[]) {
+    return pool.query<T>(text, params);
+  },
+};
+
+export async function sql<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: unknown[]
+): Promise<T[]> {
+  const result: QueryResult<T> = await db.query<T>(text, params);
+  return result.rows;
+}

@@ -111,9 +111,26 @@ pnpm install
 ```
 
 3. **Set up environment variables**
-Copy `.env.example` to `.env.local` and fill in your values:
-```bash
-cp .env.example .env.local
+Create a `.env.local` file:
+```
+# Neon Database
+DATABASE_URL=postgresql://...
+
+# Vercel Blob
+BLOB_READ_WRITE_TOKEN=...
+
+# Stack Auth
+NEXT_PUBLIC_STACK_PROJECT_ID=...
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=...
+STACK_SECRET_SERVER_KEY=...
+
+# Stripe Billing
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_PRICE_ID_PRO=...
+
+# Optional app URL override (used for Stripe redirects)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 4. **Set up the database**
