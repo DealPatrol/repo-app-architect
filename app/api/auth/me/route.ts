@@ -1,27 +1,23 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { cookies } from 'next/headers'
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const cookieStore = await cookies()
+    const username = cookieStore.get('github_username')
+    const userId = cookieStore.get('github_user_id')
+    const token = cookieStore.get('github_access_token')
 
-    if (!user) {
+    if (!token || !username) {
       return NextResponse.json({ authenticated: false }, { status: 401 })
     }
 
     return NextResponse.json({
       authenticated: true,
-      user: {
-        github_id: user.github_id,
-        github_username: user.github_username,
-        github_avatar_url: user.github_avatar_url,
-      },
+      username: username.value,
+      userId: userId?.value ?? null,
     })
   } catch (error) {
-    console.error('Error fetching auth status:', error)
-    return NextResponse.json(
-      { authenticated: false, error: 'Authentication is not configured yet.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ authenticated: false }, { status: 500 })
   }
 }
