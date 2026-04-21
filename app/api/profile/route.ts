@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getUserProfile, upsertUserProfile } from '@/lib/queries';
+import {
+  getUserProfile,
+  markOnboardingStepCompleted,
+  upsertUserProfile,
+} from '@/lib/queries';
 
 function cleanNullableString(value: unknown, maxLength = 255) {
   if (typeof value !== 'string') return null;
@@ -55,6 +59,7 @@ export async function PUT(request: NextRequest) {
       billing_email: cleanNullableString(body.billing_email, 255),
       timezone,
     });
+    await markOnboardingStepCompleted(user.id, 'profile_completed');
 
     return NextResponse.json(profile);
   } catch (error) {

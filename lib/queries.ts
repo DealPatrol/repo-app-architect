@@ -108,6 +108,36 @@ export interface UserSubscription {
   updated_at: string;
 }
 
+export type OnboardingStepKey =
+  | 'profile_completed'
+  | 'first_project_created'
+  | 'first_task_created'
+  | 'trial_started';
+
+export interface OnboardingProgress {
+  user_id: string;
+  profile_completed_at: string | null;
+  first_project_created_at: string | null;
+  first_task_created_at: string | null;
+  trial_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingChecklistStep {
+  key: OnboardingStepKey;
+  title: string;
+  description: string;
+  href: string;
+  completed: boolean;
+}
+
+export interface OnboardingChecklist {
+  steps: OnboardingChecklistStep[];
+  completedCount: number;
+  totalCount: number;
+}
+
 // Project queries
 export async function getProjectsByOrganization(orgId: string): Promise<Project[]> {
   const projects = await sql('SELECT * FROM projects WHERE organization_id = $1 AND status != $2 ORDER BY created_at DESC', [
@@ -418,4 +448,129 @@ export async function updateUserSubscriptionByCustomerId(
   );
 
   return (result[0] as UserSubscription) || null;
+}
+
+// Onboarding queries
+const onboardingStepColumnMap: Record<OnboardingStepKey, string> = {
+  profile_completed: 'profile_completed_at',
+  first_project_created: 'first_project_created_at',
+  first_task_created: 'first_task_created_at',
+  trial_started: 'trial_started_at',
+};
+
+export async function getOnboardingProgress(
+  userId: string
+): Promise<OnboardingProgress | null> {
+  const rows = await sql('SELECT * FROM onboarding_progress WHERE user_id = $1', [userId]);
+  return (rows[0] as OnboardingProgress) || null;
+}
+
+export async function markOnboardingStepCompleted(
+  userId: string,
+  step: OnboardingStepKey
+): Promise<OnboardingProgress> {
+  const columnName = onboardingStepColumnMap[step];
+
+  const result = await sql(
+    `INSERT INTO onboarding_progress (user_id, ${columnName})
+     VALUES ($1, CURRENT_TIMESTAMP)
+     ON CONFLICT(user_id) DO UPDATE SET
+       ${columnName} = COALESCE(onboarding_progress.${columnName}, EXCLUDED.${columnName}),
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [userId]
+  );
+
+  return result[0] as OnboardingProgress;
+}
+
+export async function getOnboardingChecklist(
+  userId: string,
+  organizationId: string | null
+): Promise<OnboardingChecklist> {
+  const [progress, profile, subscription, projectCountRows, taskCountRows] = await Promise.all([
+    getOnboardingProgress(userId),
+    getUserProfile(userId),
+    getUserSubscription(userId),
+    organizationId
+      ? sql<{ count: number }>(
+          `SELECT COUNT(*)::int as count
+           FROM projects
+           WHERE organization_id = $1
+             AND status != 'deleted'`,
+          [organizationId]
+        )
+      : Promise.resolve([{ count: 0 }]),
+    organizationId
+      ? sql<{ count: number }>(
+          `SELECT COUNT(*)::int as count
+           FROM tasks t
+           INNER JOIN projects p ON p.id = t.project_id
+           WHERE p.organization_id = $1
+             AND t.created_by = $2`,
+          [organizationId, userId]
+        )
+      : Promise.resolve([{ count: 0 }]),
+  ]);
+
+  const projectCount = Number(projectCountRows[0]?.count ?? 0);
+  const taskCount = Number(taskCountRows[0]?.count ?? 0);
+
+  const profileCompleted = Boolean(
+    progress?.profile_completed_at ||
+      (profile &&
+        (profile.display_name ||
+          profile.company_name ||
+          profile.job_title ||
+          profile.billing_email))
+  );
+  const firstProjectCreated = Boolean(
+    progress?.first_project_created_at || projectCount > 0
+  );
+  const firstTaskCreated = Boolean(progress?.first_task_created_at || taskCount > 0);
+  const trialStarted = Boolean(
+    progress?.trial_started_at ||
+      subscription?.status === 'trialing' ||
+      subscription?.status === 'active' ||
+      subscription?.stripe_customer_id
+  );
+
+  const steps: OnboardingChecklistStep[] = [
+    {
+      key: 'profile_completed',
+      title: 'Complete your profile',
+      description: 'Add your personal details and billing contact information.',
+      href: '/dashboard/profile',
+      completed: profileCompleted,
+    },
+    {
+      key: 'first_project_created',
+      title: 'Create your first project',
+      description: 'Start a workspace project to organize tasks and activity.',
+      href: '/dashboard/projects',
+      completed: firstProjectCreated,
+    },
+    {
+      key: 'first_task_created',
+      title: 'Create your first task',
+      description: 'Add a task in your project to start execution.',
+      href: '/dashboard/projects',
+      completed: firstTaskCreated,
+    },
+    {
+      key: 'trial_started',
+      title: 'Start your trial',
+      description: 'Open billing and start checkout to activate paid features.',
+      href: '/dashboard/billing',
+      completed: trialStarted,
+    },
+  ];
+
+  const completedCount = steps.filter((step) => step.completed).length;
+
+  return {
+    steps,
+    completedCount,
+    totalCount: steps.length,
+  };
 }
