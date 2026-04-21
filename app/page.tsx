@@ -1,10 +1,24 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Github, Sparkles, Code2, Layers, ArrowRight } from 'lucide-react'
+import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle } from 'lucide-react'
 
-export default function HomePage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_required: 'You must sign in to access the dashboard.',
+  github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
+}
+
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams
+  const errorMessage = error ? ERROR_MESSAGES[error] ?? 'An unexpected error occurred.' : null
+
   return (
     <div className="min-h-screen bg-background">
+      {errorMessage && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-3 flex items-center gap-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {errorMessage}
+        </div>
+      )}
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
