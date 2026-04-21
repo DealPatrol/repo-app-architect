@@ -43,7 +43,7 @@
     "@radix-ui/react-toggle": "1.1.10",
     "@radix-ui/react-toggle-group": "1.1.11",
     "@radix-ui/react-tooltip": "1.2.8",
-    "@stack-auth/nextjs": "file:stubs/stack-auth-nextjs",
+    "@stack-auth/nextjs": "link:stubs/stack-auth-nextjs",
     "@vercel/analytics": "1.6.1",
     "@vercel/blob": "^0.21.0",
     "autoprefixer": "^10.4.20",
@@ -71,7 +71,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.4",
-    "@eslint/js": "^9.39.3",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
     "@types/react": "19.2.14",
