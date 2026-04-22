@@ -4,7 +4,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith('/dashboard')) {
-    const token = request.cookies.get('github_access_token')
+    const token = request.cookies.get('github_user_id')
     if (!token) {
       return NextResponse.redirect(new URL('/?error=auth_required', request.url))
     }
