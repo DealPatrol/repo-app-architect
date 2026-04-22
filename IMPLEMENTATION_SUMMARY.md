@@ -1,182 +1,90 @@
-# TaskFlow - Implementation Summary
+# CodeVault Backend - Implementation Summary
 
 ## ✅ Completed Architecture
 
-Your production-ready project management SaaS has been fully architected and implemented with:
-
 ### 1. Database Layer (Neon PostgreSQL)
-- ✅ 6 core tables (projects, tasks, task_comments, task_attachments, project_members, activity_logs)
-- ✅ Optimized indexes for query performance
-- ✅ Foreign key relationships with cascade deletes
-- ✅ Built-in created_at/updated_at timestamps
+- ✅ `user_auth` — GitHub OAuth user records
+- ✅ `repositories` — Tracked GitHub repositories
+- ✅ `repo_files` — Scanned files with AI metadata (JSONB fields)
+- ✅ `analyses` — Analysis run records with status tracking
+- ✅ `analysis_repositories` — Junction table (many-to-many)
+- ✅ `app_blueprints` — AI-discovered app ideas with blueprint data
+- ✅ Performance indexes on all foreign keys and frequently queried columns
 
-### 2. Authentication & Authorization
-- ✅ Stack Auth integration for user management
-- ✅ Role-based access control (owner/admin/member/viewer)
-- ✅ Organization support via Stack Auth organizations
-- ✅ Team member management with invite system
+### 2. Authentication
+- ✅ GitHub OAuth flow (read-only scopes)
+- ✅ Access token stored in `user_auth` table
+- ✅ Session cookie (`github_user_id`, httpOnly, secure)
+- ✅ All protected API routes validate cookie
 
 ### 3. Backend APIs
-- ✅ Projects API (CRUD operations)
-- ✅ Tasks API (status, priority, assignment management)
-- ✅ Comments API (task collaboration)
-- ✅ Attachments API (file management with Vercel Blob)
-- ✅ Team Members API (role management)
-- ✅ Activity Logs API (tracking changes)
-- ✅ Analytics API (project insights)
-- ✅ File Upload API (Vercel Blob integration)
+- ✅ `GET /api/auth/github/callback` — OAuth callback handler
+- ✅ `GET /api/github/repos` — List user's GitHub repos via OAuth
+- ✅ `POST /api/github/create-repo` — Create new GitHub repo from blueprint
+- ✅ `GET/POST /api/repositories` — Add repos by URL, list tracked repos
+- ✅ `GET/DELETE /api/repositories/[id]` — Get or remove a repo
+- ✅ `GET/POST /api/analyses` — List and create analyses
+- ✅ `POST /api/analyses/[id]/run` — Run analysis with SSE progress stream
+- ✅ `POST /api/analyses/[id]/analyze` — AI cross-repo pattern analysis
+- ✅ `POST /api/export/blueprint` — Export blueprint as JSON
+- ✅ `POST /api/export/pdf` — Export blueprint as PDF
 
 ### 4. Frontend Components
-- ✅ Dashboard layout with responsive sidebar
-- ✅ Projects list and detail views
-- ✅ Kanban board with drag-and-drop
-- ✅ Task detail page with comments
-- ✅ File uploader component
-- ✅ Activity feed component
-- ✅ Analytics dashboard with charts
-- ✅ Team settings page
-- ✅ Project settings page
+- ✅ Landing page (`/`) with feature overview and how-it-works
+- ✅ Dashboard layout with sticky header and mobile nav
+- ✅ Repositories page with add-by-URL and GitHub OAuth import
+- ✅ Analyses list with create form and repository selector
+- ✅ Analysis detail with real-time SSE progress and blueprint cards
+- ✅ App suggestions component showing discovered app ideas
 
-### 5. Features
-- ✅ Multi-project support
-- ✅ Task organization with kanban board
-- ✅ Team collaboration with comments
-- ✅ File attachments storage
-- ✅ Real-time activity tracking
-- ✅ Comprehensive analytics
-- ✅ Role-based permissions
-- ✅ Responsive mobile-first design
+### 5. AI Integration
+- ✅ Vercel AI SDK with structured output (Zod schema)
+- ✅ GitHub file tree traversal (up to 100 files/repo)
+- ✅ GPT-4o-mini for blueprint discovery
+- ✅ Blueprint includes: name, description, complexity, reuse %, existing files, missing files, effort estimate, technologies
 
 ### 6. Styling & Design
-- ✅ Dark theme with blue accent color
-- ✅ Tailwind CSS v4 with design tokens
+- ✅ Dark theme with Tailwind CSS v4
 - ✅ Shadcn UI components
 - ✅ Lucide React icons
-- ✅ Mobile-optimized layout
-- ✅ Consistent typography and spacing
+- ✅ Mobile-first responsive layout
 
 ## 📁 File Structure
 
 ```
 /app
-  /api - All backend endpoints
-  /dashboard - Main app interface
-    /projects - Project pages and details
+  /api           - All backend endpoints
+  /dashboard     - Main app UI (layout, pages)
 
 /components
-  - Reusable React components
-  - UI elements from shadcn
+  - RepositoriesList, RepositorySelector
+  - AnalysesList, AnalysisDetail, AppSuggestions
+  - UI primitives (Shadcn)
 
 /lib
-  - db.ts - Database client
-  - queries.ts - Database operations
+  - db.ts        - Neon database client
+  - queries.ts   - All database operations
+  - utils.ts     - cn() and other helpers
 
 /scripts
-  - Database migrations
+  - 01-create-schema.sql  - Database migration
 
 /public
   - Static assets
-
-/styles
-  - Global styles and theme variables
 ```
 
 ## 🚀 Getting Started
 
-1. **Verify Environment Variables**
-   - DATABASE_URL (Neon)
-   - BLOB_READ_WRITE_TOKEN (Vercel Blob)
-   - Stack Auth credentials
-
-2. **Install Dependencies**
-   ```
-   pnpm install
-   ```
-
-3. **Run Development Server**
-   ```
-   pnpm dev
-   ```
-
-4. **Access Application**
-   - Navigate to http://localhost:3000/dashboard
+1. Copy `.env.example` to `.env.local` and fill in values
+2. Run `psql $DATABASE_URL -f scripts/01-create-schema.sql`
+3. Run `pnpm install && pnpm dev`
+4. Open http://localhost:3000
 
 ## 🔑 Key Technologies
 
 - **Framework**: Next.js 16 (App Router)
-- **Database**: Neon PostgreSQL
-- **Auth**: Stack Auth
-- **Storage**: Vercel Blob
+- **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
+- **AI**: Vercel AI SDK + OpenAI GPT-4
+- **Auth**: Custom GitHub OAuth
 - **UI**: Shadcn UI + Tailwind CSS v4
-- **Charts**: Recharts
-- **Forms**: React Hook Form + Zod
-
-## 📊 Database Tables
-
-1. **projects** - Project metadata and settings
-2. **tasks** - Tasks within projects
-3. **task_comments** - Task discussion threads
-4. **task_attachments** - Files associated with tasks
-5. **project_members** - Team members with roles
-6. **activity_logs** - Audit trail of all changes
-
-## 🛣️ Page Routes
-
-- `/dashboard` - Overview dashboard
-- `/dashboard/projects` - Projects list
-- `/dashboard/projects/[id]` - Project overview
-- `/dashboard/projects/[id]/tasks` - Kanban board
-- `/dashboard/projects/[id]/tasks/[taskId]` - Task detail with comments
-- `/dashboard/projects/[id]/analytics` - Project analytics
-- `/dashboard/projects/[id]/settings` - Project settings & team
-
-## 🔌 API Routes
-
-- `/api/projects/*` - Project management
-- `/api/projects/[id]/tasks/*` - Task management
-- `/api/projects/[id]/tasks/[taskId]/comments/*` - Comments
-- `/api/projects/[id]/tasks/[taskId]/attachments/*` - File attachments
-- `/api/projects/[id]/members/*` - Team management
-- `/api/projects/[id]/activity/*` - Activity logs
-- `/api/projects/[id]/analytics/*` - Analytics data
-- `/api/upload` - File uploads to Vercel Blob
-
-## ⚡ Performance Features
-
-- Optimized database indexes
-- Efficient SQL queries
-- Component-level code splitting
-- Static generation where possible
-- Proper caching strategies
-- Mobile-optimized CSS
-
-## 🔒 Security
-
-- Row-level access control via roles
-- Input validation on all endpoints
-- File upload size limits (100MB)
-- CSRF protection
-- XSS prevention
-- Environment variables for sensitive data
-
-## 🎯 Production Ready
-
-This application is fully production-ready for:
-- ✅ Scaling to thousands of users
-- ✅ Handling complex workflows
-- ✅ Enterprise team collaboration
-- ✅ HIPAA/SOC2 compliance (with additional setup)
-- ✅ Multi-tenant support (via organizations)
-
-## 📝 Next Steps
-
-1. Connect to Vercel for deployment
-2. Set up custom domain
-3. Configure email notifications (optional)
-4. Add team invitations via email
-5. Set up monitoring and logging
-6. Configure backup strategy
-
----
-
-Your SaaS is now ready to be sold to customers! All core features are implemented and the architecture supports growth and scaling.
+- **Streaming**: Server-Sent Events for analysis progress

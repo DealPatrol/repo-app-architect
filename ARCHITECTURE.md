@@ -1,4 +1,4 @@
-# TaskFlow - System Architecture
+# CodeVault - System Architecture
 
 ## High-Level Architecture
 
@@ -6,7 +6,7 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          CLIENT BROWSER                              │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │              React 19.2 / Next.js 16                          │  │
+│  │              React 19.2 / Next.js 16 (App Router)            │  │
 │  │         (Dark Theme, Responsive Mobile-First)                 │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
@@ -22,24 +22,25 @@
         │                        │
 ┌───────▼────────┐      ┌────────▼────────┐
 │  /app/routes   │      │  /public/assets │
-│  - Dashboard   │      │  - Styles       │
-│  - Projects    │      │  - Icons        │
-│  - Tasks       │      └─────────────────┘
-│  - Analytics   │
+│  - Home        │      │  - Styles       │
+│  - Dashboard   │      │  - Icons        │
+│  - Repos       │      └─────────────────┘
+│  - Analyses    │
 └────────────────┘
         │
         ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         API LAYER                                    │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  /api/projects        - Project management                    │ │
-│  │  /api/upload          - File uploads to Blob                  │ │
-│  │  /api/projects/[id]/tasks        - Task CRUD                  │ │
-│  │  /api/projects/[id]/comments     - Comments                   │ │
-│  │  /api/projects/[id]/attachments  - File attachments           │ │
-│  │  /api/projects/[id]/members      - Team management            │ │
-│  │  /api/projects/[id]/activity     - Activity logs              │ │
-│  │  /api/projects/[id]/analytics    - Project metrics            │ │
+│  │  /api/auth/github/callback  - GitHub OAuth flow               │ │
+│  │  /api/github/repos          - Fetch user's GitHub repos       │ │
+│  │  /api/github/create-repo    - Create repo from blueprint      │ │
+│  │  /api/repositories          - Repository CRUD                 │ │
+│  │  /api/analyses              - Analysis management             │ │
+│  │  /api/analyses/[id]/run     - Run analysis (SSE stream)       │ │
+│  │  /api/analyses/[id]/analyze - AI cross-repo pattern analysis  │ │
+│  │  /api/export/blueprint      - Export blueprint as JSON        │ │
+│  │  /api/export/pdf            - Export blueprint as PDF         │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────┘
         │
@@ -49,286 +50,139 @@
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │              Neon PostgreSQL                                   │ │
 │  │  ┌──────────────────────────────────────────────────────────┐ │ │
-│  │  │  Projects Table         - Project metadata              │ │ │
-│  │  │  Tasks Table            - Task data & status            │ │ │
-│  │  │  Task_Comments Table    - Discussion threads            │ │ │
-│  │  │  Task_Attachments Table - File references               │ │ │
-│  │  │  Project_Members Table  - Team & roles                  │ │ │
-│  │  │  Activity_Logs Table    - Audit trail                   │ │ │
-│  │  │  Stack Auth Tables      - Users & orgs                  │ │ │
+│  │  │  user_auth Table          - GitHub OAuth users          │ │ │
+│  │  │  repositories Table       - Tracked GitHub repos        │ │ │
+│  │  │  repo_files Table         - Scanned files + AI metadata │ │ │
+│  │  │  analyses Table           - Analysis run records        │ │ │
+│  │  │  analysis_repositories    - Junction table              │ │ │
+│  │  │  app_blueprints Table     - AI-discovered app ideas     │ │ │
 │  │  └──────────────────────────────────────────────────────────┘ │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────┘
         │
         ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                      SERVICES                                        │
+│                      EXTERNAL SERVICES                               │
 │  ┌─────────────────────────────┐  ┌──────────────────────────────┐ │
-│  │   Vercel Blob              │  │   Stack Auth                 │ │
-│  │   ├─ File uploads          │  │   ├─ User management        │ │
-│  │   ├─ File storage          │  │   ├─ Organization mgmt      │ │
-│  │   └─ CDN delivery          │  │   └─ Session management     │ │
-│  └─────────────────────────────┘  └──────────────────────────────┘ │
+│  │   GitHub API               │  │   OpenAI (via Vercel AI SDK) │ │
+│  │   ├─ OAuth token exchange   │  │   ├─ File pattern analysis  │ │
+│  │   ├─ Repo listing           │  │   ├─ Blueprint generation   │ │
+│  │   ├─ File tree traversal    │  │   └─ Gap analysis           │ │
+│  │   └─ Repo creation          │  └──────────────────────────────┘ │
+│  └─────────────────────────────┘                                    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+## Analysis Flow
 
-### Creating a Task
 ```
-User Input (Task Form)
+User selects repositories
         │
         ▼
-React Component State
+POST /api/analyses  →  Create analysis record (status: pending)
         │
         ▼
-POST /api/projects/[id]/tasks
+POST /api/analyses/[id]/run  (Server-Sent Events stream)
         │
-        ├─ Validate input
-        ├─ Create activity log
-        ├─ Insert into tasks table
+        ├─ status: scanning (10%)
+        │   └─ Fetch file trees from GitHub API for each repo
+        │   └─ Save files to repo_files table
         │
-        ▼
-Neon Database (persisted)
+        ├─ status: analyzing (50%)
+        │   └─ Build file summary string
+        │   └─ Send to OpenAI GPT-4o-mini with structured output
+        │   └─ AI identifies 2-5 app blueprints
         │
-        ▼
-Response with new task
+        ├─ status: complete (100%)
+        │   └─ Save blueprints to app_blueprints table
+        │   └─ Stream final blueprints to client
         │
-        ▼
-Update React state + UI
-        │
-        ▼
-Activity log displays in feed
-```
-
-### Uploading a File
-```
-File Selection (Uploader)
-        │
-        ▼
-FormData with file
-        │
-        ▼
-POST /api/upload
-        │
-        ├─ Validate file size
-        ├─ Upload to Vercel Blob
-        │
-        ▼
-Blob returns file URL
-        │
-        ▼
-POST /api/projects/[id]/tasks/[taskId]/attachments
-        │
-        ├─ Save metadata to database
-        ├─ Create activity log
-        │
-        ▼
-Neon Database (persisted)
-        │
-        ▼
-Display attachment in UI
+        └─ status: failed (on error)
 ```
 
 ## Authentication Flow
 
 ```
-User
-  │
-  ▼
-Stack Auth Provider
-  │
-  ├─ Sign Up
-  ├─ Sign In
-  ├─ Session Management
-  │
-  ▼
-User Context
-  │
-  ├─ User ID
-  ├─ Organization ID
-  ├─ User Role
-  │
-  ▼
-Protected Routes
-  │
-  ├─ Dashboard (requires auth)
-  ├─ Projects (requires org)
-  ├─ Settings (requires permissions)
-  │
-  ▼
-API Requests (with user context)
+User clicks "Connect GitHub"
+        │
+        ▼
+Redirect to GitHub OAuth
+  └─ Scope: read:user, repo (read-only)
+        │
+        ▼
+GET /api/auth/github/callback
+  ├─ Exchange code for access_token
+  ├─ Fetch GitHub user profile
+  ├─ Upsert into user_auth table
+  └─ Set github_user_id cookie (httpOnly, secure)
+        │
+        ▼
+Redirect to /dashboard
+  └─ All API routes read cookie to authenticate
 ```
 
 ## Database Relationships
 
 ```
-neon_auth.organization
-        │
-        ├─── projects.organization_id
-        │         │
-        │         ├─── tasks.project_id
-        │         │     │
-        │         │     ├─── task_comments.task_id
-        │         │     └─── task_attachments.task_id
-        │         │
-        │         ├─── project_members.project_id
-        │         │
-        │         └─── activity_logs.project_id
-        │
-        └─── neon_auth.user
-               │
-               ├─── projects.created_by
-               ├─── tasks.created_by / assigned_to
-               ├─── task_comments.author_id
-               ├─── project_members.user_id
-               └─── activity_logs.user_id
+user_auth
+  └─ (owns session, not foreign keyed to other tables)
+
+repositories
+  ├─── repo_files.repository_id
+  └─── analysis_repositories.repository_id
+
+analyses
+  ├─── analysis_repositories.analysis_id
+  └─── app_blueprints.analysis_id
 ```
 
 ## Component Architecture
 
 ```
 RootLayout
-  └─ dark theme
-     └─ Providers
-        
-        Dashboard Layout
-          ├─ Header
-          ├─ Sidebar
-          │   ├─ Navigation
-          │   └─ User Menu
-          │
-          └─ Main Content
-             
-             ProjectsPage
-               └─ ProjectsList
-                   └─ ProjectCard[]
-             
-             ProjectDetailPage
-               ├─ ProjectHeader
-               ├─ TabNavigation
-               │   ├─ Overview
-               │   ├─ Tasks
-               │   ├─ Analytics
-               │   └─ Settings
-               │
-               ├─ TasksPage (Kanban)
-               │   └─ KanbanBoard
-               │       ├─ Column[status]
-               │       │   └─ TaskCard[]
-               │       │       └─ DragDropContext
-               │
-               ├─ AnalyticsPage
-               │   └─ AnalyticsDashboard
-               │       ├─ KPICards
-               │       ├─ Charts
-               │       └─ TeamTable
-               │
-               ├─ SettingsPage
-               │   ├─ ProjectInfo
-               │   └─ TeamSettings
-               │
-               └─ TaskDetailPage
-                   ├─ TaskHeader
-                   ├─ TaskComments
-                   ├─ FileUploader
-                   └─ ActivityFeed
+  └─ ThemeProvider (dark mode)
+     │
+     ├─ HomePage (/)
+     │
+     └─ DashboardLayout (/dashboard/*)
+         ├─ Header + Nav
+         │
+         ├─ DashboardPage (/dashboard)
+         │   └─ Stats overview
+         │
+         ├─ RepositoriesPage (/dashboard/repositories)
+         │   └─ RepositoriesList
+         │       ├─ Add by URL form
+         │       └─ GitHub OAuth import
+         │
+         └─ AnalysesPage (/dashboard/analyses)
+             ├─ AnalysesList
+             │   └─ Create analysis form
+             │       └─ RepositorySelector
+             │
+             └─ AnalysisDetailPage (/dashboard/analyses/[id])
+                 └─ AnalysisDetail
+                     ├─ Progress stream (SSE)
+                     ├─ AppSuggestions (blueprint cards)
+                     └─ Export controls
 ```
 
-## Deployment Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    VERCEL EDGE NETWORK                      │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │              Your App (Deployed)                      │ │
-│  │  ├─ /dashboard       - ISR                            │ │
-│  │  ├─ /api/*           - Serverless Functions           │ │
-│  │  └─ /public          - Static Assets (Cached)         │ │
-│  └───────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-         │                      │                    │
-         │                      │                    │
-    ┌────▼────┐            ┌────▼────┐         ┌────▼────┐
-    │  Neon   │            │  Vercel │         │ Vercel  │
-    │PostgreSQL            │   Blob  │         │Analytics│
-    └────────┘             └────────┘         └────────┘
-```
-
-## Security Layers
+## Security
 
 ```
 User Request
     │
-    ├─ Browser (Client-side)
-    │   └─ Validate inputs
-    │
     ├─ HTTPS/TLS (Transport)
     │   └─ Encrypted in transit
     │
-    ├─ Vercel Edge (Rate limiting)
-    │   └─ DDoS protection
+    ├─ Vercel Edge (Rate limiting / DDoS protection)
     │
-    ├─ Authentication (Stack Auth)
-    │   └─ Session validation
+    ├─ Session Cookie (httpOnly, secure, SameSite)
+    │   └─ github_user_id validated on every API request
     │
-    ├─ API Route (Authorization)
-    │   ├─ Check user ID
-    │   ├─ Check role/permissions
-    │   └─ Validate inputs with Zod
+    ├─ GitHub OAuth (read-only scopes)
+    │   └─ We never write to user repos
     │
-    ├─ Database (Query Parameters)
-    │   └─ Parameterized queries (SQL injection prevention)
-    │
-    └─ Application Logic
-        └─ Business rule validation
+    └─ Database
+        └─ Parameterized queries (SQL injection prevention)
 ```
-
-## Performance Optimization
-
-```
-Client Performance
-  ├─ Code splitting
-  ├─ Lazy loading
-  └─ Image optimization
-
-Server Performance
-  ├─ Database indexes
-  ├─ Query optimization
-  └─ Connection pooling
-
-Caching Strategy
-  ├─ Browser cache (static assets)
-  ├─ CDN cache (Vercel Blob)
-  ├─ API response cache
-  └─ Database query cache
-
-Monitoring
-  ├─ Vercel Analytics
-  ├─ Error tracking
-  └─ Performance metrics
-```
-
-## Scalability
-
-```
-Single User → Multiple Teams
-    ├─ Organization isolation (via Stack Auth)
-    └─ Database partitioning ready
-
-Single Project → 1000s of Projects
-    ├─ Database indexes on project_id
-    ├─ Pagination implemented
-    └─ Activity log archiving ready
-
-Small Team → 1000s of Team Members
-    ├─ Role-based permissions
-    ├─ Bulk operations support
-    └─ Team invite system
-
-Storage Growth
-    ├─ Vercel Blob (unlimited)
-    └─ Database optimization queries
-```
-
-This architecture supports growing from a startup to an enterprise SaaS with thousands of users!

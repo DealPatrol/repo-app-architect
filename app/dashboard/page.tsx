@@ -1,103 +1,157 @@
-import { getProjectsByOrganization } from '@/lib/queries';
-import { currentUser } from '@stack-auth/nextjs';
-import { Button } from '@/components/ui/button';
-import { Plus, Folder, Users } from 'lucide-react';
-import Link from 'next/link';
+import { getAllRepositories, getAllAnalyses, type Analysis, type Repository } from '@/lib/queries'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { FolderGit2, Sparkles, Code2, Plus, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
-  const user = await currentUser();
-  if (!user) return null;
+  let repositories: Repository[] = []
+  let analyses: Analysis[] = []
 
-  // Get the organization ID from user's active organization
-  const orgId = user.activeOrganizationId;
-  const projects = orgId ? await getProjectsByOrganization(orgId) : [];
+  try {
+    repositories = await getAllRepositories()
+    analyses = await getAllAnalyses()
+  } catch {
+    // Database not available yet
+  }
+
+  const completedAnalyses = analyses.filter((analysis) => analysis.status === 'complete')
 
   return (
-    <div className="space-y-8 p-4 md:p-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's your project overview.</p>
+        <h1 className="text-3xl font-bold text-foreground text-balance">Dashboard</h1>
+        <p className="text-muted-foreground">Discover what apps you can build from your existing code.</p>
       </div>
 
       {/* Quick stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-6">
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Total Projects</p>
-              <p className="text-2xl font-bold text-foreground">{projects.length}</p>
+              <p className="text-sm text-muted-foreground">Repositories</p>
+              <p className="text-2xl font-bold text-foreground">{repositories.length}</p>
             </div>
-            <Folder className="h-8 w-8 text-primary/50" />
+            <FolderGit2 className="h-8 w-8 text-muted-foreground/50" />
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
+        </Card>
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Active Tasks</p>
-              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-sm text-muted-foreground">Analyses</p>
+              <p className="text-2xl font-bold text-foreground">{analyses.length}</p>
             </div>
-            <Folder className="h-8 w-8 text-primary/50" />
+            <Sparkles className="h-8 w-8 text-muted-foreground/50" />
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
+        </Card>
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Team Members</p>
-              <p className="text-2xl font-bold text-foreground">1</p>
+              <p className="text-sm text-muted-foreground">Apps Discovered</p>
+              <p className="text-2xl font-bold text-foreground">{completedAnalyses.length > 0 ? '—' : '0'}</p>
             </div>
-            <Users className="h-8 w-8 text-primary/50" />
+            <Code2 className="h-8 w-8 text-muted-foreground/50" />
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Projects section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">Your Projects</h2>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-
-        {projects.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
-            <Folder className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-            <h3 className="text-base font-semibold text-foreground mb-1">No projects yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get started by creating your first project to organize your tasks.
+      {/* Quick Actions */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-foreground">Get Started</h2>
+        
+        {repositories.length === 0 ? (
+          <Card className="border-dashed p-8 text-center">
+            <FolderGit2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+            <h3 className="text-base font-semibold text-foreground mb-1">No repositories yet</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+              Start by adding your GitHub repositories. We will scan all files and prepare them for AI analysis.
             </p>
-            <Button>Create Your First Project</Button>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/dashboard/projects/${project.id}`}
-                className="group rounded-lg border border-border bg-card p-6 hover:border-primary/50 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-semibold"
-                    style={{ backgroundColor: project.color || '#3b82f6' }}
-                  >
-                    {project.icon || 'P'}
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {project.visibility === 'public' ? 'Public' : 'Private'}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
-                  {project.name}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">{project.description || 'No description'}</p>
+            <Button asChild>
+              <Link href="/dashboard/repositories">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Repository
               </Link>
-            ))}
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <FolderGit2 className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {repositories.length} connected
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-1">Repositories</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Manage your connected GitHub repositories.
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/dashboard/repositories">
+                  View All
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {completedAnalyses.length} complete
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-1">Run Analysis</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Let AI discover what apps you can build.
+              </p>
+              <Button size="sm" asChild>
+                <Link href="/dashboard/analyses">
+                  Start Analysis
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </Card>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* Recent Repositories */}
+      {repositories.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-foreground">Recent Repositories</h2>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/repositories">View All</Link>
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {repositories.slice(0, 3).map((repo) => (
+              <Card key={repo.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <FolderGit2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-foreground truncate">{repo.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{repo.full_name}</p>
+                    {repo.language && (
+                      <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        {repo.language}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
-  );
+  )
 }
