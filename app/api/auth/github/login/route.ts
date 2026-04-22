@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   const clientId = process.env.GITHUB_CLIENT_ID
+function getBaseUrl(request: NextRequest) {
+  return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+}
+
+function getGitHubClientId() {
+  return process.env.GITHUB_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
+}
+
+export async function GET(request: NextRequest) {
+  const clientId = getGitHubClientId()
 
   if (!clientId) {
     return NextResponse.json(
