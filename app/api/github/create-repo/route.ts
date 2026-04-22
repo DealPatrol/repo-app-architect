@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { getCurrentUser } from '@/lib/auth'
 
 interface TemplateApp {
   app_name: string
@@ -13,11 +13,9 @@ interface TemplateApp {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const accessTokenCookie = cookieStore.get('github_access_token')
-    const usernameCookie = cookieStore.get('github_username')
+    const user = await getCurrentUser()
 
-    if (!accessTokenCookie) {
+    if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -30,8 +28,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Repository name required' }, { status: 400 })
     }
 
-    const accessToken = accessTokenCookie.value
-    const githubUsername = usernameCookie?.value || ''
+    const accessToken = user.access_token
+    const githubUsername = user.github_username
 
     // Create repository on GitHub
     const createRepoRes = await fetch('https://api.github.com/user/repos', {
