@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
   try {
     const accessToken = await getCurrentAccessToken()
     if (!accessToken) {
-      return NextResponse.json({ error: 'Not authenticated with GitHub' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Not authenticated. Please install the CodeVault GitHub App.' },
+        { status: 401 }
+      )
     }
 
     const body = await request.json()
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ imported, count: imported.length })
   } catch (error) {
-    console.error('Error importing repositories:', error)
+    console.error('[v0] Error importing repositories:', error)
     return NextResponse.json({ error: 'Failed to import repositories' }, { status: 500 })
   }
 }

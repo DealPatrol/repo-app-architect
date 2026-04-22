@@ -53,7 +53,7 @@ export async function POST(
       try {
         const accessToken = await getCurrentAccessToken()
         if (!accessToken) {
-          send({ error: 'Sign in with GitHub before running an analysis.' })
+          send({ error: 'Please install the CodeVault GitHub App before running an analysis.' })
           controller.close()
           return
         }

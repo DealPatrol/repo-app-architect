@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUserWithInstallation } from '@/lib/auth'
+import { getInstallationAccessToken } from '@/lib/github'
 
 interface TemplateApp {
   app_name: string
@@ -13,10 +14,10 @@ interface TemplateApp {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const userWithInstallation = await getCurrentUserWithInstallation()
 
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    if (!userWithInstallation) {
+      return NextResponse.json({ error: 'Not authenticated or GitHub App not installed' }, { status: 401 })
     }
 
     const { app, repoName } = (await request.json()) as {
@@ -28,8 +29,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Repository name required' }, { status: 400 })
     }
 
-    const accessToken = user.access_token
-    const githubUsername = user.github_username
+    const accessToken = await getInstallationAccessToken(userWithInstallation.installation_id)
+    const githubUsername = userWithInstallation.github_username
 
     // Create repository on GitHub
     const createRepoRes = await fetch('https://api.github.com/user/repos', {

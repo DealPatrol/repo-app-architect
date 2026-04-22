@@ -4,7 +4,8 @@ import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle } from 'lucide
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
-  github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
+  installation_failed: 'GitHub App installation failed. Please try again.',
+  missing_installation_id: 'Invalid GitHub App installation.',
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -33,10 +34,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Dashboard
             </Link>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/api/auth/github/login">
+              <a href="https://github.com/apps/codevault/installations/new" target="_blank" rel="noopener noreferrer">
                 <Github className="h-4 w-4 mr-2" />
-                Sign in with GitHub
-              </Link>
+                Install App
+              </a>
             </Button>
           </nav>
         </div>
@@ -61,10 +62,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
           <div className="flex items-center justify-center gap-4 pt-4">
             <Button size="lg" asChild>
-              <Link href="/api/auth/github/login">
-                Sign in with GitHub
+              <a href="https://github.com/apps/codevault/installations/new" target="_blank" rel="noopener noreferrer">
+                Install CodeVault
                 <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
+              </a>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/dashboard/repositories">
