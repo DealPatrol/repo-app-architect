@@ -15,15 +15,35 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const state = searchParams.get('state')
+    const error = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
     const cookieStore = await cookies()
     const savedState = cookieStore.get('github_oauth_state')?.value
 
+    console.log('[v0] OAuth callback received', {
+      hasCode: !!code,
+      hasState: !!state,
+      hasSavedState: !!savedState,
+      stateMatch: state === savedState,
+      baseUrl: getBaseUrl(request),
+      clientId: getGitHubClientId(),
+      hasClientSecret: !!process.env.GITHUB_CLIENT_SECRET,
+      error,
+      errorDescription,
+    })
+
+    if (error) {
+      console.error('[v0] GitHub returned OAuth error:', error, errorDescription)
+      return NextResponse.redirect(new URL(`/?error=${error}`, getBaseUrl(request)))
+    }
+
     if (!code) {
-      return NextResponse.redirect(new URL('/dashboard/repositories?error=missing_code', getBaseUrl(request)))
+      return NextResponse.redirect(new URL('/?error=missing_code', getBaseUrl(request)))
     }
 
     if (!state || !savedState || state !== savedState) {
-      return NextResponse.redirect(new URL('/dashboard/repositories?error=invalid_oauth_state', getBaseUrl(request)))
+      console.error('[v0] OAuth state mismatch', { state, savedState })
+      return NextResponse.redirect(new URL('/?error=invalid_oauth_state', getBaseUrl(request)))
     }
 
     // Exchange code for access token

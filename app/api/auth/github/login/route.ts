@@ -18,6 +18,14 @@ export async function GET(request: NextRequest) {
 
   const state = crypto.randomUUID()
   const redirectUri = `${getBaseUrl(request)}/api/auth/github/callback`
+
+  console.log('[v0] GitHub OAuth login initiated', {
+    clientId,
+    redirectUri,
+    baseUrl: getBaseUrl(request),
+    hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+  })
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
