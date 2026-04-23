@@ -5,6 +5,11 @@ import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle } from 'lucide
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
   github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
+  invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Close other tabs for this site and try signing in again.',
+  missing_code: 'GitHub did not return an authorization code. Try signing in again.',
+  token_exchange_failed: 'Could not exchange the GitHub code for a token. Check GITHUB_CLIENT_SECRET and that the OAuth callback URL matches your GitHub app.',
+  github_user_fetch_failed: 'Signed in with GitHub but could not load your profile. Try again.',
+  oauth_callback_failed: 'Something went wrong finishing sign-in. Try again.',
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

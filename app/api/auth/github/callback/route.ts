@@ -62,10 +62,16 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      return NextResponse.redirect(new URL('/dashboard/repositories?error=token_exchange_failed', getBaseUrl(request)))
+      return NextResponse.redirect(new URL('/?error=token_exchange_failed', getBaseUrl(request)))
     }
 
-    const { access_token } = await tokenResponse.json()
+    const tokenJson = (await tokenResponse.json()) as { access_token?: string; error?: string }
+    const access_token = tokenJson.access_token
+
+    if (!access_token) {
+      console.error('[v0] Token response missing access_token', tokenJson)
+      return NextResponse.redirect(new URL('/?error=token_exchange_failed', getBaseUrl(request)))
+    }
 
     // Get user info from GitHub
     const userResponse = await fetch('https://api.github.com/user', {
@@ -76,23 +82,27 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      return NextResponse.redirect(new URL('/dashboard/repositories?error=github_user_fetch_failed', getBaseUrl(request)))
+      return NextResponse.redirect(new URL('/?error=github_user_fetch_failed', getBaseUrl(request)))
     }
 
     const githubUser = await userResponse.json()
 
-    // Save/update user in database
-    const sql = getDb()
-    await sql`
-      INSERT INTO user_auth (github_id, github_username, github_avatar_url, access_token)
-      VALUES (${githubUser.id}, ${githubUser.login}, ${githubUser.avatar_url}, ${access_token})
-      ON CONFLICT (github_id) 
-      DO UPDATE SET 
-        access_token = ${access_token},
-        updated_at = CURRENT_TIMESTAMP
-    `
+    // Save/update user in database (non-fatal — session cookie must still be set)
+    try {
+      const sql = getDb()
+      await sql`
+        INSERT INTO user_auth (github_id, github_username, github_avatar_url, access_token)
+        VALUES (${githubUser.id}, ${githubUser.login}, ${githubUser.avatar_url}, ${access_token})
+        ON CONFLICT (github_id) 
+        DO UPDATE SET 
+          access_token = ${access_token},
+          updated_at = CURRENT_TIMESTAMP
+      `
+    } catch (dbError) {
+      console.error('[v0] OAuth callback DB write failed (user may still sign in):', dbError)
+    }
 
-    // Set session cookie
+    // Set session cookie — redirect targets /dashboard which middleware protects
     const response = NextResponse.redirect(new URL('/dashboard/repositories?connected=github', getBaseUrl(request)))
     response.cookies.set('github_user_id', String(githubUser.id), {
       httpOnly: true,
@@ -106,6 +116,6 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('OAuth callback error:', error)
-    return NextResponse.redirect(new URL('/dashboard/repositories?error=oauth_callback_failed', getBaseUrl(request)))
+    return NextResponse.redirect(new URL('/?error=oauth_callback_failed', getBaseUrl(request)))
   }
 }
