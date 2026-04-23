@@ -46,19 +46,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/?error=invalid_oauth_state', getBaseUrl(request)))
     }
 
-    // Exchange code for access token — support both prefixed and unprefixed env var names
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID
-    const clientSecret = process.env.GITHUB_CLIENT_SECRET
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
-
-    if (!clientId || !clientSecret || !appUrl) {
-      console.error('[v0] Missing OAuth env vars — clientId:', !!clientId, 'secret:', !!clientSecret, 'appUrl:', !!appUrl)
-      return NextResponse.redirect(new URL('/?error=config_error', request.url))
-    }
-
-    const redirectUri = `${appUrl}/api/auth/github/callback`
-    console.log('[v0] OAuth token exchange — clientId:', clientId, 'redirectUri:', redirectUri)
-
+    // Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -69,7 +57,7 @@ export async function GET(request: NextRequest) {
         client_id: getGitHubClientId(),
         client_secret: process.env.GITHUB_CLIENT_SECRET,
         code,
-        redirect_uri: redirectUri,
+        redirect_uri: `${getBaseUrl(request)}/api/auth/github/callback`,
       }),
     })
 

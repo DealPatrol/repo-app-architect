@@ -1,54 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+
+const model = 'openai/gpt-4-turbo'
+
+interface SelectedRepository {
+  name: string
+  full_name: string
+  default_branch: string
+}
+
+interface RepositoryTreeFile {
+  path: string
+  size?: number
+}
+
+interface AppSuggestion {
+  is_complete?: boolean
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('github_access_token')?.value
-
-    const { analysisId, selectedRepos } = await request.json()
-
-    if (!selectedRepos || selectedRepos.length === 0) {
-      return NextResponse.json({ error: 'No repositories provided' }, { status: 400 })
+    const { analysisId, selectedRepos } = (await request.json()) as {
+      analysisId: string
+      selectedRepos: SelectedRepository[]
     }
 
-    const filesByRepo: { [key: string]: any[] } = {}
-
+    // Get all repo files from database
+    const filesByRepo: Record<string, RepositoryTreeFile[]> = {}
+    
     for (const repo of selectedRepos) {
-      const files = await fetchRepoStructure(repo, accessToken)
+      // Fetch repo structure from GitHub API
+      const files = await fetchRepoStructure(repo)
       filesByRepo[repo.name] = files
     }
 
-    const repoSummary = Object.entries(filesByRepo)
-      .map(([name, files]) => `${name}: ${files.map((f: any) => f.path).join(', ')}`)
-      .join('\n')
-
-    const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'user',
-          content: `You are an expert software architect analyzing code across multiple repositories.
+    // Use AI to analyze cross-repo patterns
+    const prompt = `You are an expert software architect analyzing code across multiple repositories.
 
 Given these repositories with their file structures:
-${repoSummary}
+${Object.entries(filesByRepo).map(([name, files]) => 
+  `${name}: ${files.map(f => f.path).join(', ')}`
+).join('\n')}
 
-Discover what applications could be built by combining files from these repositories. Return a JSON array of app suggestions, each with: appName, appType, description, isComplete (bool), reusePercentage (number), missingFiles (array), technologies (array), difficultyLevel (easy/medium/hard), fastCashLabel (if missing only 2-3 files), explanation. Focus on practical, buildable applications.
+Your task is to discover what applications could be built by combining files from these repositories. For each possible app, determine:
+1. App Name
+2. App Type (Web App, Mobile App, API, Library, etc.)
+3. Description
+4. Complete? (true/false - does it have 80%+ of needed files?)
+5. Reuse Percentage (how much code can be reused)
+6. Missing Files (if not complete)
+7. Technologies Used
+8. Difficulty Level (easy/medium/hard)
+9. Fast Cash Label (if missing only 2-3 files)
+10. Explanation
 
 Return as JSON array of app suggestions. Focus on practical, buildable applications.`
 
     const result = await generateText({
-      model: openai('gpt-4-turbo'),
+      model,
       prompt,
+      temperature: 0.7,
+      maxOutputTokens: 2000,
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
-
-    let suggestions = []
+    // Parse AI response and save suggestions
+    let suggestions: AppSuggestion[] = []
     try {
-      const jsonMatch = text.match(/\[[\s\S]*\]/)
+      const jsonMatch = result.text.match(/\[[\s\S]*\]/)
       if (jsonMatch) {
         suggestions = JSON.parse(jsonMatch[0])
       }
@@ -60,7 +78,7 @@ Return as JSON array of app suggestions. Focus on practical, buildable applicati
       analysisId,
       suggestions,
       totalSuggestions: suggestions.length,
-      completeSuggestions: suggestions.filter((s: any) => s.isComplete).length,
+      completeSuggestions: suggestions.filter((suggestion) => suggestion.is_complete).length,
     })
   } catch (error) {
     console.error('Analysis error:', error)
@@ -68,28 +86,27 @@ Return as JSON array of app suggestions. Focus on practical, buildable applicati
   }
 }
 
-async function fetchRepoStructure(repo: any, accessToken?: string): Promise<any[]> {
+async function fetchRepoStructure(repo: SelectedRepository): Promise<RepositoryTreeFile[]> {
   try {
-    const headers: Record<string, string> = {
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'CodeVault',
-    }
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`
-    }
-
     const response = await fetch(
       `https://api.github.com/repos/${repo.full_name}/git/trees/${repo.default_branch}?recursive=1`,
-      { headers }
+      {
+        headers: {
+          'Accept': 'application/vnd.github+json',
+        },
+      }
     )
 
     if (!response.ok) return []
 
-    const data = await response.json()
-    return data.tree
-      .filter((item: any) => item.type === 'blob')
-      .slice(0, 100)
-      .map((item: any) => ({
+    const data = (await response.json()) as {
+      tree?: Array<{ path: string; size?: number; type: string }>
+    }
+
+    return (data.tree ?? [])
+      .filter((item) => item.type === 'blob')
+      .slice(0, 100) // Limit to first 100 files
+      .map((item) => ({
         path: item.path,
         size: item.size,
       }))

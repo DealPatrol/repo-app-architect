@@ -1,10 +1,23 @@
-import { Pool } from 'pg';
+import { neon } from '@neondatabase/serverless'
 
-const db = new Pool({ connectionString: process.env.DATABASE_URL || '' });
-
-async function sql(query: string, params?: any[]): Promise<any[]> {
-  const result = await db.query(query, params);
-  return result.rows;
+export function getDb() {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL environment variable is not set. ' +
+      'Please configure your Neon database connection string in your environment variables.'
+    )
+  }
+  return neon(databaseUrl)
 }
 
-export { sql, db };
+// Export a validation function for startup checks
+export function validateDatabaseConnection() {
+  try {
+    getDb()
+    return { connected: true }
+  } catch (error) {
+    return { connected: false, error: String(error) }
+  }
+}
+

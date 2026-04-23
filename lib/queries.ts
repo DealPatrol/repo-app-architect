@@ -63,88 +63,45 @@ export interface AppBlueprint {
   created_at: string
 }
 
-export interface ProjectMember {
-  id: string;
-  project_id: string;
-  user_id: string;
-  name?: string | null;
-  email?: string | null;
-  role: 'owner' | 'admin' | 'member' | 'viewer';
-  added_at: string;
+// Repository queries
+export async function getAllRepositories(): Promise<Repository[]> {
+  const sql = getDb()
+  const repos = await sql`SELECT * FROM repositories ORDER BY created_at DESC`
+  return repos as Repository[]
 }
 
-export interface ActivityLog {
-  id: string;
-  project_id: string;
-  user_id: string;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  description: string | null;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
+export async function getRepositoryById(id: string): Promise<Repository | null> {
+  const sql = getDb()
+  const repos = await sql`SELECT * FROM repositories WHERE id = ${id}`
+  return repos[0] as Repository || null
 }
 
-export interface UserProfile {
-  user_id: string;
-  display_name: string | null;
-  company_name: string | null;
-  job_title: string | null;
-  timezone: string;
-  billing_email: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserSubscription {
-  user_id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  status: string;
-  plan: string;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export type OnboardingStepKey =
-  | 'profile_completed'
-  | 'first_project_created'
-  | 'first_task_created'
-  | 'trial_started';
-
-export interface OnboardingProgress {
-  user_id: string;
-  profile_completed_at: string | null;
-  first_project_created_at: string | null;
-  first_task_created_at: string | null;
-  trial_started_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OnboardingChecklistStep {
-  key: OnboardingStepKey;
-  title: string;
-  description: string;
-  href: string;
-  completed: boolean;
-}
-
-export interface OnboardingChecklist {
-  steps: OnboardingChecklistStep[];
-  completedCount: number;
-  totalCount: number;
-}
-
-// Project queries
-export async function getProjectsByOrganization(orgId: string): Promise<Project[]> {
-  const projects = await sql('SELECT * FROM projects WHERE organization_id = $1 AND status != $2 ORDER BY created_at DESC', [
-    orgId,
-    'deleted',
-  ]);
-  return projects as Project[];
+export async function createRepository(data: {
+  github_id: number
+  name: string
+  full_name: string
+  description: string | null
+  url: string
+  default_branch: string
+  language: string | null
+  stars: number
+}): Promise<Repository> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO repositories (github_id, name, full_name, description, url, default_branch, language, stars)
+    VALUES (${data.github_id}, ${data.name}, ${data.full_name}, ${data.description}, ${data.url}, ${data.default_branch}, ${data.language}, ${data.stars})
+    ON CONFLICT (github_id) DO UPDATE SET
+      name = EXCLUDED.name,
+      full_name = EXCLUDED.full_name,
+      description = EXCLUDED.description,
+      url = EXCLUDED.url,
+      default_branch = EXCLUDED.default_branch,
+      language = EXCLUDED.language,
+      stars = EXCLUDED.stars,
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `
+  return result[0] as Repository
 }
 
 export async function deleteRepository(id: string): Promise<void> {
@@ -213,30 +170,10 @@ export async function getAllAnalyses(): Promise<Analysis[]> {
   return analyses as Analysis[]
 }
 
-export async function updateTask(taskId: string, data: Partial<Task>): Promise<Task> {
-  const updates: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  Object.entries(data).forEach(([key, value]) => {
-    if (key !== 'id' && key !== 'created_at') {
-      updates.push(`${key} = $${paramIndex}`);
-      values.push(value);
-      paramIndex++;
-    }
-  });
-
-  if (updates.length === 0) {
-    const existing = await getTaskById(taskId);
-    if (!existing) {
-      throw new Error('Task not found');
-    }
-    return existing;
-  }
-
-  values.push(taskId);
-  const result = await sql(`UPDATE tasks SET updated_at = CURRENT_TIMESTAMP, ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`, values);
-  return result[0] as Task;
+export async function getAnalysisById(id: string): Promise<Analysis | null> {
+  const sql = getDb()
+  const analyses = await sql`SELECT * FROM analyses WHERE id = ${id}`
+  return analyses[0] as Analysis || null
 }
 
 export async function createAnalysis(name: string): Promise<Analysis> {
@@ -269,24 +206,13 @@ export async function updateAnalysisStatus(id: string, status: Analysis['status'
   return result[0] as Analysis
 }
 
-// Project members
-export async function getProjectMembers(projectId: string): Promise<ProjectMember[]> {
-  const members = await sql(
-    `SELECT
-      pm.id,
-      pm.project_id,
-      pm.user_id,
-      pm.role,
-      pm.added_at,
-      u.name as name,
-      u.email as email
-    FROM project_members pm
-    LEFT JOIN neon_auth."user" u ON u.id = pm.user_id
-    WHERE pm.project_id = $1
-    ORDER BY pm.added_at DESC`,
-    [projectId]
-  );
-  return members as ProjectMember[];
+export async function linkAnalysisToRepository(analysisId: string, repositoryId: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    INSERT INTO analysis_repositories (analysis_id, repository_id)
+    VALUES (${analysisId}, ${repositoryId})
+    ON CONFLICT DO NOTHING
+  `
 }
 
 export async function getRepositoriesForAnalysis(analysisId: string): Promise<Repository[]> {
@@ -338,239 +264,4 @@ export async function createBlueprint(data: {
     RETURNING *
   `
   return result[0] as AppBlueprint
-}
-
-// User profile queries
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const profiles = await sql('SELECT * FROM user_profiles WHERE user_id = $1', [userId]);
-  return (profiles[0] as UserProfile) || null;
-}
-
-export async function upsertUserProfile(
-  userId: string,
-  data: Partial<Omit<UserProfile, 'user_id' | 'created_at' | 'updated_at'>>
-): Promise<UserProfile> {
-  const result = await sql(
-    `INSERT INTO user_profiles (user_id, display_name, company_name, job_title, timezone, billing_email)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT(user_id) DO UPDATE SET
-       display_name = EXCLUDED.display_name,
-       company_name = EXCLUDED.company_name,
-       job_title = EXCLUDED.job_title,
-       timezone = EXCLUDED.timezone,
-       billing_email = EXCLUDED.billing_email,
-       updated_at = CURRENT_TIMESTAMP
-     RETURNING *`,
-    [
-      userId,
-      data.display_name ?? null,
-      data.company_name ?? null,
-      data.job_title ?? null,
-      data.timezone ?? 'UTC',
-      data.billing_email ?? null,
-    ]
-  );
-
-  return result[0] as UserProfile;
-}
-
-// Subscription queries
-export async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
-  const subscriptions = await sql('SELECT * FROM user_subscriptions WHERE user_id = $1', [userId]);
-  return (subscriptions[0] as UserSubscription) || null;
-}
-
-export async function getUserSubscriptionByCustomerId(
-  customerId: string
-): Promise<UserSubscription | null> {
-  const subscriptions = await sql(
-    'SELECT * FROM user_subscriptions WHERE stripe_customer_id = $1',
-    [customerId]
-  );
-  return (subscriptions[0] as UserSubscription) || null;
-}
-
-export async function upsertUserSubscription(
-  userId: string,
-  data: Partial<Omit<UserSubscription, 'user_id' | 'created_at' | 'updated_at'>>
-): Promise<UserSubscription> {
-  const result = await sql(
-    `INSERT INTO user_subscriptions (
-      user_id, stripe_customer_id, stripe_subscription_id, status, plan, current_period_end, cancel_at_period_end
-    )
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     ON CONFLICT(user_id) DO UPDATE SET
-       stripe_customer_id = EXCLUDED.stripe_customer_id,
-       stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-       status = EXCLUDED.status,
-       plan = EXCLUDED.plan,
-       current_period_end = EXCLUDED.current_period_end,
-       cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-       updated_at = CURRENT_TIMESTAMP
-     RETURNING *`,
-    [
-      userId,
-      data.stripe_customer_id ?? null,
-      data.stripe_subscription_id ?? null,
-      data.status ?? 'inactive',
-      data.plan ?? 'free',
-      data.current_period_end ?? null,
-      data.cancel_at_period_end ?? false,
-    ]
-  );
-
-  return result[0] as UserSubscription;
-}
-
-export async function updateUserSubscriptionByCustomerId(
-  customerId: string,
-  data: Partial<Omit<UserSubscription, 'user_id' | 'created_at' | 'updated_at'>>
-): Promise<UserSubscription | null> {
-  const result = await sql(
-    `UPDATE user_subscriptions
-     SET
-       stripe_subscription_id = COALESCE($2, stripe_subscription_id),
-       status = COALESCE($3, status),
-       plan = COALESCE($4, plan),
-       current_period_end = COALESCE($5, current_period_end),
-       cancel_at_period_end = COALESCE($6, cancel_at_period_end),
-       updated_at = CURRENT_TIMESTAMP
-     WHERE stripe_customer_id = $1
-     RETURNING *`,
-    [
-      customerId,
-      data.stripe_subscription_id ?? null,
-      data.status ?? null,
-      data.plan ?? null,
-      data.current_period_end ?? null,
-      data.cancel_at_period_end ?? null,
-    ]
-  );
-
-  return (result[0] as UserSubscription) || null;
-}
-
-// Onboarding queries
-const onboardingStepColumnMap: Record<OnboardingStepKey, string> = {
-  profile_completed: 'profile_completed_at',
-  first_project_created: 'first_project_created_at',
-  first_task_created: 'first_task_created_at',
-  trial_started: 'trial_started_at',
-};
-
-export async function getOnboardingProgress(
-  userId: string
-): Promise<OnboardingProgress | null> {
-  const rows = await sql('SELECT * FROM onboarding_progress WHERE user_id = $1', [userId]);
-  return (rows[0] as OnboardingProgress) || null;
-}
-
-export async function markOnboardingStepCompleted(
-  userId: string,
-  step: OnboardingStepKey
-): Promise<OnboardingProgress> {
-  const columnName = onboardingStepColumnMap[step];
-
-  const result = await sql(
-    `INSERT INTO onboarding_progress (user_id, ${columnName})
-     VALUES ($1, CURRENT_TIMESTAMP)
-     ON CONFLICT(user_id) DO UPDATE SET
-       ${columnName} = COALESCE(onboarding_progress.${columnName}, EXCLUDED.${columnName}),
-       updated_at = CURRENT_TIMESTAMP
-     RETURNING *`,
-    [userId]
-  );
-
-  return result[0] as OnboardingProgress;
-}
-
-export async function getOnboardingChecklist(
-  userId: string,
-  organizationId: string | null
-): Promise<OnboardingChecklist> {
-  const [progress, profile, subscription, projectCountRows, taskCountRows] = await Promise.all([
-    getOnboardingProgress(userId),
-    getUserProfile(userId),
-    getUserSubscription(userId),
-    organizationId
-      ? sql<{ count: number }>(
-          `SELECT COUNT(*)::int as count
-           FROM projects
-           WHERE organization_id = $1
-             AND status != 'deleted'`,
-          [organizationId]
-        )
-      : Promise.resolve([{ count: 0 }]),
-    organizationId
-      ? sql<{ count: number }>(
-          `SELECT COUNT(*)::int as count
-           FROM tasks t
-           INNER JOIN projects p ON p.id = t.project_id
-           WHERE p.organization_id = $1
-             AND t.created_by = $2`,
-          [organizationId, userId]
-        )
-      : Promise.resolve([{ count: 0 }]),
-  ]);
-
-  const projectCount = Number(projectCountRows[0]?.count ?? 0);
-  const taskCount = Number(taskCountRows[0]?.count ?? 0);
-
-  const profileCompleted = Boolean(
-    progress?.profile_completed_at ||
-      (profile &&
-        (profile.display_name ||
-          profile.company_name ||
-          profile.job_title ||
-          profile.billing_email))
-  );
-  const firstProjectCreated = Boolean(
-    progress?.first_project_created_at || projectCount > 0
-  );
-  const firstTaskCreated = Boolean(progress?.first_task_created_at || taskCount > 0);
-  const trialStarted = Boolean(
-    progress?.trial_started_at ||
-      subscription?.status === 'trialing' ||
-      subscription?.status === 'active' ||
-      subscription?.stripe_customer_id
-  );
-
-  const steps: OnboardingChecklistStep[] = [
-    {
-      key: 'profile_completed',
-      title: 'Complete your profile',
-      description: 'Add your personal details and billing contact information.',
-      href: '/dashboard/profile',
-      completed: profileCompleted,
-    },
-    {
-      key: 'first_project_created',
-      title: 'Create your first project',
-      description: 'Start a workspace project to organize tasks and activity.',
-      href: '/dashboard/projects',
-      completed: firstProjectCreated,
-    },
-    {
-      key: 'first_task_created',
-      title: 'Create your first task',
-      description: 'Add a task in your project to start execution.',
-      href: '/dashboard/projects',
-      completed: firstTaskCreated,
-    },
-    {
-      key: 'trial_started',
-      title: 'Start your trial',
-      description: 'Open billing and start checkout to activate paid features.',
-      href: '/dashboard/billing',
-      completed: trialStarted,
-    },
-  ];
-
-  const completedCount = steps.filter((step) => step.completed).length;
-
-  return {
-    steps,
-    completedCount,
-    totalCount: steps.length,
-  };
 }

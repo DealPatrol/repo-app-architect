@@ -1,120 +1,156 @@
 #!/usr/bin/env bash
-# setup-deployment.sh — one-shot deployment setup for CodeVault
-# Usage: bash scripts/setup-deployment.sh
-
 set -euo pipefail
 
+# ── colours ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+info()    { echo -e "${CYAN}[info]${NC}  $*"; }
+success() { echo -e "${GREEN}[ok]${NC}    $*"; }
+warn()    { echo -e "${YELLOW}[warn]${NC}  $*"; }
+die()     { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
-info()    { echo -e "${CYAN}[INFO]${NC}  $*"; }
-success() { echo -e "${GREEN}[OK]${NC}    $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
+# ── prereq check ───────────────────────────────────────────────────────────────
+check_cmd() {
+  command -v "$1" &>/dev/null || die "'$1' not found. Install it first:  $2"
+}
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Use globally installed vercel if available, otherwise fall back to npx
+if command -v vercel &>/dev/null; then
+  VERCEL_CMD="vercel"
+else
+  info "vercel not installed globally — using npx vercel (slower first run)"
+  VERCEL_CMD="npx vercel@latest"
+fi
 
-# ─── 1. Check required tools ──────────────────────────────────────────────────
+check_cmd gh  "https://cli.github.com  /  apt install gh"
+check_cmd jq  "brew install jq  /  apt install jq"
 
-info "Checking required tools…"
+echo ""
+echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║       CodeVault — deployment setup           ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
+echo ""
 
-command -v node  >/dev/null 2>&1 || error "node is not installed. Install it from https://nodejs.org"
-command -v pnpm  >/dev/null 2>&1 || { warn "pnpm not found — installing via corepack…"; corepack enable && corepack prepare pnpm@latest --activate; }
-command -v vercel >/dev/null 2>&1 || { info "vercel CLI not found — installing globally…"; pnpm add -g vercel@latest; }
+# ── helpers ────────────────────────────────────────────────────────────────────
+prompt_secret() {
+  local var_name="$1" prompt_text="$2" value=""
+  while [[ -z "$value" ]]; do
+    read -rsp "${prompt_text}: " value; echo ""
+    [[ -z "$value" ]] && warn "Value cannot be empty, try again."
+  done
+  printf -v "$var_name" '%s' "$value"
+}
 
-success "node $(node -v), pnpm $(pnpm -v), vercel $(vercel --version 2>/dev/null | head -1)"
+prompt_plain() {
+  local var_name="$1" prompt_text="$2" default="${3:-}" value=""
+  read -rp "${prompt_text}${default:+ [$default]}: " value
+  value="${value:-$default}"
+  [[ -z "$value" ]] && die "Value cannot be empty."
+  printf -v "$var_name" '%s' "$value"
+}
 
-# ─── 2. Install project dependencies ─────────────────────────────────────────
+# ── step 1: vercel login & link ────────────────────────────────────────────────
+info "Step 1/5 — Vercel login & project link"
 
-info "Installing dependencies…"
+$VERCEL_CMD whoami &>/dev/null || { info "Not logged in to Vercel — opening browser…"; $VERCEL_CMD login; }
+success "Vercel authenticated as: $($VERCEL_CMD whoami)"
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
-pnpm install --frozen-lockfile
-success "Dependencies installed."
 
-# ─── 3. Create .env.local from .env.example ──────────────────────────────────
-
-if [[ ! -f "$REPO_ROOT/.env.local" ]]; then
-  cp "$REPO_ROOT/.env.example" "$REPO_ROOT/.env.local"
-  success ".env.local created from .env.example."
-  warn "Open .env.local and fill in your real values before continuing."
-  echo ""
-  echo "  Required variables:"
-  echo "    DATABASE_URL          — Neon PostgreSQL connection string"
-  echo "    GITHUB_CLIENT_ID      — GitHub OAuth App client ID"
-  echo "    GITHUB_CLIENT_SECRET  — GitHub OAuth App client secret"
-  echo "    NEXT_PUBLIC_APP_URL   — Your app URL (e.g. https://yourapp.vercel.app)"
-  echo "    OPENAI_API_KEY        — OpenAI API key"
-  echo "    ANTHROPIC_API_KEY     — Anthropic API key"
-  echo ""
-  read -r -p "Press Enter once you have edited .env.local, or Ctrl-C to abort…"
+if [[ ! -f ".vercel/project.json" ]]; then
+  info "Linking this directory to a Vercel project…"
+  $VERCEL_CMD link --yes
 else
-  success ".env.local already exists — skipping copy."
+  info "Already linked to Vercel project."
 fi
 
-# ─── 4. Load DATABASE_URL for migration ──────────────────────────────────────
+VERCEL_ORG_ID="$(jq -r '.orgId' .vercel/project.json)"
+VERCEL_PROJECT_ID="$(jq -r '.projectId' .vercel/project.json)"
 
-# shellcheck disable=SC1091
-set -a; source "$REPO_ROOT/.env.local"; set +a
+[[ "$VERCEL_ORG_ID" == "null" || -z "$VERCEL_ORG_ID" ]]       && die "Could not read orgId from .vercel/project.json"
+[[ "$VERCEL_PROJECT_ID" == "null" || -z "$VERCEL_PROJECT_ID" ]] && die "Could not read projectId from .vercel/project.json"
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  warn "DATABASE_URL is not set in .env.local — skipping database migration."
-else
-  info "Running database migration (scripts/01-create-schema.sql)…"
-  if command -v psql >/dev/null 2>&1; then
-    psql "$DATABASE_URL" -f "$REPO_ROOT/scripts/01-create-schema.sql"
-    success "Database schema applied."
-  else
-    warn "psql not found. Run the migration manually:"
-    echo "  psql \"\$DATABASE_URL\" -f scripts/01-create-schema.sql"
-    echo "  Or paste scripts/01-create-schema.sql directly in the Neon console."
-  fi
-fi
+success "Vercel org: $VERCEL_ORG_ID"
+success "Vercel project: $VERCEL_PROJECT_ID"
 
-# ─── 5. Link Vercel project ───────────────────────────────────────────────────
-
-info "Linking Vercel project…"
-vercel link --yes
-VERCEL_JSON="$REPO_ROOT/.vercel/project.json"
-
-if [[ -f "$VERCEL_JSON" ]]; then
-  ORG_ID=$(node -p "require('$VERCEL_JSON').orgId")
-  PROJECT_ID=$(node -p "require('$VERCEL_JSON').projectId")
-  success "Vercel project linked."
-else
-  warn ".vercel/project.json not found — Vercel link may have failed."
-  ORG_ID="<run: cat .vercel/project.json | jq .orgId>"
-  PROJECT_ID="<run: cat .vercel/project.json | jq .projectId>"
-fi
-
-# ─── 6. Pull Vercel environment ───────────────────────────────────────────────
-
-info "Pulling Vercel environment variables…"
-vercel env pull --yes "$REPO_ROOT/.env.local.vercel" || warn "Could not pull Vercel env — set variables in Vercel dashboard manually."
-
-# ─── 7. Summary ──────────────────────────────────────────────────────────────
-
+# ── step 2: collect a vercel token ────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN} Setup complete! Next steps:${NC}"
-echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
+info "Step 2/5 — Vercel API token"
+echo "  Create one at: https://vercel.com/account/tokens"
+prompt_secret VERCEL_TOKEN "  Paste your Vercel token"
+
+# ── step 3: collect app env vars ──────────────────────────────────────────────
 echo ""
-echo "1. Set environment variables in the Vercel dashboard:"
-echo "   https://vercel.com/dashboard → your project → Settings → Environment Variables"
+info "Step 3/5 — App environment variables"
+
+prompt_plain  DATABASE_URL       "  DATABASE_URL (Neon PostgreSQL)"
+prompt_plain  GITHUB_CLIENT_ID   "  GITHUB_CLIENT_ID"
+prompt_secret GITHUB_CLIENT_SECRET "  GITHUB_CLIENT_SECRET"
+prompt_plain  APP_URL            "  NEXT_PUBLIC_APP_URL (e.g. https://codevault.vercel.app)"
+prompt_secret OPENAI_API_KEY     "  OPENAI_API_KEY"
+prompt_secret ANTHROPIC_API_KEY  "  ANTHROPIC_API_KEY"
+
+NEXT_PUBLIC_APP_URL="$APP_URL"
+
+# ── step 4: set GitHub secrets ────────────────────────────────────────────────
 echo ""
-echo "   DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,"
-echo "   NEXT_PUBLIC_APP_URL, OPENAI_API_KEY, ANTHROPIC_API_KEY"
+info "Step 4/5 — Setting GitHub repository secrets"
+
+gh_secret() {
+  local name="$1" value="$2"
+  printf '%s' "$value" | gh secret set "$name" --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" 2>/dev/null \
+    && success "GitHub secret set: $name" \
+    || warn "Could not set GitHub secret '$name' — set it manually in repo Settings → Secrets → Actions"
+}
+
+gh auth status &>/dev/null || { info "Not logged in to GitHub CLI — opening browser…"; gh auth login; }
+
+gh_secret VERCEL_TOKEN       "$VERCEL_TOKEN"
+gh_secret VERCEL_ORG_ID      "$VERCEL_ORG_ID"
+gh_secret VERCEL_PROJECT_ID  "$VERCEL_PROJECT_ID"
+
+# ── step 5: push env vars to vercel ──────────────────────────────────────────
 echo ""
-echo "2. Add these GitHub repository secrets for CI deploys"
-echo "   (Settings → Secrets and variables → Actions):"
+info "Step 5/5 — Pushing environment variables to Vercel"
+
+vercel_env() {
+  local key="$1" val="$2" envs="${3:-production preview development}"
+  for env in $envs; do
+    # Remove existing value silently, then add fresh
+    echo "$val" | $VERCEL_CMD env rm "$key" "$env" --yes 2>/dev/null || true
+    echo "$val" | $VERCEL_CMD env add "$key" "$env" 2>/dev/null \
+      && success "Vercel env set [$env]: $key" \
+      || warn "Could not set Vercel env '$key' for $env"
+  done
+}
+
+vercel_env DATABASE_URL           "$DATABASE_URL"
+vercel_env GITHUB_CLIENT_ID       "$GITHUB_CLIENT_ID"
+vercel_env GITHUB_CLIENT_SECRET   "$GITHUB_CLIENT_SECRET"
+vercel_env OPENAI_API_KEY         "$OPENAI_API_KEY"
+vercel_env ANTHROPIC_API_KEY      "$ANTHROPIC_API_KEY"
+
+# NEXT_PUBLIC_APP_URL: production only (preview URLs are auto-set by Vercel)
+echo "$NEXT_PUBLIC_APP_URL" | $VERCEL_CMD env rm NEXT_PUBLIC_APP_URL production --yes 2>/dev/null || true
+echo "$NEXT_PUBLIC_APP_URL" | $VERCEL_CMD env add NEXT_PUBLIC_APP_URL production 2>/dev/null \
+  && success "Vercel env set [production]: NEXT_PUBLIC_APP_URL" \
+  || warn "Could not set NEXT_PUBLIC_APP_URL"
+
+# ── done ──────────────────────────────────────────────────────────────────────
 echo ""
-echo "   VERCEL_TOKEN      — vercel.com/account/tokens"
-echo "   VERCEL_ORG_ID     — ${ORG_ID}"
-echo "   VERCEL_PROJECT_ID — ${PROJECT_ID}"
+echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║              All done!                       ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
-echo "3. Update your GitHub OAuth App callback URL:"
-echo "   https://github.com/settings/developers"
-echo "   Authorization callback URL:"
-echo "   \${NEXT_PUBLIC_APP_URL}/api/auth/github/callback"
+echo "  GitHub secrets set:  VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+echo "  Vercel env vars set: DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,"
+echo "                       NEXT_PUBLIC_APP_URL, OPENAI_API_KEY, ANTHROPIC_API_KEY"
 echo ""
-echo "4. Start the dev server:"
-echo "   pnpm dev"
+echo "  Next steps:"
+echo "   1. Update your GitHub OAuth App callback URL to:"
+echo "      ${NEXT_PUBLIC_APP_URL}/api/auth/github/callback"
+echo "   2. Run database migration:"
+echo "      psql \$DATABASE_URL -f scripts/01-create-schema.sql"
+echo "   3. Push to main to trigger your first deploy:"
+echo "      git push origin main"
 echo ""

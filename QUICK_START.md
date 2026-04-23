@@ -9,31 +9,7 @@
 
 ## Setup Steps
 
-### 1. Verify Environment Variables
-Check your Vercel project settings and ensure these are set:
-- `DATABASE_URL` - Your Neon PostgreSQL connection string
-- `BLOB_READ_WRITE_TOKEN` - Your Vercel Blob token
-- `NEXT_PUBLIC_STACK_PROJECT_ID` - Your Stack project ID
-- `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY` - Your Stack publishable client key
-- `STACK_SECRET_SERVER_KEY` - Your Stack server key
-
-Optional helper command:
-```bash
-pnpm env:setup
-# or to auto-bootstrap Vercel auth/link:
-pnpm env:setup:auto
-```
-This scans the codebase, attempts autofetch from authenticated provider sessions (Vercel/Neon), then prompts for any remaining values before writing `.env.local`.
-Helper keys used only for autofetch are excluded by default unless you pass `--include-agent-keys`.
-
-For best automation:
-```bash
-pnpm dlx vercel login
-pnpm dlx vercel link
-# optional Neon API autofetch
-export NEON_API_KEY=...
-export NEON_PROJECT_ID=...
-```
+### 1. Install Dependencies
 
 ```bash
 pnpm install

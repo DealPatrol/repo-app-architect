@@ -8,7 +8,4 @@ node_modules/
 .next/
 .env*.local
 .DS_Store
-
-# Build artifacts
-tsconfig.tsbuildinfo
-package-lock.json
+*.tsbuildinfo

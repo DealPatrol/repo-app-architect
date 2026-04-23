@@ -55,11 +55,10 @@ Return ONLY valid JSON with this structure:
       throw new Error('Unexpected response type from Claude')
     }
 
-    // Parse the JSON response — strip markdown code fences if present
+    // Parse the JSON response
     let scaffold
     try {
-      const raw = content.text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim()
-      scaffold = JSON.parse(raw)
+      scaffold = JSON.parse(content.text)
     } catch (e) {
       console.error('[v0] Failed to parse Claude response:', content.text)
       throw new Error('Failed to parse scaffold generation')
