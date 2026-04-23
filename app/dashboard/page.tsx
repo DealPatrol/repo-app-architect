@@ -33,25 +33,16 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const [userResult, reposResult] = await Promise.allSettled([
-          fetch('/api/auth/me'),
-          fetch('/api/github/repos'),
-        ])
-
-        let username: string | null = null
-        let repoCount = 0
-
-        if (userResult.status === 'fulfilled' && userResult.value.ok) {
-          const userData = await userResult.value.json()
-          username = userData.username ?? null
+        const res = await fetch('/api/github/repos')
+        if (res.ok) {
+          const repos: Repo[] = await res.json()
+          // Get username from the user API
+          const userRes = await fetch('/api/auth/me')
+          const userData = userRes.ok ? await userRes.json() : {}
+          setUser({ username: userData.username ?? null, repoCount: repos.length, loading: false })
+        } else {
+          setUser({ username: null, repoCount: 0, loading: false })
         }
-
-        if (reposResult.status === 'fulfilled' && reposResult.value.ok) {
-          const repos: Repo[] = await reposResult.value.json()
-          repoCount = repos.length
-        }
-
-        setUser({ username, repoCount, loading: false })
       } catch {
         setUser({ username: null, repoCount: 0, loading: false })
       }
