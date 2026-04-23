@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isStackAuthConfigured } from '@/stack';
 
@@ -19,10 +19,10 @@ export default function LoginPage() {
           </div>
         )}
 
-        <Link href="/handler/sign-in" className="mt-6 block">
+        <Link href="/api/auth/github/login" className="mt-6 block">
           <Button className="w-full gap-2">
-            Continue to secure sign in
-            <ArrowRight className="h-4 w-4" />
+            <Github className="h-4 w-4" />
+            Continue with GitHub
           </Button>
         </Link>
 

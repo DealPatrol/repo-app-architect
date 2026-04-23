@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-  const clientId = process.env.GITHUB_CLIENT_ID
 function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
 }
@@ -20,25 +18,24 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`
-  const scope = 'read:user repo'
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
   const state = crypto.randomUUID()
   const redirectUri = `${getBaseUrl(request)}/api/auth/github/callback`
-
-  console.log('[v0] GitHub OAuth login initiated', {
-    clientId,
-    redirectUri,
-    baseUrl: getBaseUrl(request),
-    hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
-  })
-
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: 'read:user repo',
     state,
   })
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?${params.toString()}`
 
-  return NextResponse.redirect(githubAuthUrl)
+  const response = NextResponse.redirect(githubAuthUrl)
+  response.cookies.set('github_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 10, // 10 minutes
+  })
+
+  return response
 }

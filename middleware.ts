@@ -23,10 +23,6 @@ export function middleware(request: NextRequest) {
     if (!userIdCookie?.value) {
       const loginUrl = new URL('/login', request.url)
       return NextResponse.redirect(loginUrl)
-  if (pathname.startsWith('/dashboard')) {
-    const token = request.cookies.get('github_user_id')
-    if (!token) {
-      return NextResponse.redirect(new URL('/?error=auth_required', request.url))
     }
   }
 
