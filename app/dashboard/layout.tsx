@@ -121,13 +121,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Settings className="h-4 w-4" />
               Settings
             </Link>
-            <Link
+            <a
               href="/api/auth/signout"
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sign out
-            </Link>
+            </a>
             <Link
               href="/#pricing"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-accent hover:bg-accent/10 transition-colors"
