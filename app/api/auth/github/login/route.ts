@@ -1,6 +1,7 @@
-import crypto from 'node:crypto'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
+export async function GET() {
+  const clientId = process.env.GITHUB_CLIENT_ID
 function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
 }
@@ -13,9 +14,15 @@ export async function GET(request: NextRequest) {
   const clientId = getGitHubClientId()
 
   if (!clientId) {
-    return NextResponse.redirect(new URL('/?error=github_oauth_not_configured', getBaseUrl(request)))
+    return NextResponse.json(
+      { error: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID in your environment.' },
+      { status: 500 }
+    )
   }
 
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`
+  const scope = 'read:user repo'
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
   const state = crypto.randomUUID()
   const redirectUri = `${getBaseUrl(request)}/api/auth/github/callback`
 
@@ -33,14 +40,5 @@ export async function GET(request: NextRequest) {
     state,
   })
 
-  const response = NextResponse.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`)
-  response.cookies.set('github_oauth_state', state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 10,
-  })
-
-  return response
+  return NextResponse.redirect(githubAuthUrl)
 }

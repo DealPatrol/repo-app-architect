@@ -1,41 +1,32 @@
 import { notFound } from 'next/navigation'
+import { getAnalysisById, getRepositoriesForAnalysis, getBlueprintsByAnalysis } from '@/lib/queries'
 import { AnalysisDetail } from '@/components/analysis-detail'
-import {
-  getAnalysisById,
-  getBlueprintsByAnalysis,
-  getRepositoriesForAnalysis,
-} from '@/lib/queries'
 
-export default async function AnalysisDetailPage({
+export default async function AnalysisPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
 
-  let analysis = null
-  let repositories = []
-  let blueprints = []
-
   try {
-    ;[analysis, repositories, blueprints] = await Promise.all([
-      getAnalysisById(id),
+    const analysis = await getAnalysisById(id)
+    if (!analysis) notFound()
+
+    const [repositories, blueprints] = await Promise.all([
       getRepositoriesForAnalysis(id),
       getBlueprintsByAnalysis(id),
     ])
+
+    return (
+      <AnalysisDetail
+        analysis={analysis}
+        repositories={repositories}
+        blueprints={blueprints}
+      />
+    )
   } catch {
     notFound()
   }
-
-  if (!analysis) {
-    notFound()
-  }
-
-  return (
-    <AnalysisDetail
-      analysis={analysis}
-      repositories={repositories}
-      blueprints={blueprints}
-    />
-  )
 }
+

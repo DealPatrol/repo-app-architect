@@ -38,10 +38,6 @@ export function RepositorySelector() {
     }
   }, [])
 
-  useEffect(() => {
-    void fetchRepositories()
-  }, [fetchRepositories])
-
   const toggleRepo = (id: string) => {
     const newSelected = new Set(selected)
     if (newSelected.has(id)) {
