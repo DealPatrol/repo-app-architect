@@ -48,8 +48,30 @@ export default function ResultsPage() {
 
       const data = await res.json()
       if (data.success) {
-        alert(`Scaffold generated for ${app.name}! Creating repository...`)
-        // TODO: Create GitHub repo with scaffold
+        const repoName = app.name.toLowerCase().replace(/\s+/g, '-')
+        const repoRes = await fetch('/api/github/create-repo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app: {
+              app_name: app.name,
+              app_type: app.technologies[0] || 'Web App',
+              description: app.description,
+              technologies: app.technologies,
+              difficulty_level: app.estimatedBuildTime,
+              ai_explanation: app.description,
+              missing_files: app.missingFiles,
+            },
+            repoName,
+          }),
+        })
+
+        const repoData = await repoRes.json()
+        if (repoData.success) {
+          alert(`Repository created for ${app.name}!\n${repoData.repository.url}`)
+        } else {
+          alert(`Scaffold generated but repo creation failed: ${repoData.error}`)
+        }
       }
     } catch (error) {
       console.error('Scaffold generation failed:', error)
