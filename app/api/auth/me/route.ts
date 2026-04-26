@@ -11,6 +11,7 @@ export async function GET() {
 
     return NextResponse.json({
       authenticated: true,
+      username: user.github_username,
       user: {
         github_id: user.github_id,
         github_username: user.github_username,

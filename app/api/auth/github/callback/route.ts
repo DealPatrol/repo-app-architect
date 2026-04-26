@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getDb } from '@/lib/db'
+import { GITHUB_ACCESS_TOKEN_COOKIE } from '@/lib/auth'
 
 function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         updated_at = CURRENT_TIMESTAMP
     `
 
-    // Set session cookie — redirect targets /dashboard which middleware protects
+    // Session cookies — token cookie lets APIs work even if DB persistence failed
     const response = NextResponse.redirect(new URL('/dashboard/repositories?connected=github', getBaseUrl(request)))
     response.cookies.set('github_user_id', String(githubUser.id), {
       httpOnly: true,
@@ -106,6 +107,13 @@ export async function GET(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
+    })
+    response.cookies.set(GITHUB_ACCESS_TOKEN_COOKIE, access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
     })
     response.cookies.set('github_oauth_state', '', { path: '/', maxAge: 0 })
 

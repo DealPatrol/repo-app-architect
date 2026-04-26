@@ -110,6 +110,12 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     void loadAuthStatus()
   }, [loadAuthStatus])
 
+  useEffect(() => {
+    if (auth?.authenticated && oauthConnected) {
+      router.replace('/dashboard/repositories', { scroll: false })
+    }
+  }, [auth?.authenticated, oauthConnected, router])
+
   const handleImportSelected = async () => {
     const reposToImport = selectedRepos.filter((id) => !importedGithubIds.has(id))
     if (reposToImport.length === 0) {

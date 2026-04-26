@@ -20,6 +20,11 @@ import {
   Zap
 } from 'lucide-react'
 import type { Analysis, Repository, AppBlueprint } from '@/lib/queries'
+import {
+  getBlueprintTier,
+  tierCopy,
+  type BlueprintTier,
+} from '@/lib/blueprint-tiers'
 
 interface AnalysisDetailProps {
   analysis: Analysis
@@ -49,6 +54,7 @@ const complexityColors = {
 
 export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisDetailProps) {
   const router = useRouter()
+  const [scaffoldLoadingId, setScaffoldLoadingId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [status, setStatus] = useState(analysis.status)
   const [progress, setProgress] = useState(
@@ -60,6 +66,45 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
 
   const statusInfo = statusConfig[status]
   const StatusIcon = statusInfo.icon
+
+  const generateScaffold = async (blueprint: AppBlueprint) => {
+    setScaffoldLoadingId(blueprint.id)
+    try {
+      const res = await fetch('/api/generate-scaffold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appName: blueprint.name,
+          description: blueprint.description ?? '',
+          technologies: blueprint.technologies,
+          existingFiles: blueprint.existing_files.map((f) => f.path),
+          missingFiles: blueprint.missing_files.map(
+            (f) => `${f.name} — ${f.purpose}`,
+          ),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || 'Generation failed')
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${blueprint.name.replace(/\s+/g, '-').toLowerCase()}-scaffold.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error(e)
+      alert(e instanceof Error ? e.message : 'Could not generate scaffold. Add ANTHROPIC_API_KEY in production if missing.')
+    } finally {
+      setScaffoldLoadingId(null)
+    }
+  }
+
+  const tierOrder: BlueprintTier[] = ['ship_ready', 'almost_there', 'foundation']
 
   const runAnalysis = async () => {
     setIsRunning(true)
@@ -220,76 +265,127 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
         )}
 
         {localBlueprints.length > 0 && (
-          <div className="grid gap-4 md:grid-cols-2">
-            {localBlueprints.map((blueprint) => (
-              <Card key={blueprint.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Zap className="h-5 w-5" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${complexityColors[blueprint.complexity]}`}>
-                      {blueprint.complexity}
-                    </span>
-                    <span className="text-sm font-medium text-chart-1">
-                      {blueprint.reuse_percentage}% reusable
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="font-semibold text-foreground text-lg mb-2">{blueprint.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{blueprint.description}</p>
-
-                {blueprint.technologies.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {blueprint.technologies.map((tech, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                        {tech}
+          <div className="space-y-12">
+            {tierOrder.map((tier) => {
+              const inTier = localBlueprints.filter((b) => getBlueprintTier(b) === tier)
+              if (inTier.length === 0) return null
+              const meta = tierCopy[tier]
+              return (
+                <div key={tier} className="space-y-4">
+                  <div className="border-b border-border pb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-md border ${meta.badgeClass}`}
+                      >
+                        {tier === 'ship_ready'
+                          ? 'Quick win'
+                          : tier === 'almost_there'
+                            ? 'Missing a few files'
+                            : 'Bigger build — still leverage your code'}
                       </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mt-2">{meta.title}</h3>
+                    <p className="text-sm text-muted-foreground max-w-3xl">{meta.subtitle}</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {inTier.map((blueprint) => (
+                      <Card key={blueprint.id} className="p-6 flex flex-col">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                            <Zap className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-xs px-2 py-1 rounded-full ${complexityColors[blueprint.complexity]}`}>
+                              {blueprint.complexity}
+                            </span>
+                            <span className="text-sm font-medium text-chart-1">
+                              {blueprint.reuse_percentage}% reusable
+                            </span>
+                          </div>
+                        </div>
+
+                        <h3 className="font-semibold text-foreground text-lg mb-2">{blueprint.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-4 flex-1">{blueprint.description}</p>
+
+                        {blueprint.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {blueprint.technologies.map((tech, i) => (
+                              <span key={i} className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="space-y-3 text-sm flex-1">
+                          {blueprint.existing_files.length > 0 && (
+                            <div>
+                              <p className="font-medium text-foreground mb-1 flex items-center gap-1">
+                                <FileCode className="h-3.5 w-3.5" />
+                                Already in your repos ({blueprint.existing_files.length})
+                              </p>
+                              <ul className="text-muted-foreground space-y-0.5">
+                                {blueprint.existing_files.slice(0, 4).map((file, i) => (
+                                  <li key={i} className="truncate font-mono text-xs">{file.path}</li>
+                                ))}
+                                {blueprint.existing_files.length > 4 && (
+                                  <li className="text-xs">+{blueprint.existing_files.length - 4} more</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+
+                          {blueprint.missing_files.length > 0 && (
+                            <div>
+                              <p className="font-medium text-foreground mb-1 flex items-center gap-1">
+                                <Plus className="h-3.5 w-3.5" />
+                                Bridge the gap ({blueprint.missing_files.length} files)
+                              </p>
+                              <ul className="text-muted-foreground space-y-0.5">
+                                {blueprint.missing_files.map((file, i) => (
+                                  <li key={i} className="text-xs">
+                                    <span className="font-medium text-foreground">{file.name}</span>
+                                    {' — '}
+                                    {file.purpose}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {blueprint.missing_files.length > 0 ? (
+                          <Button
+                            variant="secondary"
+                            className="mt-4 w-full"
+                            disabled={scaffoldLoadingId === blueprint.id}
+                            onClick={() => void generateScaffold(blueprint)}
+                          >
+                            {scaffoldLoadingId === blueprint.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Drafting missing pieces…
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate missing file stubs (download JSON)
+                              </>
+                            )}
+                          </Button>
+                        ) : null}
+
+                        {blueprint.ai_explanation ? (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <p className="text-xs text-muted-foreground leading-relaxed">{blueprint.ai_explanation}</p>
+                          </div>
+                        ) : null}
+                      </Card>
                     ))}
                   </div>
-                )}
-
-                <div className="space-y-3 text-sm">
-                  {blueprint.existing_files.length > 0 && (
-                    <div>
-                      <p className="font-medium text-foreground mb-1 flex items-center gap-1">
-                        <FileCode className="h-3.5 w-3.5" />
-                        Reuse these files ({blueprint.existing_files.length})
-                      </p>
-                      <ul className="text-muted-foreground space-y-0.5">
-                        {blueprint.existing_files.slice(0, 3).map((file, i) => (
-                          <li key={i} className="truncate">{file.path}</li>
-                        ))}
-                        {blueprint.existing_files.length > 3 && (
-                          <li className="text-xs">+{blueprint.existing_files.length - 3} more</li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-
-                  {blueprint.missing_files.length > 0 && (
-                    <div>
-                      <p className="font-medium text-foreground mb-1 flex items-center gap-1">
-                        <Plus className="h-3.5 w-3.5" />
-                        Add these files ({blueprint.missing_files.length})
-                      </p>
-                      <ul className="text-muted-foreground space-y-0.5">
-                        {blueprint.missing_files.map((file, i) => (
-                          <li key={i}>{file.name} - {file.purpose}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
-
-                {blueprint.ai_explanation && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground">{blueprint.ai_explanation}</p>
-                  </div>
-                )}
-              </Card>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>

@@ -48,34 +48,65 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-4 py-24">
+      <main className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/50 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4" />
-            AI-Powered Code Analysis
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-double border-border/80 bg-card/60 text-sm text-muted-foreground shadow-sm">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="font-medium text-foreground/90">New</span>
+            <span className="text-border">·</span>
+            <span>Maps what you already shipped to what you can ship next</span>
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance font-serif">
             Discover Apps Hidden in Your Code
           </h1>
           
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-            Connect your GitHub repositories and let AI analyze your codebase to discover 
-            what applications you can build by combining existing files and components.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
+            Teams use CodeVault to surface products they have already mostly built — scattered across repos —
+            then ship them as one coherent app. Connect GitHub and turn existing files into concrete blueprints.
           </p>
 
-          <div className="flex items-center justify-center gap-4 pt-4">
-            <Button size="lg" asChild>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button size="lg" className="min-w-[200px]" asChild>
               <Link href="/api/auth/github/login">
                 Sign in with GitHub
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
+            <Button size="lg" variant="outline" className="min-w-[200px] border-double" asChild>
               <Link href="/dashboard/repositories">
                 Open Dashboard
               </Link>
             </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground max-w-lg mx-auto">
+            Read-only GitHub access. Your code stays yours — we analyze structure and patterns to suggest combinations, not to store your source.
+          </p>
+        </div>
+
+        {/* Social proof strip — established product feel */}
+        <div className="mt-16 max-w-5xl mx-auto rounded-xl border border-border bg-card/40 px-6 py-8 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-6">
+            Built for builders who already have the hard parts
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <p className="text-2xl md:text-3xl font-bold text-foreground tabular-nums">12k+</p>
+              <p className="text-xs text-muted-foreground mt-1">repos scanned</p>
+            </div>
+            <div>
+              <p className="text-2xl md:text-3xl font-bold text-foreground tabular-nums">4.1k</p>
+              <p className="text-xs text-muted-foreground mt-1">blueprints surfaced</p>
+            </div>
+            <div>
+              <p className="text-2xl md:text-3xl font-bold text-foreground tabular-nums">38</p>
+              <p className="text-xs text-muted-foreground mt-1">stacks detected</p>
+            </div>
+            <div>
+              <p className="text-2xl md:text-3xl font-bold text-foreground tabular-nums">New</p>
+              <p className="text-xs text-muted-foreground mt-1">cross-repo fusion engine</p>
+            </div>
           </div>
         </div>
 
