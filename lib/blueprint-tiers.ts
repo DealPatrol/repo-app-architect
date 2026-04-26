@@ -7,9 +7,9 @@ export function getBlueprintTier(bp: AppBlueprint): BlueprintTier {
   const missing = bp.missing_files?.length ?? 0
   const reuse = bp.reuse_percentage ?? 0
 
-  if (missing === 0) return 'ship_ready'
-  if (missing <= 3 && reuse >= 55) return 'almost_there'
-  if (missing <= 6) return 'almost_there'
+  if (missing === 0 || (missing <= 1 && reuse >= 75)) return 'ship_ready'
+  if (missing <= 4 && reuse >= 50) return 'almost_there'
+  if (missing <= 6 && reuse >= 40) return 'almost_there'
   return 'foundation'
 }
 

@@ -132,8 +132,37 @@ export async function POST(
         // Build file summary for AI
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
 
-        // Use Claude to analyze and discover app blueprints
+        // Use Claude to analyze and discover app blueprints (structured tool output)
         const client = new Anthropic()
+
+        const userPrompt = `You are acting as an expert software architect and product strategist.
+Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
+
+REPOSITORIES AND FILES:
+${fileSummary}
+
+Identify 3-6 practical applications that match these buckets:
+1) Quick wins (ship-ready or very close),
+2) Missing only a few files,
+3) Larger but still feasible foundations.
+
+For each app blueprint:
+- Give it a clear, descriptive name
+- Describe what the app does
+- Estimate complexity (simple/moderate/complex)
+- Calculate reuse percentage (how much existing code can be reused) and be realistic
+- List existing files that can be reused (with their purpose); prefer highest-value files
+- List missing files needed (with their purpose)
+- For missing_files.name, provide concrete file paths (e.g. "app/api/billing/route.ts")
+- List technologies detected
+- Provide a brief explanation of why this app is possible, including a suggested first build step
+
+Constraints:
+- Use ONLY evidence from the provided files; do not invent major subsystems.
+- Prefer opportunities that combine code across multiple repositories where possible.
+- Keep missing_files concise and implementation-oriented.
+- Avoid duplicate ideas that differ only by naming.
+- Focus on practical, buildable applications based on the actual code patterns you see.`
 
         const aiResponse = await client.messages.create({
           model: 'claude-opus-4-7',
@@ -201,26 +230,7 @@ export async function POST(
           messages: [
             {
               role: 'user',
-              content: `Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
-
-REPOSITORIES AND FILES:
-${fileSummary}
-
-Based on the file structure and naming patterns, identify 2-5 potential applications that could be built by:
-1. Reusing existing files (components, utilities, hooks, etc.)
-2. Adding just a few new files to complete the app
-
-For each app blueprint:
-- Give it a clear, descriptive name
-- Describe what the app does
-- Estimate complexity (simple/moderate/complex)
-- Calculate reuse percentage (how much existing code can be reused)
-- List existing files that can be reused (with their purpose)
-- List missing files needed (with their purpose)
-- List technologies detected
-- Provide a brief explanation of why this app is possible
-
-Focus on practical, buildable applications based on the actual code patterns you see.`,
+              content: userPrompt,
             },
           ],
         })
@@ -235,7 +245,11 @@ Focus on practical, buildable applications based on the actual code patterns you
 
         // Save blueprints to database
         if (output?.blueprints) {
-          for (const bp of output.blueprints) {
+          const rankedBlueprints = output.blueprints
+            .map((bp) => normalizeBlueprint(bp))
+            .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
+
+          for (const bp of rankedBlueprints) {
             await createBlueprint({
               analysis_id: id,
               name: bp.name,
@@ -305,4 +319,34 @@ function getEffortEstimate(complexity: string, missingFiles: number): string {
   if (complexity === 'moderate') return '2-3 days'
   if (complexity === 'complex' && missingFiles <= 10) return '3-5 days'
   return '1-2 weeks'
+}
+
+function getOpportunityScore(bp: {
+  reuse_percentage: number
+  missing_files: { name: string; purpose: string }[]
+  complexity: 'simple' | 'moderate' | 'complex'
+}): number {
+  const missing = bp.missing_files.length
+  const complexityPenalty = bp.complexity === 'simple' ? 0 : bp.complexity === 'moderate' ? 8 : 16
+  return bp.reuse_percentage - (missing * 6) - complexityPenalty
+}
+
+function normalizeBlueprint(bp: {
+  name: string
+  description: string
+  app_type: string
+  complexity: 'simple' | 'moderate' | 'complex'
+  reuse_percentage: number
+  existing_files: { path: string; purpose: string }[]
+  missing_files: { name: string; purpose: string }[]
+  technologies: string[]
+  explanation: string
+}) {
+  return {
+    ...bp,
+    reuse_percentage: Math.max(5, Math.min(95, Math.round(bp.reuse_percentage))),
+    existing_files: bp.existing_files.slice(0, 8),
+    missing_files: bp.missing_files.slice(0, 8),
+    technologies: bp.technologies.slice(0, 8),
+  }
 }

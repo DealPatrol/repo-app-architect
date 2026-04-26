@@ -105,6 +105,9 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
   }
 
   const tierOrder: BlueprintTier[] = ['ship_ready', 'almost_there', 'foundation']
+  const topOpportunities = [...localBlueprints]
+    .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
+    .slice(0, 3)
 
   const runAnalysis = async () => {
     setIsRunning(true)
@@ -240,6 +243,29 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
           )}
         </div>
 
+        {status === 'complete' && topOpportunities.length > 0 && (
+          <Card className="p-5 border-border/80 bg-card/60">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Recommended launch queue</p>
+                <h3 className="font-semibold text-foreground">Start with these highest-leverage projects</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">Ranked by reuse, gap size, and complexity</span>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {topOpportunities.map((bp, index) => (
+                <div key={bp.id} className="rounded-lg border border-border p-3 bg-background/40">
+                  <p className="text-xs text-muted-foreground">#{index + 1} pick</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{bp.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {bp.reuse_percentage}% reusable · {bp.missing_files.length} missing file{bp.missing_files.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {status === 'pending' && (
           <Card className="border-dashed p-12 text-center">
             <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
@@ -267,7 +293,9 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
         {localBlueprints.length > 0 && (
           <div className="space-y-12">
             {tierOrder.map((tier) => {
-              const inTier = localBlueprints.filter((b) => getBlueprintTier(b) === tier)
+              const inTier = localBlueprints
+                .filter((b) => getBlueprintTier(b) === tier)
+                .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
               if (inTier.length === 0) return null
               const meta = tierCopy[tier]
               return (
@@ -300,6 +328,9 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                             </span>
                             <span className="text-sm font-medium text-chart-1">
                               {blueprint.reuse_percentage}% reusable
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Score {getOpportunityScore(blueprint)}
                             </span>
                           </div>
                         </div>
@@ -391,4 +422,11 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
       </section>
     </div>
   )
+}
+
+function getOpportunityScore(bp: AppBlueprint): number {
+  const missing = bp.missing_files?.length ?? 0
+  const complexityPenalty =
+    bp.complexity === 'simple' ? 0 : bp.complexity === 'moderate' ? 8 : 16
+  return Math.round((bp.reuse_percentage ?? 0) - missing * 6 - complexityPenalty)
 }

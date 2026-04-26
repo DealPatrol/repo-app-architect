@@ -42,6 +42,7 @@ Create a JSON structure with:
 3. README.md content with setup instructions
 4. .env.example content
 5. For each missing file, provide the complete code
+6. Include practical placeholder logic that compiles and clearly marks TODO integration points
 
 Return ONLY valid JSON with this structure:
 {
