@@ -57,11 +57,21 @@ export async function POST(
           controller.close()
           return
         }
+        if (!process.env.OPENAI_API_KEY) {
+          send({ error: 'AI analysis is not configured. Missing OPENAI_API_KEY.' })
+          controller.close()
+          return
+        }
 
         // Get analysis and repositories
         const analysis = await getAnalysisById(id)
         if (!analysis) {
           send({ error: 'Analysis not found' })
+          controller.close()
+          return
+        }
+        if (analysis.status === 'scanning' || analysis.status === 'analyzing') {
+          send({ error: 'Analysis is already running. Please wait for it to finish.' })
           controller.close()
           return
         }

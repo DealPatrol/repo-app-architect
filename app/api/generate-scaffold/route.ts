@@ -7,6 +7,13 @@ const client = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'Scaffold generation is not configured. Missing ANTHROPIC_API_KEY.' },
+        { status: 503 },
+      )
+    }
+
     const { appName, description, technologies, existingFiles, missingFiles } = await request.json()
 
     if (!appName || !description || !technologies) {
@@ -58,7 +65,11 @@ Return ONLY valid JSON with this structure:
     // Parse the JSON response
     let scaffold
     try {
-      scaffold = JSON.parse(content.text)
+      const raw = content.text.trim()
+      const normalized = raw.startsWith('```')
+        ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+        : raw
+      scaffold = JSON.parse(normalized)
     } catch (e) {
       console.error('[v0] Failed to parse Claude response:', content.text)
       throw new Error('Failed to parse scaffold generation')

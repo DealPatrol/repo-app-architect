@@ -88,16 +88,22 @@ export async function GET(request: NextRequest) {
 
     const githubUser = await userResponse.json()
 
-    // Save/update user in database — required, because getCurrentUser() validates via DB lookup
-    const sql = getDb()
-    await sql`
-      INSERT INTO user_auth (github_id, github_username, github_avatar_url, access_token)
-      VALUES (${githubUser.id}, ${githubUser.login}, ${githubUser.avatar_url}, ${access_token})
-      ON CONFLICT (github_id)
-      DO UPDATE SET
-        access_token = ${access_token},
-        updated_at = CURRENT_TIMESTAMP
-    `
+    // Persisting auth row is best-effort; cookie-based session should still be created.
+    try {
+      const sql = getDb()
+      await sql`
+        INSERT INTO user_auth (github_id, github_username, github_avatar_url, access_token)
+        VALUES (${githubUser.id}, ${githubUser.login}, ${githubUser.avatar_url}, ${access_token})
+        ON CONFLICT (github_id)
+        DO UPDATE SET
+          access_token = ${access_token},
+          github_username = ${githubUser.login},
+          github_avatar_url = ${githubUser.avatar_url},
+          updated_at = CURRENT_TIMESTAMP
+      `
+    } catch (dbError) {
+      console.error('[v0] OAuth callback DB write failed; continuing with cookie session:', dbError)
+    }
 
     // Session cookies — token cookie lets APIs work even if DB persistence failed
     const response = NextResponse.redirect(new URL('/dashboard/repositories?connected=github', getBaseUrl(request)))
