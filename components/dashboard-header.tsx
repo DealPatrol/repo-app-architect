@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Github, BarChart3, FolderGit2, Sparkles } from 'lucide-react'
+import { Github, BarChart3, FolderGit2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AuthUser } from '@/lib/auth'
+import { AppLogo } from '@/components/app-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface DashboardHeaderProps {
   user: AuthUser | null
@@ -24,12 +26,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
-                <Layers className="h-5 w-5 text-background" />
-              </div>
-              <span className="font-semibold text-lg">CodeVault</span>
-            </Link>
+            <AppLogo href="/" />
 
             <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
@@ -55,7 +52,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-3">
                 <span className="hidden sm:block text-sm text-muted-foreground">
