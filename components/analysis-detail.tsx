@@ -25,6 +25,11 @@ import {
   tierCopy,
   type BlueprintTier,
 } from '@/lib/blueprint-tiers'
+import {
+  getExecutionRisk,
+  getOpportunityScore,
+  getSuggestedFirstStep,
+} from '@/lib/opportunity-metrics'
 
 interface AnalysisDetailProps {
   analysis: Analysis
@@ -102,6 +107,41 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
     } finally {
       setScaffoldLoadingId(null)
     }
+  }
+
+  const downloadBuildPlan = (blueprint: AppBlueprint) => {
+    const tier = getBlueprintTier(blueprint)
+    const lines = [
+      `# ${blueprint.name} - Build Plan`,
+      '',
+      `- Tier: ${tier}`,
+      `- Opportunity score: ${getOpportunityScore(blueprint)}`,
+      `- Reuse: ${blueprint.reuse_percentage}%`,
+      `- Complexity: ${blueprint.complexity}`,
+      `- Risk: ${getExecutionRisk(blueprint)}`,
+      `- Estimated effort: ${blueprint.estimated_effort ?? 'TBD'}`,
+      '',
+      '## First step',
+      getSuggestedFirstStep(blueprint),
+      '',
+      '## Reuse first',
+      ...(blueprint.existing_files.length
+        ? blueprint.existing_files.map((file) => `- [ ] ${file.path} - ${file.purpose}`)
+        : ['- [ ] Identify reusable modules from connected repositories']),
+      '',
+      '## Missing files to create',
+      ...(blueprint.missing_files.length
+        ? blueprint.missing_files.map((file) => `- [ ] ${file.name} - ${file.purpose}`)
+        : ['- [ ] No missing files identified']),
+    ]
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${blueprint.name.replace(/\s+/g, '-').toLowerCase()}-build-plan.md`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const tierOrder: BlueprintTier[] = ['ship_ready', 'almost_there', 'foundation']
@@ -332,6 +372,9 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                             <span className="text-xs text-muted-foreground">
                               Score {getOpportunityScore(blueprint)}
                             </span>
+                            <span className="text-xs text-muted-foreground">
+                              Risk {getExecutionRisk(blueprint)}
+                            </span>
                           </div>
                         </div>
 
@@ -405,10 +448,20 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                             )}
                           </Button>
                         ) : null}
+                        <Button
+                          variant="ghost"
+                          className="mt-2 w-full"
+                          onClick={() => downloadBuildPlan(blueprint)}
+                        >
+                          Download build plan (Markdown)
+                        </Button>
 
                         {blueprint.ai_explanation ? (
                           <div className="mt-4 pt-4 border-t border-border">
                             <p className="text-xs text-muted-foreground leading-relaxed">{blueprint.ai_explanation}</p>
+                            <p className="text-xs text-foreground mt-2">
+                              Next step: {getSuggestedFirstStep(blueprint)}
+                            </p>
                           </div>
                         ) : null}
                       </Card>
@@ -422,11 +475,4 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
       </section>
     </div>
   )
-}
-
-function getOpportunityScore(bp: AppBlueprint): number {
-  const missing = bp.missing_files?.length ?? 0
-  const complexityPenalty =
-    bp.complexity === 'simple' ? 0 : bp.complexity === 'moderate' ? 8 : 16
-  return Math.round((bp.reuse_percentage ?? 0) - missing * 6 - complexityPenalty)
 }
