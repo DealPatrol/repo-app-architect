@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
-import { generateText, Output } from 'ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { getCurrentAccessToken } from '@/lib/auth'
 import { getGitHubRepositoryTree } from '@/lib/github'
-import { 
-  getAnalysisById, 
-  getRepositoriesForAnalysis, 
+import {
+  getAnalysisById,
+  getRepositoriesForAnalysis,
   updateAnalysisStatus,
   createRepoFile,
   createBlueprint,
@@ -41,7 +41,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  
+
   // Create a stream for progress updates
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -57,8 +57,8 @@ export async function POST(
           controller.close()
           return
         }
-        if (!process.env.OPENAI_API_KEY) {
-          send({ error: 'AI analysis is not configured. Missing OPENAI_API_KEY.' })
+        if (!process.env.ANTHROPIC_API_KEY) {
+          send({ error: 'AI analysis is not configured. Missing ANTHROPIC_API_KEY.' })
           controller.close()
           return
         }
@@ -90,7 +90,7 @@ export async function POST(
 
         // Fetch file trees from GitHub for each repository
         const allFiles: { repo: string; path: string; type: string }[] = []
-        
+
         for (const repo of repositories) {
           try {
             const treeData = await getGitHubRepositoryTree(repo.full_name, repo.default_branch, accessToken)
@@ -132,11 +132,76 @@ export async function POST(
         // Build file summary for AI
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
 
-        // Use AI to analyze and discover app blueprints
-        const { output } = await generateText({
-          model: 'openai/gpt-4o-mini',
-          output: Output.object({ schema: AnalysisOutputSchema }),
-          prompt: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
+        // Use Claude to analyze and discover app blueprints
+        const client = new Anthropic()
+
+        const aiResponse = await client.messages.create({
+          model: 'claude-opus-4-7',
+          max_tokens: 4096,
+          system: [
+            {
+              type: 'text',
+              text: 'You are an expert software architect. Your job is to analyze GitHub repository file structures and identify what new applications can be built by combining and reusing the existing code. Focus on practical, buildable applications based on actual code patterns.',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          tools: [
+            {
+              name: 'report_blueprints',
+              description: 'Report the discovered app blueprints based on repository file analysis',
+              input_schema: {
+                type: 'object' as const,
+                properties: {
+                  blueprints: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string', description: 'Clear, descriptive name for the app' },
+                        description: { type: 'string', description: 'What the app does' },
+                        app_type: { type: 'string', description: 'Type of application (e.g. web app, CLI tool, API service)' },
+                        complexity: { type: 'string', enum: ['simple', 'moderate', 'complex'] },
+                        reuse_percentage: { type: 'number', minimum: 0, maximum: 100, description: 'Percentage of existing code that can be reused' },
+                        existing_files: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              path: { type: 'string' },
+                              purpose: { type: 'string' },
+                            },
+                            required: ['path', 'purpose'],
+                          },
+                          description: 'Existing files that can be reused',
+                        },
+                        missing_files: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              name: { type: 'string' },
+                              purpose: { type: 'string' },
+                            },
+                            required: ['name', 'purpose'],
+                          },
+                          description: 'New files that need to be created',
+                        },
+                        technologies: { type: 'array', items: { type: 'string' }, description: 'Technologies detected' },
+                        explanation: { type: 'string', description: 'Brief explanation of why this app is feasible' },
+                      },
+                      required: ['name', 'description', 'app_type', 'complexity', 'reuse_percentage', 'existing_files', 'missing_files', 'technologies', 'explanation'],
+                    },
+                  },
+                },
+                required: ['blueprints'],
+              },
+            },
+          ],
+          tool_choice: { type: 'tool', name: 'report_blueprints' },
+          messages: [
+            {
+              role: 'user',
+              content: `Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
 
 REPOSITORIES AND FILES:
 ${fileSummary}
@@ -156,9 +221,17 @@ For each app blueprint:
 - Provide a brief explanation of why this app is possible
 
 Focus on practical, buildable applications based on the actual code patterns you see.`,
+            },
+          ],
         })
 
         send({ status: 'analyzing', progress: 80 })
+
+        // Extract structured output from tool use response
+        const toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
+        const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
+        const parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
+        const output = parsed?.success ? parsed.data : null
 
         // Save blueprints to database
         if (output?.blueprints) {
@@ -181,17 +254,17 @@ Focus on practical, buildable applications based on the actual code patterns you
 
         // Update to complete
         await updateAnalysisStatus(id, 'complete', { analyzed_files: allFiles.length })
-        
+
         // Get final blueprints
         const finalBlueprints = await getBlueprintsByAnalysis(id)
-        
+
         send({ status: 'complete', progress: 100, blueprints: finalBlueprints })
         controller.close()
 
       } catch (error) {
         console.error('Analysis error:', error)
-        await updateAnalysisStatus(id, 'failed', { 
-          error_message: error instanceof Error ? error.message : 'Unknown error' 
+        await updateAnalysisStatus(id, 'failed', {
+          error_message: error instanceof Error ? error.message : 'Unknown error'
         })
         send({ status: 'failed', error: 'Analysis failed' })
         controller.close()
@@ -211,7 +284,7 @@ Focus on practical, buildable applications based on the actual code patterns you
 function getFileType(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase()
   const name = path.split('/').pop()?.toLowerCase() || ''
-  
+
   if (name.includes('component') || path.includes('/components/')) return 'component'
   if (name.includes('hook') || name.startsWith('use')) return 'hook'
   if (name.includes('util') || path.includes('/utils/') || path.includes('/lib/')) return 'utility'
@@ -221,7 +294,7 @@ function getFileType(path: string): string {
   if (name.includes('test') || name.includes('spec')) return 'test'
   if (name.includes('config')) return 'config'
   if (ext === 'css' || ext === 'scss') return 'style'
-  
+
   return 'source'
 }
 
