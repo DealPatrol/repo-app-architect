@@ -141,7 +141,10 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                 if (data.status) setStatus(data.status)
                 if (data.progress !== undefined) setProgress(data.progress)
                 if (data.blueprints) setLocalBlueprints(data.blueprints)
-                if (data.error) setErrorMessage(data.error)
+                if (data.error) {
+                  setErrorMessage(data.error)
+                  setStatus('failed')
+                }
               } catch {
                 // Skip invalid JSON
               }
