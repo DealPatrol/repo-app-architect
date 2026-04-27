@@ -2,9 +2,17 @@ import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 
 // One-time database schema initializer.
-// Hit POST /api/setup/init-db to create all tables.
+// Visit GET /api/setup/init-db in your browser to create all tables.
 // Safe to call multiple times — all statements use IF NOT EXISTS.
+export async function GET() {
+  return run()
+}
+
 export async function POST() {
+  return run()
+}
+
+async function run() {
   try {
     const sql = getDb()
 
