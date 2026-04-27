@@ -290,7 +290,7 @@ Constraints:
           toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
         }
         const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
-        let parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
+        const parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
 
         if (rawInput && !parsed?.success) {
           console.error('[analysis] Blueprint schema validation failed:', parsed?.error?.flatten())

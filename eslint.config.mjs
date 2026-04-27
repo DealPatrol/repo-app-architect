@@ -8,7 +8,7 @@ const config = [
   ...nextVitals,
   ...nextTypescript,
   {
-    files: ['components/repositories-list.tsx', 'components/repository-selector.tsx'],
+    files: ['components/repositories-list.tsx', 'components/repository-selector.tsx', 'components/analysis-detail.tsx'],
     rules: {
       'react-hooks/set-state-in-effect': 'off',
     },
