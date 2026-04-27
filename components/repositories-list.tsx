@@ -63,6 +63,16 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     () => new Set(repositories.map((repo) => repo.github_id)),
     [repositories],
   )
+
+  const selectableGithubIds = useMemo(
+    () => githubRepos.filter((repo) => !importedGithubIds.has(repo.id)).map((repo) => repo.id),
+    [githubRepos, importedGithubIds],
+  )
+
+  const allSelectableSelected = useMemo(() => {
+    if (selectableGithubIds.length === 0) return false
+    return selectableGithubIds.every((id) => selectedRepos.includes(id))
+  }, [selectableGithubIds, selectedRepos])
   const oauthError = searchParams.get('error')
   const oauthConnected = searchParams.get('connected')
 
@@ -197,6 +207,14 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     )
   }
 
+  const selectAllSelectable = () => {
+    setSelectedRepos(selectableGithubIds)
+  }
+
+  const clearImportSelection = () => {
+    setSelectedRepos([])
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -288,9 +306,36 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{githubRepos.length} repositories available from GitHub</span>
-              <span>{selectedRepos.length} selected</span>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm text-muted-foreground">
+                {githubRepos.length} repositories available from GitHub
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">{selectedRepos.length} selected</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllSelectable}
+                  disabled={
+                    importing ||
+                    loadingGitHubRepos ||
+                    selectableGithubIds.length === 0 ||
+                    allSelectableSelected
+                  }
+                >
+                  Select all
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearImportSelection}
+                  disabled={importing || selectedRepos.length === 0}
+                >
+                  Clear selection
+                </Button>
+              </div>
             </div>
             <div className="grid gap-3">
               {githubRepos.map((repo) => {
