@@ -1,8 +1,11 @@
 import { NextRequest } from 'next/server'
-import { generateText, Output } from 'ai'
-import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { getCurrentAccessToken } from '@/lib/auth'
 import { getGitHubRepositoryTree } from '@/lib/github'
+import {
+  getAnthropicAnalysisModel,
+  parseAnalysisBlueprintOutput,
+} from '@/lib/analysis-blueprints'
 import { 
   getAnalysisById, 
   getRepositoriesForAnalysis, 
@@ -12,29 +15,6 @@ import {
   deleteBlueprintsByAnalysis,
   getBlueprintsByAnalysis
 } from '@/lib/queries'
-
-// Schema for AI-generated app blueprints
-const BlueprintSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  app_type: z.string(),
-  complexity: z.enum(['simple', 'moderate', 'complex']),
-  reuse_percentage: z.number().min(0).max(100),
-  existing_files: z.array(z.object({
-    path: z.string(),
-    purpose: z.string(),
-  })),
-  missing_files: z.array(z.object({
-    name: z.string(),
-    purpose: z.string(),
-  })),
-  technologies: z.array(z.string()),
-  explanation: z.string(),
-})
-
-const AnalysisOutputSchema = z.object({
-  blueprints: z.array(BlueprintSchema),
-})
 
 export async function POST(
   request: NextRequest,
@@ -57,8 +37,8 @@ export async function POST(
           controller.close()
           return
         }
-        if (!process.env.OPENAI_API_KEY) {
-          send({ error: 'AI analysis is not configured. Missing OPENAI_API_KEY.' })
+        if (!process.env.ANTHROPIC_API_KEY) {
+          send({ error: 'AI analysis is not configured. Missing ANTHROPIC_API_KEY.' })
           controller.close()
           return
         }
@@ -132,11 +112,18 @@ export async function POST(
         // Build file summary for AI
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
 
+        const anthropic = new Anthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY,
+        })
+
         // Use AI to analyze and discover app blueprints
-        const { output } = await generateText({
-          model: 'openai/gpt-4o-mini',
-          output: Output.object({ schema: AnalysisOutputSchema }),
-          prompt: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
+        const response = await anthropic.messages.create({
+          model: getAnthropicAnalysisModel(),
+          max_tokens: 4000,
+          temperature: 0.2,
+          messages: [{
+            role: 'user',
+            content: `You are an expert software architect. Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
 
 REPOSITORIES AND FILES:
 ${fileSummary}
@@ -155,8 +142,31 @@ For each app blueprint:
 - List technologies detected
 - Provide a brief explanation of why this app is possible
 
+Return only valid JSON with this shape:
+{
+  "blueprints": [
+    {
+      "name": "string",
+      "description": "string",
+      "app_type": "string",
+      "complexity": "simple" | "moderate" | "complex",
+      "reuse_percentage": 0-100,
+      "existing_files": [{ "path": "repo/path.ext", "purpose": "string" }],
+      "missing_files": [{ "name": "path-or-feature", "purpose": "string" }],
+      "technologies": ["string"],
+      "explanation": "string"
+    }
+  ]
+}
+
 Focus on practical, buildable applications based on the actual code patterns you see.`,
+          }],
         })
+        const text = response.content
+          .filter((block) => block.type === 'text')
+          .map((block) => block.text)
+          .join('\n')
+        const output = parseAnalysisBlueprintOutput(text)
 
         send({ status: 'analyzing', progress: 80 })
 
@@ -190,10 +200,11 @@ Focus on practical, buildable applications based on the actual code patterns you
 
       } catch (error) {
         console.error('Analysis error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         await updateAnalysisStatus(id, 'failed', { 
-          error_message: error instanceof Error ? error.message : 'Unknown error' 
+          error_message: errorMessage
         })
-        send({ status: 'failed', error: 'Analysis failed' })
+        send({ status: 'failed', error: errorMessage })
         controller.close()
       }
     },

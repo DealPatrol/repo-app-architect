@@ -57,6 +57,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
   const [scaffoldLoadingId, setScaffoldLoadingId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [status, setStatus] = useState(analysis.status)
+  const [errorMessage, setErrorMessage] = useState(analysis.error_message)
   const [progress, setProgress] = useState(
     analysis.total_files > 0 
       ? Math.round((analysis.analyzed_files / analysis.total_files) * 100)
@@ -109,6 +110,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
   const runAnalysis = async () => {
     setIsRunning(true)
     setStatus('scanning')
+    setErrorMessage(null)
     setProgress(0)
 
     try {
@@ -139,6 +141,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                 if (data.status) setStatus(data.status)
                 if (data.progress !== undefined) setProgress(data.progress)
                 if (data.blueprints) setLocalBlueprints(data.blueprints)
+                if (data.error) setErrorMessage(data.error)
               } catch {
                 // Skip invalid JSON
               }
@@ -147,11 +150,12 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
         }
       }
 
-      setStatus('complete')
+      setStatus((currentStatus) => currentStatus === 'failed' ? 'failed' : 'complete')
       router.refresh()
     } catch (error) {
       console.error('Analysis error:', error)
       setStatus('failed')
+      setErrorMessage(error instanceof Error ? error.message : 'Analysis failed')
     } finally {
       setIsRunning(false)
     }
@@ -176,6 +180,9 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
             <StatusIcon className={`h-4 w-4 ${statusInfo.color} ${statusInfo.spin ? 'animate-spin' : ''} ${statusInfo.pulse ? 'animate-pulse' : ''}`} />
             <span className={`text-sm ${statusInfo.color}`}>{statusInfo.label}</span>
           </div>
+          {status === 'failed' && errorMessage && (
+            <p className="text-sm text-destructive ml-11 max-w-2xl">{errorMessage}</p>
+          )}
         </div>
         
         {(status === 'pending' || status === 'failed') && (
