@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { getCurrentAccessToken } from '@/lib/auth'
-import { getGitHubRepositoryTree } from '@/lib/github'
+import {
+  getGitHubRepositoryTree,
+  getGitHubRepositoryTreeFromBranch,
+  shouldSkipRepoPath,
+} from '@/lib/github'
 import {
   getAnalysisById,
   getRepositoriesForAnalysis,
@@ -14,11 +18,18 @@ import {
 } from '@/lib/queries'
 
 // Schema for AI-generated app blueprints
+const complexityEnum = z.preprocess((val) => {
+  if (typeof val !== 'string') return val
+  const v = val.trim().toLowerCase()
+  if (v === 'easy') return 'simple'
+  return v
+}, z.enum(['simple', 'moderate', 'complex']))
+
 const BlueprintSchema = z.object({
   name: z.string(),
   description: z.string(),
   app_type: z.string(),
-  complexity: z.enum(['simple', 'moderate', 'complex']),
+  complexity: complexityEnum,
   reuse_percentage: z.number().min(0).max(100),
   existing_files: z.array(z.object({
     path: z.string(),
@@ -35,6 +46,19 @@ const BlueprintSchema = z.object({
 const AnalysisOutputSchema = z.object({
   blueprints: z.array(BlueprintSchema),
 })
+
+const CODE_EXTENSIONS = new Set([
+  'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs',
+  'py', 'go', 'rs', 'java', 'rb', 'php', 'vue', 'svelte',
+  'css', 'scss', 'html', 'json', 'md', 'yml', 'yaml',
+])
+
+function analysisModel(): string {
+  return (
+    process.env.ANTHROPIC_ANALYSIS_MODEL?.trim() ||
+    'claude-3-5-sonnet-20241022'
+  )
+}
 
 export async function POST(
   request: NextRequest,
@@ -93,14 +117,29 @@ export async function POST(
 
         for (const repo of repositories) {
           try {
-            const treeData = await getGitHubRepositoryTree(repo.full_name, repo.default_branch, accessToken)
+            let treeData: Awaited<ReturnType<typeof getGitHubRepositoryTreeFromBranch>>
+            try {
+              treeData = await getGitHubRepositoryTreeFromBranch(
+                repo.full_name,
+                repo.default_branch,
+                accessToken,
+              )
+            } catch {
+              treeData = await getGitHubRepositoryTree(repo.full_name, repo.default_branch, accessToken)
+            }
+
+            if (treeData.truncated) {
+              console.warn(`[analysis] Git tree truncated for ${repo.full_name}; sampling first matching files only`)
+            }
+
             const files = treeData.tree
               ?.filter((item) => item.type === 'blob')
+              ?.filter((item) => !shouldSkipRepoPath(item.path))
               ?.filter((item) => {
                 const ext = item.path.split('.').pop()?.toLowerCase()
-                return ext ? ['ts', 'tsx', 'js', 'jsx', 'py', 'go', 'rs', 'java', 'rb', 'php', 'vue', 'svelte'].includes(ext) : false
+                return ext ? CODE_EXTENSIONS.has(ext) : false
               })
-              ?.slice(0, 100) || []
+              ?.slice(0, 200) || []
 
             for (const file of files) {
               allFiles.push({
@@ -123,6 +162,15 @@ export async function POST(
           }
         }
 
+        if (allFiles.length === 0) {
+          const msg =
+            'No source files found to analyze (after skipping dependencies/build folders). Add repos with application code or widen file types.'
+          send({ status: 'failed', error: msg })
+          await updateAnalysisStatus(id, 'failed', { error_message: msg })
+          controller.close()
+          return
+        }
+
         send({ status: 'scanning', progress: 40 })
 
         // Update to analyzing
@@ -133,7 +181,7 @@ export async function POST(
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
 
         // Use Claude to analyze and discover app blueprints (structured tool output)
-        const client = new Anthropic()
+        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
         const userPrompt = `You are acting as an expert software architect and product strategist.
 Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
@@ -165,7 +213,7 @@ Constraints:
 - Focus on practical, buildable applications based on the actual code patterns you see.`
 
         const aiResponse = await client.messages.create({
-          model: 'claude-opus-4-7',
+          model: analysisModel(),
           max_tokens: 4096,
           system: [
             {
@@ -238,10 +286,33 @@ Constraints:
         send({ status: 'analyzing', progress: 80 })
 
         // Extract structured output from tool use response
-        const toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
+        let toolUseBlock = aiResponse.content.find(
+          (block) =>
+            block.type === 'tool_use' &&
+            'name' in block &&
+            (block as { name: string }).name === 'report_blueprints',
+        )
+        if (!toolUseBlock) {
+          toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
+        }
         const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
-        const parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
+        let parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
+
+        if (rawInput && !parsed?.success) {
+          console.error('[analysis] Blueprint schema validation failed:', parsed?.error?.flatten())
+        }
+
         const output = parsed?.success ? parsed.data : null
+
+        if (!output?.blueprints?.length) {
+          const parseHint = parsed?.success === false
+            ? 'AI returned blueprints in an unexpected shape. Try again or set ANTHROPIC_ANALYSIS_MODEL to a supported Claude model.'
+            : 'Model did not return usable blueprints (missing tool output). Check ANTHROPIC_API_KEY and model availability.'
+          send({ status: 'failed', error: parseHint })
+          await updateAnalysisStatus(id, 'failed', { error_message: parseHint })
+          controller.close()
+          return
+        }
 
         // Save blueprints to database
         if (output?.blueprints) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,8 @@ import {
   Code2,
   FileCode,
   Plus,
-  Zap
+  Zap,
+  Download,
 } from 'lucide-react'
 import type { Analysis, Repository, AppBlueprint } from '@/lib/queries'
 import {
@@ -68,6 +69,25 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
       : 0
   )
   const [localBlueprints, setLocalBlueprints] = useState(blueprints)
+  const [runErrorMessage, setRunErrorMessage] = useState<string | null>(analysis.error_message)
+
+  useEffect(() => {
+    setStatus(analysis.status)
+    setLocalBlueprints(blueprints)
+    setRunErrorMessage(analysis.error_message)
+    setProgress(
+      analysis.total_files > 0
+        ? Math.round((analysis.analyzed_files / analysis.total_files) * 100)
+        : 0,
+    )
+  }, [
+    analysis.id,
+    analysis.status,
+    analysis.error_message,
+    analysis.total_files,
+    analysis.analyzed_files,
+    blueprints,
+  ])
 
   const statusInfo = statusConfig[status]
   const StatusIcon = statusInfo.icon
@@ -107,6 +127,35 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
     } finally {
       setScaffoldLoadingId(null)
     }
+  }
+
+  const exportAllBlueprints = () => {
+    if (localBlueprints.length === 0) return
+    const payload = {
+      exported_at: new Date().toISOString(),
+      analysis: { id: analysis.id, name: analysis.name },
+      repositories: repositories.map((r) => ({
+        full_name: r.full_name,
+        url: r.url,
+        language: r.language,
+      })),
+      blueprints: localBlueprints.map((bp) => ({
+        ...bp,
+        tier: getBlueprintTier(bp),
+        opportunity_score: getOpportunityScore(bp),
+        execution_risk: getExecutionRisk(bp),
+        suggested_first_step: getSuggestedFirstStep(bp),
+      })),
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${analysis.name.replace(/\s+/g, '-').toLowerCase()}-all-blueprints.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const downloadBuildPlan = (blueprint: AppBlueprint) => {
@@ -153,6 +202,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
     setIsRunning(true)
     setStatus('scanning')
     setProgress(0)
+    setRunErrorMessage(null)
 
     try {
       const response = await fetch(`/api/analyses/${analysis.id}/run`, {
@@ -163,38 +213,60 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
         throw new Error('Failed to run analysis')
       }
 
-      // Stream the analysis progress
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
+      let sseBuffer = ''
+      let streamEndedFailed = false
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          sseBuffer += decoder.decode(value, { stream: !done })
+          const rawLines = sseBuffer.split('\n')
+          sseBuffer = rawLines.pop() ?? ''
 
-          const text = decoder.decode(value)
-          const lines = text.split('\n').filter(Boolean)
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                if (data.status) setStatus(data.status)
-                if (data.progress !== undefined) setProgress(data.progress)
-                if (data.blueprints) setLocalBlueprints(data.blueprints)
-              } catch {
-                // Skip invalid JSON
+          for (const line of rawLines) {
+            const trimmed = line.trim()
+            if (!trimmed.startsWith('data: ')) continue
+            try {
+              const data = JSON.parse(trimmed.slice(6)) as {
+                status?: Analysis['status']
+                progress?: number
+                blueprints?: AppBlueprint[]
+                error?: string
               }
+
+              if (typeof data.error === 'string') {
+                setRunErrorMessage(data.error)
+                if (!data.status) {
+                  streamEndedFailed = true
+                  setStatus('failed')
+                }
+              }
+              if (data.status === 'failed') {
+                streamEndedFailed = true
+                setStatus('failed')
+              }
+              if (data.status && data.status !== 'failed') {
+                setStatus(data.status)
+              }
+              if (data.progress !== undefined) setProgress(data.progress)
+              if (data.blueprints) setLocalBlueprints(data.blueprints)
+            } catch {
+              /* incomplete JSON chunk — wait for next read */
             }
           }
         }
       }
 
-      setStatus('complete')
+      if (!streamEndedFailed) {
+        setStatus('complete')
+      }
       router.refresh()
     } catch (error) {
       console.error('Analysis error:', error)
       setStatus('failed')
+      setRunErrorMessage(error instanceof Error ? error.message : 'Analysis request failed')
     } finally {
       setIsRunning(false)
     }
@@ -221,7 +293,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
           </div>
         </div>
         
-        {(status === 'pending' || status === 'failed') && (
+        {(status === 'pending' || status === 'failed' || status === 'complete') && (
           <Button onClick={runAnalysis} disabled={isRunning}>
             {isRunning ? (
               <>
@@ -231,12 +303,18 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
             ) : (
               <>
                 <Sparkles className="h-4 w-4 mr-2" />
-                Run Analysis
+                {status === 'complete' ? 'Run again' : 'Run Analysis'}
               </>
             )}
           </Button>
         )}
       </div>
+
+      {runErrorMessage && (
+        <Card className="border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          {runErrorMessage}
+        </Card>
+      )}
 
       {/* Progress */}
       {isInProgress && (
@@ -274,13 +352,21 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
 
       {/* App Blueprints */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-foreground">Discovered App Blueprints</h2>
-          {localBlueprints.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {localBlueprints.length} app{localBlueprints.length !== 1 ? 's' : ''} discovered
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {localBlueprints.length > 0 && (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {localBlueprints.length} app{localBlueprints.length !== 1 ? 's' : ''} discovered
+                </span>
+                <Button variant="outline" size="sm" type="button" onClick={exportAllBlueprints}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export all blueprints (JSON)
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {status === 'complete' && topOpportunities.length > 0 && (

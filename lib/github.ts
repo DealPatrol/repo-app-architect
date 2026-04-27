@@ -71,13 +71,60 @@ export async function listGitHubRepositories(accessToken: string): Promise<GitHu
   return repositories
 }
 
+/** Paths we skip so the analysis budget isn't eaten by deps and build output. */
+const SKIP_TREE_PATH_PREFIXES = [
+  'node_modules/',
+  'vendor/',
+  '.git/',
+  '.next/',
+  'dist/',
+  'build/',
+  'coverage/',
+  '__pycache__/',
+  '.venv/',
+  'venv/',
+  'target/', // Rust
+]
+
+function shouldSkipRepoPath(path: string): boolean {
+  const lower = path.toLowerCase()
+  if (lower.endsWith('.min.js') || lower.endsWith('.map')) return true
+  return SKIP_TREE_PATH_PREFIXES.some((prefix) => lower.includes(prefix))
+}
+
 export async function getGitHubRepositoryTree(
   fullName: string,
   defaultBranch: string,
   accessToken: string,
 ) {
-  return githubRequest<{ tree?: Array<{ path: string; type: string; size?: number }> }>(
-    `https://api.github.com/repos/${fullName}/git/trees/${defaultBranch}?recursive=1`,
+  return githubRequest<{ tree?: Array<{ path: string; type: string; size?: number }>; truncated?: boolean }>(
+    `https://api.github.com/repos/${fullName}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`,
     accessToken,
   )
 }
+
+/**
+ * Resolves default_branch to the repo root tree SHA, then loads a recursive tree.
+ * More reliable than passing a branch name directly when the Trees API rejects some refs.
+ */
+export async function getGitHubRepositoryTreeFromBranch(
+  fullName: string,
+  branch: string,
+  accessToken: string,
+) {
+  const branchRef = await githubRequest<{ commit: { sha: string } }>(
+    `https://api.github.com/repos/${fullName}/branches/${encodeURIComponent(branch)}`,
+    accessToken,
+  )
+  const commit = await githubRequest<{ commit: { tree: { sha: string } } }>(
+    `https://api.github.com/repos/${fullName}/commits/${branchRef.commit.sha}`,
+    accessToken,
+  )
+  const treeSha = commit.commit.tree.sha
+  return githubRequest<{ tree?: Array<{ path: string; type: string; size?: number }>; truncated?: boolean }>(
+    `https://api.github.com/repos/${fullName}/git/trees/${treeSha}?recursive=1`,
+    accessToken,
+  )
+}
+
+export { shouldSkipRepoPath }
