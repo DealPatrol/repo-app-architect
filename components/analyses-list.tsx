@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -85,6 +85,20 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
     )
   }
 
+  const allRepoIds = useMemo(() => repositories.map((r) => r.id), [repositories])
+  const allReposSelected = useMemo(
+    () => allRepoIds.length > 0 && allRepoIds.every((id) => selectedRepos.includes(id)),
+    [allRepoIds, selectedRepos],
+  )
+
+  const selectAllRepos = () => {
+    setSelectedRepos([...allRepoIds])
+  }
+
+  const clearRepoSelection = () => {
+    setSelectedRepos([])
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -119,7 +133,33 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Select Repositories</Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="shrink-0">Select Repositories</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={selectAllRepos}
+                      disabled={
+                        isLoading ||
+                        repositories.length === 0 ||
+                        allReposSelected
+                      }
+                    >
+                      Select all
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearRepoSelection}
+                      disabled={isLoading || selectedRepos.length === 0}
+                    >
+                      Clear selection
+                    </Button>
+                  </div>
+                </div>
                 <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
                   {repositories.map((repo) => (
                     <label

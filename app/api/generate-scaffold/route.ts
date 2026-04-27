@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { getAnthropicModel } from '@/lib/anthropic-model'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     // Generate scaffold structure using Claude
     const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: getAnthropicModel(),
       max_tokens: 4096,
       messages: [
         {

@@ -16,6 +16,7 @@ import {
   deleteBlueprintsByAnalysis,
   getBlueprintsByAnalysis
 } from '@/lib/queries'
+import { getAnthropicModel } from '@/lib/anthropic-model'
 
 // Schema for AI-generated app blueprints
 const complexityEnum = z.preprocess((val) => {
@@ -52,13 +53,6 @@ const CODE_EXTENSIONS = new Set([
   'py', 'go', 'rs', 'java', 'rb', 'php', 'vue', 'svelte',
   'css', 'scss', 'html', 'json', 'md', 'yml', 'yaml',
 ])
-
-function analysisModel(): string {
-  return (
-    process.env.ANTHROPIC_ANALYSIS_MODEL?.trim() ||
-    'claude-3-5-sonnet-20241022'
-  )
-}
 
 export async function POST(
   request: NextRequest,
@@ -213,7 +207,7 @@ Constraints:
 - Focus on practical, buildable applications based on the actual code patterns you see.`
 
         const aiResponse = await client.messages.create({
-          model: analysisModel(),
+          model: getAnthropicModel(),
           max_tokens: 4096,
           system: [
             {
