@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Github, Sparkles, Code2, ArrowRight, AlertCircle, ShieldCheck, Workflow, FileJson2 } from 'lucide-react'
+import { Github, Sparkles, Code2, ArrowRight, AlertCircle, ShieldCheck, Workflow, FileJson2, CheckCircle2 } from 'lucide-react'
 import { AppLogo } from '@/components/app-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { CheckoutButton } from '@/components/checkout-button'
+import { CODEVAULT_PRO_PLAN } from '@/lib/billing'
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
@@ -145,6 +147,60 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </p>
           </div>
         </div>
+
+        <section id="pricing" className="mt-32 max-w-5xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-[0.2em] mb-3">
+              Stripe-powered billing
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-balance">
+              Upgrade when your code map becomes a product roadmap
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              Start with the core analysis workflow, then move teams onto a paid workspace when you need deeper exports and repeatable planning.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] items-stretch">
+            <div className="rounded-xl border border-border bg-card/60 p-6">
+              <p className="text-sm font-medium text-muted-foreground">Starter</p>
+              <div className="mt-4 flex items-end gap-1">
+                <span className="text-4xl font-bold">$0</span>
+                <span className="text-muted-foreground mb-1">/ month</span>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Explore the product and connect repositories while you validate the workflow.
+              </p>
+              <Button variant="outline" className="mt-6 w-full" asChild>
+                <Link href="/dashboard/repositories">Open dashboard</Link>
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-foreground/20 bg-card p-6 shadow-xl shadow-foreground/5 relative overflow-hidden">
+              <div className="absolute right-6 top-6 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium">
+                Recommended
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">{CODEVAULT_PRO_PLAN.name}</p>
+              <div className="mt-4 flex items-end gap-1">
+                <span className="text-4xl font-bold">{CODEVAULT_PRO_PLAN.priceLabel}</span>
+                <span className="text-muted-foreground mb-1">/ {CODEVAULT_PRO_PLAN.interval}</span>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">{CODEVAULT_PRO_PLAN.description}</p>
+              <ul className="mt-6 grid gap-3 text-sm">
+                {CODEVAULT_PRO_PLAN.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 text-primary" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <CheckoutButton planId={CODEVAULT_PRO_PLAN.id} className="mt-8 w-full" />
+              <p className="mt-3 text-xs text-muted-foreground text-center">
+                Secure checkout is hosted by Stripe. No card data touches CodeVault servers.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* How It Works */}
         <div className="mt-32 max-w-4xl mx-auto">
