@@ -125,12 +125,37 @@ export interface OnboardingChecklist {
   totalCount: number;
 }
 
+export type BlueprintComplexity = 'simple' | 'moderate' | 'complex';
+
+export interface BlueprintFileReference {
+  path: string;
+  purpose: string;
+}
+
+export interface AppBlueprint {
+  id: string;
+  user_id: string;
+  source_name: string;
+  name: string;
+  description: string;
+  app_type: string;
+  complexity: BlueprintComplexity;
+  reuse_percentage: number;
+  existing_files: BlueprintFileReference[];
+  missing_files: BlueprintFileReference[];
+  estimated_effort: string | null;
+  technologies: string[];
+  ai_explanation: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Project queries
 export async function getProjectsByOrganization(orgId: string): Promise<Project[]> {
-  const projects = await sql('SELECT * FROM projects WHERE organization_id = $1 AND status != $2 ORDER BY created_at DESC', [
-    orgId,
-    'deleted',
-  ]);
+  const projects = await sql(
+    'SELECT * FROM projects WHERE organization_id = $1 AND status != $2 ORDER BY created_at DESC',
+    [orgId, 'deleted']
+  );
   return projects as Project[];
 }
 
@@ -139,19 +164,34 @@ export async function getProjectById(projectId: string): Promise<Project | null>
   return (projects[0] as Project) || null;
 }
 
-export async function createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
+export async function createProject(
+  data: Omit<Project, 'id' | 'created_at' | 'updated_at'>
+): Promise<Project> {
   const result = await sql(
     `INSERT INTO projects (organization_id, name, description, slug, status, visibility, color, icon, created_by) 
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
      RETURNING *`,
-    [data.organization_id, data.name, data.description, data.slug, data.status, data.visibility, data.color, data.icon, data.created_by]
+    [
+      data.organization_id,
+      data.name,
+      data.description,
+      data.slug,
+      data.status,
+      data.visibility,
+      data.color,
+      data.icon,
+      data.created_by,
+    ]
   );
   return result[0] as Project;
 }
 
 // Task queries
 export async function getTasksByProject(projectId: string): Promise<Task[]> {
-  const tasks = await sql('SELECT * FROM tasks WHERE project_id = $1 ORDER BY order_index ASC, created_at DESC', [projectId]);
+  const tasks = await sql(
+    'SELECT * FROM tasks WHERE project_id = $1 ORDER BY order_index ASC, created_at DESC',
+    [projectId]
+  );
   return tasks as Task[];
 }
 
@@ -160,7 +200,9 @@ export async function getTaskById(taskId: string): Promise<Task | null> {
   return (tasks[0] as Task) || null;
 }
 
-export async function createTask(data: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Promise<Task> {
+export async function createTask(
+  data: Omit<Task, 'id' | 'created_at' | 'updated_at'>
+): Promise<Task> {
   const result = await sql(
     `INSERT INTO tasks (project_id, title, description, status, priority, assigned_to, created_by, due_date, order_index)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -202,17 +244,27 @@ export async function updateTask(taskId: string, data: Partial<Task>): Promise<T
   }
 
   values.push(taskId);
-  const result = await sql(`UPDATE tasks SET updated_at = CURRENT_TIMESTAMP, ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`, values);
+  const result = await sql(
+    `UPDATE tasks SET updated_at = CURRENT_TIMESTAMP, ${updates.join(
+      ', '
+    )} WHERE id = $${paramIndex} RETURNING *`,
+    values
+  );
   return result[0] as Task;
 }
 
 // Task comments
 export async function getTaskComments(taskId: string): Promise<TaskComment[]> {
-  const comments = await sql('SELECT * FROM task_comments WHERE task_id = $1 ORDER BY created_at DESC', [taskId]);
+  const comments = await sql(
+    'SELECT * FROM task_comments WHERE task_id = $1 ORDER BY created_at DESC',
+    [taskId]
+  );
   return comments as TaskComment[];
 }
 
-export async function createTaskComment(data: Omit<TaskComment, 'id' | 'created_at' | 'updated_at'>): Promise<TaskComment> {
+export async function createTaskComment(
+  data: Omit<TaskComment, 'id' | 'created_at' | 'updated_at'>
+): Promise<TaskComment> {
   const result = await sql(
     'INSERT INTO task_comments (task_id, author_id, content) VALUES ($1, $2, $3) RETURNING *',
     [data.task_id, data.author_id, data.content]
@@ -240,7 +292,9 @@ export async function getProjectMembers(projectId: string): Promise<ProjectMembe
   return members as ProjectMember[];
 }
 
-export async function addProjectMember(data: Omit<ProjectMember, 'id' | 'added_at'>): Promise<ProjectMember> {
+export async function addProjectMember(
+  data: Omit<ProjectMember, 'id' | 'added_at'>
+): Promise<ProjectMember> {
   const result = await sql(
     'INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3) RETURNING *',
     [data.project_id, data.user_id, data.role]
@@ -249,12 +303,22 @@ export async function addProjectMember(data: Omit<ProjectMember, 'id' | 'added_a
 }
 
 // Activity logs
-export async function logActivity(data: Omit<ActivityLog, 'id' | 'created_at'>): Promise<ActivityLog> {
+export async function logActivity(
+  data: Omit<ActivityLog, 'id' | 'created_at'>
+): Promise<ActivityLog> {
   const result = await sql(
     `INSERT INTO activity_logs (project_id, user_id, action, entity_type, entity_id, description, metadata)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [data.project_id, data.user_id, data.action, data.entity_type, data.entity_id, data.description, data.metadata ? JSON.stringify(data.metadata) : null]
+    [
+      data.project_id,
+      data.user_id,
+      data.action,
+      data.entity_type,
+      data.entity_id,
+      data.description,
+      data.metadata ? JSON.stringify(data.metadata) : null,
+    ]
   );
   return result[0] as ActivityLog;
 }
@@ -492,4 +556,67 @@ export async function getOnboardingChecklist(
     completedCount,
     totalCount: steps.length,
   };
+}
+
+// Blueprint queries
+export async function getBlueprintsByUser(userId: string): Promise<AppBlueprint[]> {
+  const rows = await sql(
+    `SELECT *
+     FROM app_blueprints
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+  return rows as AppBlueprint[];
+}
+
+export async function deleteBlueprintsByUserAndSource(
+  userId: string,
+  sourceName: string
+): Promise<void> {
+  await sql(
+    `DELETE FROM app_blueprints
+     WHERE user_id = $1
+       AND source_name = $2`,
+    [userId, sourceName]
+  );
+}
+
+export async function createBlueprint(
+  data: Omit<AppBlueprint, 'id' | 'created_at' | 'updated_at'>
+): Promise<AppBlueprint> {
+  const rows = await sql(
+    `INSERT INTO app_blueprints (
+      user_id,
+      source_name,
+      name,
+      description,
+      app_type,
+      complexity,
+      reuse_percentage,
+      existing_files,
+      missing_files,
+      estimated_effort,
+      technologies,
+      ai_explanation
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11::jsonb, $12)
+    RETURNING *`,
+    [
+      data.user_id,
+      data.source_name,
+      data.name,
+      data.description,
+      data.app_type,
+      data.complexity,
+      data.reuse_percentage,
+      JSON.stringify(data.existing_files),
+      JSON.stringify(data.missing_files),
+      data.estimated_effort,
+      JSON.stringify(data.technologies),
+      data.ai_explanation,
+    ]
+  );
+
+  return rows[0] as AppBlueprint;
 }

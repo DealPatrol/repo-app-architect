@@ -8,6 +8,7 @@ import {
   FolderKanban,
   UserCircle2,
   CreditCard,
+  Lightbulb,
   LogOut,
   Menu,
   X,
@@ -26,6 +27,7 @@ interface DashboardShellProps {
 const navigation = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/dashboard/blueprints', label: 'Blueprints', icon: Lightbulb },
   { href: '/dashboard/profile', label: 'Profile', icon: UserCircle2 },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
 ];
