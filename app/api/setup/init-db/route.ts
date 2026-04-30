@@ -103,9 +103,12 @@ async function run() {
         estimated_effort VARCHAR(100),
         technologies JSONB DEFAULT '[]',
         ai_explanation TEXT,
+        ai_provider VARCHAR(50) DEFAULT 'anthropic',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `
+
+    await sql`ALTER TABLE app_blueprints ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(50) DEFAULT 'anthropic'`
 
     await sql`CREATE INDEX IF NOT EXISTS idx_user_auth_github_id ON user_auth(github_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_repositories_github_id ON repositories(github_id)`

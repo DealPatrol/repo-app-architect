@@ -60,14 +60,15 @@ export interface AppBlueprint {
   estimated_effort: string | null
   technologies: string[]
   ai_explanation: string | null
+  ai_provider: string | null
   created_at: string
 }
 
 // Repository queries
 export async function getAllRepositories(): Promise<Repository[]> {
   const sql = getDb()
-  const repos = await sql`SELECT * FROM repositories ORDER BY created_at DESC`
-  return repos as Repository[]
+  const repos = await sql<Repository[]>`SELECT * FROM repositories ORDER BY created_at DESC`
+  return repos
 }
 
 export async function getRepositoryById(id: string): Promise<Repository | null> {
@@ -112,8 +113,8 @@ export async function deleteRepository(id: string): Promise<void> {
 // File queries
 export async function getFilesByRepository(repoId: string): Promise<RepoFile[]> {
   const sql = getDb()
-  const files = await sql`SELECT * FROM repo_files WHERE repository_id = ${repoId} ORDER BY path`
-  return files as RepoFile[]
+  const files = await sql<RepoFile[]>`SELECT * FROM repo_files WHERE repository_id = ${repoId} ORDER BY path`
+  return files
 }
 
 export async function createRepoFile(data: {
@@ -166,8 +167,8 @@ export async function updateFileAnalysis(id: string, data: {
 // Analysis queries
 export async function getAllAnalyses(): Promise<Analysis[]> {
   const sql = getDb()
-  const analyses = await sql`SELECT * FROM analyses ORDER BY created_at DESC`
-  return analyses as Analysis[]
+  const analyses = await sql<Analysis[]>`SELECT * FROM analyses ORDER BY created_at DESC`
+  return analyses
 }
 
 export async function getAnalysisById(id: string): Promise<Analysis | null> {
@@ -217,24 +218,28 @@ export async function linkAnalysisToRepository(analysisId: string, repositoryId:
 
 export async function getRepositoriesForAnalysis(analysisId: string): Promise<Repository[]> {
   const sql = getDb()
-  const repos = await sql`
+  const repos = await sql<Repository[]>`
     SELECT r.* FROM repositories r
     JOIN analysis_repositories ar ON r.id = ar.repository_id
     WHERE ar.analysis_id = ${analysisId}
   `
-  return repos as Repository[]
+  return repos
 }
 
 // Blueprint queries
 export async function getBlueprintsByAnalysis(analysisId: string): Promise<AppBlueprint[]> {
   const sql = getDb()
-  const blueprints = await sql`SELECT * FROM app_blueprints WHERE analysis_id = ${analysisId} ORDER BY reuse_percentage DESC`
-  return blueprints as AppBlueprint[]
+  const blueprints = await sql<AppBlueprint[]>`SELECT * FROM app_blueprints WHERE analysis_id = ${analysisId} ORDER BY reuse_percentage DESC`
+  return blueprints
 }
 
-export async function deleteBlueprintsByAnalysis(analysisId: string): Promise<void> {
+export async function deleteBlueprintsByAnalysis(analysisId: string, provider?: string): Promise<void> {
   const sql = getDb()
-  await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId}`
+  if (provider) {
+    await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId} AND ai_provider = ${provider}`
+  } else {
+    await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId}`
+  }
 }
 
 export async function createBlueprint(data: {
@@ -249,17 +254,19 @@ export async function createBlueprint(data: {
   estimated_effort: string | null
   technologies: string[]
   ai_explanation: string | null
+  ai_provider?: string | null
 }): Promise<AppBlueprint> {
   const sql = getDb()
   const result = await sql`
     INSERT INTO app_blueprints (
       analysis_id, name, description, app_type, complexity, reuse_percentage,
-      existing_files, missing_files, estimated_effort, technologies, ai_explanation
+      existing_files, missing_files, estimated_effort, technologies, ai_explanation, ai_provider
     )
     VALUES (
       ${data.analysis_id}, ${data.name}, ${data.description}, ${data.app_type}, ${data.complexity},
       ${data.reuse_percentage}, ${JSON.stringify(data.existing_files)}::jsonb, ${JSON.stringify(data.missing_files)}::jsonb,
-      ${data.estimated_effort}, ${JSON.stringify(data.technologies)}::jsonb, ${data.ai_explanation}
+      ${data.estimated_effort}, ${JSON.stringify(data.technologies)}::jsonb, ${data.ai_explanation},
+      ${data.ai_provider ?? 'anthropic'}
     )
     RETURNING *
   `

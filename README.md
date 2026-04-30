@@ -14,7 +14,7 @@ An AI-powered code intelligence platform that scans your GitHub repositories and
 ## Tech Stack
 
 - **Framework**: Next.js 16 with App Router
-- **Database**: Neon PostgreSQL with connection pooling
+- **Database**: Supabase PostgreSQL (or any PostgreSQL)
 - **AI**: Vercel AI SDK (OpenAI GPT-4)
 - **UI Components**: Shadcn UI with Radix primitives
 - **Styling**: Tailwind CSS v4
@@ -50,7 +50,7 @@ components/
 ├── app-suggestions.tsx               # App idea cards
 └── ui/                               # Shadcn components
 lib/
-├── db.ts                             # Neon database client
+├── db.ts                             # Database client (postgres.js)
 ├── queries.ts                        # Database queries
 └── utils.ts                          # Utility functions
 scripts/
@@ -117,7 +117,7 @@ cp .env.example .env.local
 ```
 
 4. **Set up the database**
-Run the schema migration in your Neon console or with psql:
+Run the schema migration in your Supabase SQL Editor or with psql:
 ```bash
 psql $DATABASE_URL -f scripts/01-create-schema.sql
 ```

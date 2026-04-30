@@ -2,7 +2,7 @@
 
 ## ✅ Completed Architecture
 
-### 1. Database Layer (Neon PostgreSQL)
+### 1. Database Layer (Supabase PostgreSQL)
 - ✅ `user_auth` — GitHub OAuth user records
 - ✅ `repositories` — Tracked GitHub repositories
 - ✅ `repo_files` — Scanned files with AI metadata (JSONB fields)
@@ -62,7 +62,7 @@
   - UI primitives (Shadcn)
 
 /lib
-  - db.ts        - Neon database client
+  - db.ts        - Database client (postgres.js)
   - queries.ts   - All database operations
   - utils.ts     - cn() and other helpers
 
@@ -83,7 +83,7 @@
 ## 🔑 Key Technologies
 
 - **Framework**: Next.js 16 (App Router)
-- **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
+- **Database**: Supabase PostgreSQL (`postgres` / postgres.js)
 - **AI**: Vercel AI SDK + OpenAI GPT-4
 - **Auth**: Custom GitHub OAuth
 - **UI**: Shadcn UI + Tailwind CSS v4

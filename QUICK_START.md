@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js 20+ and pnpm
-- A [Neon](https://neon.tech) PostgreSQL database
+- A [Supabase](https://supabase.com) project (or any PostgreSQL database)
 - A GitHub OAuth App (for GitHub integration)
 - An OpenAI API key (for AI analysis)
 
@@ -26,7 +26,7 @@ cp .env.example .env.local
 Edit `.env.local` with your values:
 
 ```
-DATABASE_URL=postgresql://...          # From Neon dashboard
+DATABASE_URL=postgresql://...          # From Supabase dashboard (Settings → Database)
 GITHUB_CLIENT_ID=...                   # From GitHub OAuth App
 GITHUB_CLIENT_SECRET=...               # From GitHub OAuth App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -43,7 +43,7 @@ OPENAI_API_KEY=sk-...                  # From OpenAI dashboard
 
 ### 4. Set Up the Database
 
-Run the migration in your Neon SQL Editor or with psql:
+Run the migration in your Supabase SQL Editor or with psql:
 
 ```bash
 psql $DATABASE_URL -f scripts/01-create-schema.sql
@@ -95,7 +95,7 @@ Navigate to **http://localhost:3000** to see the app.
 
 **Database connection error?**
 - Check `DATABASE_URL` is correct
-- Verify your Neon project is active
+- Verify your Supabase project is active (or your PostgreSQL server is running)
 
 **GitHub OAuth not working?**
 - Check `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`

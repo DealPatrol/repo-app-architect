@@ -83,7 +83,7 @@ prompt_secret VERCEL_TOKEN "  Paste your Vercel token"
 echo ""
 info "Step 3/5 — App environment variables"
 
-prompt_plain  DATABASE_URL       "  DATABASE_URL (Neon PostgreSQL)"
+prompt_plain  DATABASE_URL       "  DATABASE_URL (Supabase PostgreSQL)"
 prompt_plain  GITHUB_CLIENT_ID   "  GITHUB_CLIENT_ID"
 prompt_secret GITHUB_CLIENT_SECRET "  GITHUB_CLIENT_SECRET"
 prompt_plain  APP_URL            "  NEXT_PUBLIC_APP_URL (e.g. https://codevault.vercel.app)"

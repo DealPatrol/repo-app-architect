@@ -1,17 +1,21 @@
-import { neon } from '@neondatabase/serverless'
+import postgres from 'postgres'
+
+let sql: ReturnType<typeof postgres> | null = null
 
 export function getDb() {
+  if (sql) return sql
+
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) {
     throw new Error(
       'DATABASE_URL environment variable is not set. ' +
-      'Please configure your Neon database connection string in your environment variables.'
+      'Please configure your Supabase (or any PostgreSQL) connection string in your environment variables.'
     )
   }
-  return neon(databaseUrl)
+  sql = postgres(databaseUrl)
+  return sql
 }
 
-// Export a validation function for startup checks
 export function validateDatabaseConnection() {
   try {
     getDb()
