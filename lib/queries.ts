@@ -66,8 +66,8 @@ export interface AppBlueprint {
 // Repository queries
 export async function getAllRepositories(): Promise<Repository[]> {
   const sql = getDb()
-  const repos = await sql`SELECT * FROM repositories ORDER BY created_at DESC`
-  return repos as Repository[]
+  const repos = await sql<Repository[]>`SELECT * FROM repositories ORDER BY created_at DESC`
+  return repos
 }
 
 export async function getRepositoryById(id: string): Promise<Repository | null> {
@@ -112,8 +112,8 @@ export async function deleteRepository(id: string): Promise<void> {
 // File queries
 export async function getFilesByRepository(repoId: string): Promise<RepoFile[]> {
   const sql = getDb()
-  const files = await sql`SELECT * FROM repo_files WHERE repository_id = ${repoId} ORDER BY path`
-  return files as RepoFile[]
+  const files = await sql<RepoFile[]>`SELECT * FROM repo_files WHERE repository_id = ${repoId} ORDER BY path`
+  return files
 }
 
 export async function createRepoFile(data: {
@@ -166,8 +166,8 @@ export async function updateFileAnalysis(id: string, data: {
 // Analysis queries
 export async function getAllAnalyses(): Promise<Analysis[]> {
   const sql = getDb()
-  const analyses = await sql`SELECT * FROM analyses ORDER BY created_at DESC`
-  return analyses as Analysis[]
+  const analyses = await sql<Analysis[]>`SELECT * FROM analyses ORDER BY created_at DESC`
+  return analyses
 }
 
 export async function getAnalysisById(id: string): Promise<Analysis | null> {
@@ -217,19 +217,19 @@ export async function linkAnalysisToRepository(analysisId: string, repositoryId:
 
 export async function getRepositoriesForAnalysis(analysisId: string): Promise<Repository[]> {
   const sql = getDb()
-  const repos = await sql`
+  const repos = await sql<Repository[]>`
     SELECT r.* FROM repositories r
     JOIN analysis_repositories ar ON r.id = ar.repository_id
     WHERE ar.analysis_id = ${analysisId}
   `
-  return repos as Repository[]
+  return repos
 }
 
 // Blueprint queries
 export async function getBlueprintsByAnalysis(analysisId: string): Promise<AppBlueprint[]> {
   const sql = getDb()
-  const blueprints = await sql`SELECT * FROM app_blueprints WHERE analysis_id = ${analysisId} ORDER BY reuse_percentage DESC`
-  return blueprints as AppBlueprint[]
+  const blueprints = await sql<AppBlueprint[]>`SELECT * FROM app_blueprints WHERE analysis_id = ${analysisId} ORDER BY reuse_percentage DESC`
+  return blueprints
 }
 
 export async function deleteBlueprintsByAnalysis(analysisId: string): Promise<void> {

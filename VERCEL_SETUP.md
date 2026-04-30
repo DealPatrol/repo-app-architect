@@ -10,7 +10,7 @@ Go to your Vercel project → **Settings** → **Environment Variables** and add
 
 | Variable | Environment | Description |
 |----------|-------------|-------------|
-| `DATABASE_URL` | Production, Preview, Development | Neon PostgreSQL connection string |
+| `DATABASE_URL` | Production, Preview, Development | Supabase PostgreSQL connection string |
 | `GITHUB_CLIENT_ID` | Production, Preview, Development | GitHub OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | Production, Preview, Development | GitHub OAuth App client secret |
 | `NEXT_PUBLIC_APP_URL` | Production | Your production URL (e.g. `https://codevault.vercel.app`) |
@@ -48,7 +48,7 @@ The workflow pulls env vars from Vercel automatically via `vercel pull`. Set the
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `DATABASE_URL` | Supabase PostgreSQL connection string |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 | `NEXT_PUBLIC_APP_URL` | Your production URL |
@@ -68,7 +68,7 @@ Once deployed, update your GitHub OAuth App callback URL:
 
 ## Run Database Migration
 
-Run the schema SQL in your Neon console:
+Run the schema SQL in your Supabase SQL Editor:
 
 ```sql
 -- Paste contents of scripts/01-create-schema.sql
@@ -84,7 +84,7 @@ psql $DATABASE_URL -f scripts/01-create-schema.sql
 
 **GitHub OAuth redirects fail** → Check `NEXT_PUBLIC_APP_URL` matches your Vercel URL exactly
 
-**Database errors** → Verify `DATABASE_URL` is correct and Neon project is active
+**Database errors** → Verify `DATABASE_URL` is correct and Supabase project is active
 
 **AI analysis fails** → Check `OPENAI_API_KEY` has sufficient credits
 
