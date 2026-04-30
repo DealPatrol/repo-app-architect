@@ -27,9 +27,9 @@ interface AnalysesListProps {
 
 const statusConfig = {
   pending: { icon: Clock, label: 'Pending', className: 'text-muted-foreground' },
-  scanning: { icon: Loader2, label: 'Scanning', className: 'text-chart-1 animate-spin' },
-  analyzing: { icon: Sparkles, label: 'Analyzing', className: 'text-chart-1 animate-pulse' },
-  complete: { icon: CheckCircle2, label: 'Complete', className: 'text-chart-1' },
+  scanning: { icon: Loader2, label: 'Scanning', className: 'text-primary animate-spin' },
+  analyzing: { icon: Sparkles, label: 'Analyzing', className: 'text-primary animate-pulse' },
+  complete: { icon: CheckCircle2, label: 'Complete', className: 'text-primary' },
   failed: { icon: XCircle, label: 'Failed', className: 'text-destructive' },
 }
 
@@ -101,29 +101,28 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Analyses</h1>
-          <p className="text-muted-foreground">Run AI analysis to discover app possibilities.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Analyses</h1>
+          <p className="text-sm text-muted-foreground mt-1">Run AI analysis to discover app blueprints in your code.</p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button disabled={repositories.length === 0}>
               <Plus className="h-4 w-4 mr-2" />
-              New Analysis
+              New analysis
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>New Analysis</DialogTitle>
+              <DialogTitle>New analysis</DialogTitle>
               <DialogDescription>
                 Select repositories to analyze and discover what apps you can build.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="analysis-name">Analysis Name</Label>
+                <Label htmlFor="analysis-name">Analysis name</Label>
                 <Input
                   id="analysis-name"
                   placeholder="e.g., Full codebase analysis"
@@ -134,18 +133,14 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
               </div>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label className="shrink-0">Select Repositories</Label>
+                  <Label className="shrink-0">Repositories</Label>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={selectAllRepos}
-                      disabled={
-                        isLoading ||
-                        repositories.length === 0 ||
-                        allReposSelected
-                      }
+                      disabled={isLoading || repositories.length === 0 || allReposSelected}
                     >
                       Select all
                     </Button>
@@ -156,15 +151,15 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
                       onClick={clearRepoSelection}
                       disabled={isLoading || selectedRepos.length === 0}
                     >
-                      Clear selection
+                      Clear
                     </Button>
                   </div>
                 </div>
-                <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                <div className="border border-border/60 rounded-lg divide-y divide-border/40 max-h-60 overflow-y-auto">
                   {repositories.map((repo) => (
                     <label
                       key={repo.id}
-                      className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
+                      className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer transition-colors"
                     >
                       <Checkbox
                         checked={selectedRepos.includes(repo.id)}
@@ -176,7 +171,7 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
                         <p className="text-xs text-muted-foreground truncate">{repo.full_name}</p>
                       </div>
                       {repo.language && (
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary/8 text-primary font-medium">
                           {repo.language}
                         </span>
                       )}
@@ -199,7 +194,7 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Start Analysis
+                    Start analysis
                   </>
                 )}
               </Button>
@@ -208,72 +203,70 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
         </Dialog>
       </div>
 
-      {/* No repositories message */}
       {repositories.length === 0 && (
-        <Card className="border-dashed p-12 text-center">
-          <FolderGit2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Add repositories first</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            You need to connect at least one GitHub repository before running an analysis.
+        <Card className="border-dashed border-border/60 p-10 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <FolderGit2 className="h-7 w-7 text-muted-foreground/40" />
+          </div>
+          <h3 className="font-semibold text-foreground mb-1">Add repositories first</h3>
+          <p className="text-sm text-muted-foreground mb-5 max-w-md mx-auto">
+            Connect at least one GitHub repository before running an analysis.
           </p>
           <Button asChild>
             <Link href="/dashboard/repositories">
               <Plus className="h-4 w-4 mr-2" />
-              Add Repository
+              Add repository
             </Link>
           </Button>
         </Card>
       )}
 
-      {/* Analyses List */}
       {repositories.length > 0 && analyses.length === 0 && (
-        <Card className="border-dashed p-12 text-center">
-          <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No analyses yet</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+        <Card className="border-dashed border-border/60 p-10 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-7 w-7 text-primary/40" />
+          </div>
+          <h3 className="font-semibold text-foreground mb-1">No analyses yet</h3>
+          <p className="text-sm text-muted-foreground mb-5 max-w-md mx-auto">
             Run your first analysis to discover what applications you can build from your code.
           </p>
           <Button onClick={() => setIsOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Start Your First Analysis
+            <Sparkles className="h-4 w-4 mr-2" />
+            Start your first analysis
           </Button>
         </Card>
       )}
 
       {analyses.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {analyses.map((analysis) => {
             const status = statusConfig[analysis.status]
             const StatusIcon = status.icon
             return (
-              <Card key={analysis.id} className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <Sparkles className="h-5 w-5" />
+              <Card key={analysis.id} className="p-4 bg-card/60 hover:bg-card/80 transition-colors">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{analysis.name}</h3>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-foreground text-sm truncate">{analysis.name}</h3>
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-0.5">
                         <span className={`flex items-center gap-1 ${status.className}`}>
-                          <StatusIcon className="h-3.5 w-3.5" />
+                          <StatusIcon className="h-3 w-3" />
                           {status.label}
                         </span>
                         {analysis.total_files > 0 && (
-                          <span>
-                            {analysis.analyzed_files}/{analysis.total_files} files
-                          </span>
+                          <span>{analysis.analyzed_files}/{analysis.total_files} files</span>
                         )}
-                        <span>
-                          {new Date(analysis.created_at).toLocaleDateString()}
-                        </span>
+                        <span>{new Date(analysis.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="flex-shrink-0" asChild>
                     <Link href={`/dashboard/analyses/${analysis.id}`}>
-                      View Results
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      View
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
                     </Link>
                   </Button>
                 </div>

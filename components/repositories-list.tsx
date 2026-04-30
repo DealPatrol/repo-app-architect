@@ -219,8 +219,8 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-          <p className="text-muted-foreground">Sign in with GitHub, import repositories, and track them in CodeVault.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Repositories</h1>
+          <p className="text-sm text-muted-foreground mt-1">Connect GitHub repositories to scan for hidden applications.</p>
         </div>
         {loadingAuth ? (
           <Button variant="outline" disabled>
@@ -229,11 +229,12 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           </Button>
         ) : auth?.authenticated ? (
           <div className="flex items-center gap-3">
-            <div className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">@{auth.user?.github_username}</span>
-            </div>
+            <span className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">@{auth.user?.github_username}</span>
+            </span>
             <Button
               variant="outline"
+              size="sm"
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
                 setAuth({ authenticated: false })
@@ -255,36 +256,42 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
       </div>
 
       {(oauthConnected || error || auth?.error || oauthError) && (
-        <Card className={oauthConnected ? 'border-primary/30 bg-primary/5 p-4 text-sm text-primary' : 'border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'}>
+        <Card className={oauthConnected
+          ? 'border-primary/30 bg-primary/5 p-4 text-sm text-primary'
+          : 'border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'
+        }>
           {oauthConnected
             ? 'GitHub connected successfully. You can import repositories now.'
             : error || auth?.error || `GitHub sign-in failed: ${oauthError}`}
         </Card>
       )}
 
-      <Card className="p-6 space-y-4">
+      {/* GitHub import */}
+      <Card className="p-6 space-y-4 bg-card/60">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">GitHub import</h2>
-            <p className="text-sm text-muted-foreground">
-              Connect GitHub to import public and private repositories directly into the app.
+            <h2 className="font-semibold text-foreground">GitHub import</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Import public and private repositories from your GitHub account.
             </p>
           </div>
           {auth?.authenticated ? (
-            <Button variant="outline" onClick={() => void loadGitHubRepos()} disabled={loadingGitHubRepos}>
+            <Button variant="outline" size="sm" onClick={() => void loadGitHubRepos()} disabled={loadingGitHubRepos}>
               {loadingGitHubRepos ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
             </Button>
           ) : null}
         </div>
 
         {!auth?.authenticated ? (
-          <div className="rounded-xl border border-dashed p-8 text-center">
-            <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">Connect your GitHub account</h3>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-              Once you sign in, CodeVault can read your repositories and show what you can build from the code you already own.
+          <div className="rounded-xl border border-dashed border-border/60 p-8 text-center">
+            <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <Github className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <h3 className="font-semibold text-foreground text-sm">Connect your GitHub account</h3>
+            <p className="mx-auto mt-1.5 max-w-lg text-xs text-muted-foreground">
+              Sign in to import repositories and let CodeVault discover what you can build from the code you already own.
             </p>
-            <Button className="mt-4" asChild>
+            <Button className="mt-4" size="sm" asChild>
               <a href="/api/auth/github/login">
                 <ShieldCheck className="h-4 w-4 mr-2" />
                 Continue with GitHub
@@ -297,32 +304,29 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
             Loading repositories from GitHub...
           </div>
         ) : githubRepos.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center">
-            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">No GitHub repositories found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We could not find any repositories on the connected GitHub account yet.
+          <div className="rounded-xl border border-dashed border-border/60 p-8 text-center">
+            <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <FolderGit2 className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <h3 className="font-semibold text-foreground text-sm">No repositories found</h3>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              No repositories found on your connected GitHub account.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm text-muted-foreground">
-                {githubRepos.length} repositories available from GitHub
+                {githubRepos.length} repositories available
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">{selectedRepos.length} selected</span>
+                <span className="text-xs text-muted-foreground">{selectedRepos.length} selected</span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={selectAllSelectable}
-                  disabled={
-                    importing ||
-                    loadingGitHubRepos ||
-                    selectableGithubIds.length === 0 ||
-                    allSelectableSelected
-                  }
+                  disabled={importing || loadingGitHubRepos || selectableGithubIds.length === 0 || allSelectableSelected}
                 >
                   Select all
                 </Button>
@@ -333,63 +337,65 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
                   onClick={clearImportSelection}
                   disabled={importing || selectedRepos.length === 0}
                 >
-                  Clear selection
+                  Clear
                 </Button>
               </div>
             </div>
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {githubRepos.map((repo) => {
                 const alreadyImported = importedGithubIds.has(repo.id)
                 return (
-                  <Card key={repo.id} className="p-4">
-                    <label className="flex cursor-pointer items-start gap-3">
+                  <div key={repo.id} className="flex items-start gap-3 p-3 rounded-lg border border-border/40 hover:bg-muted/20 transition-colors">
+                    <label className="flex items-start gap-3 cursor-pointer flex-1 min-w-0">
                       <Checkbox
                         checked={alreadyImported || selectedRepos.includes(repo.id)}
                         disabled={alreadyImported || importing}
                         onCheckedChange={() => toggleSelection(repo.id)}
+                        className="mt-0.5"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-foreground">{repo.full_name}</span>
-                          {repo.private ? (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Private</span>
-                          ) : null}
-                          {alreadyImported ? (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Imported</span>
-                          ) : null}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium text-sm text-foreground">{repo.full_name}</span>
+                          {repo.private && (
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Private</span>
+                          )}
+                          {alreadyImported && (
+                            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">Imported</span>
+                          )}
                         </div>
-                        {repo.description ? (
-                          <p className="mt-1 text-sm text-muted-foreground">{repo.description}</p>
-                        ) : null}
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          {repo.language ? <span>{repo.language}</span> : null}
-                          <span className="flex items-center gap-1"><Star className="h-3 w-3" />{repo.stars}</span>
-                          <span className="flex items-center gap-1"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
+                        {repo.description && (
+                          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{repo.description}</p>
+                        )}
+                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          {repo.language && <span className="text-primary/80 font-medium">{repo.language}</span>}
+                          <span className="flex items-center gap-0.5"><Star className="h-3 w-3" />{repo.stars}</span>
+                          <span className="flex items-center gap-0.5"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
                         </div>
                       </div>
                     </label>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
             <div className="flex justify-end">
               <Button onClick={handleImportSelected} disabled={importing || selectedRepos.length === 0}>
                 {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                Import selected repositories
+                Import selected
               </Button>
             </div>
           </div>
         )}
       </Card>
 
-      <Card className="p-6 space-y-4">
+      {/* Tracked repos */}
+      <Card className="p-6 space-y-4 bg-card/60">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Tracked repositories</h2>
-          <p className="text-sm text-muted-foreground">These are the repositories CodeVault can analyze right now.</p>
+          <h2 className="font-semibold text-foreground">Tracked repositories</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Repositories CodeVault can analyze right now.</p>
         </div>
 
         <div className="space-y-3">
-          <Label htmlFor="manual-repo-url">Add a public repository by URL</Label>
+          <Label htmlFor="manual-repo-url" className="text-sm">Add a public repository by URL</Label>
           <div className="flex flex-col gap-3 md:flex-row">
             <Input
               id="manual-repo-url"
@@ -398,54 +404,56 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
               placeholder="https://github.com/owner/repo"
               disabled={addingManualRepo}
             />
-            <Button onClick={handleManualAdd} disabled={addingManualRepo}>
+            <Button onClick={handleManualAdd} disabled={addingManualRepo} className="flex-shrink-0">
               {addingManualRepo ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Add repository
+              Add
             </Button>
           </div>
         </div>
 
         {repositories.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center">
-            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">No repositories imported yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Import repositories from GitHub above, or add a public repository URL manually.
+          <div className="rounded-xl border border-dashed border-border/60 p-10 text-center">
+            <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <FolderGit2 className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <h3 className="font-semibold text-foreground text-sm">No repositories imported yet</h3>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Import from GitHub above, or add a public repository URL manually.
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {repositories.map((repo) => (
-              <Card key={repo.id} className="group p-5">
+              <Card key={repo.id} className="group p-4 bg-background/50 hover:bg-background/80 transition-colors">
                 <div className="mb-3 flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <FolderGit2 className="h-5 w-5" />
+                  <div className="h-9 w-9 rounded-lg bg-primary/8 flex items-center justify-center">
+                    <FolderGit2 className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
                       <a href={repo.url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() => handleDelete(repo.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
-                <h3 className="mb-1 font-semibold text-foreground">{repo.name}</h3>
-                <p className="mb-1 text-xs text-muted-foreground">{repo.full_name}</p>
-                <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                <h3 className="font-semibold text-foreground text-sm">{repo.name}</h3>
+                <p className="text-xs text-muted-foreground">{repo.full_name}</p>
+                <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
                   {repo.description || 'No description'}
                 </p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {repo.language ? <span>{repo.language}</span> : null}
-                  <span className="flex items-center gap-1"><Star className="h-3 w-3" />{repo.stars}</span>
-                  <span className="flex items-center gap-1"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
+                <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                  {repo.language && <span className="text-primary/80 font-medium">{repo.language}</span>}
+                  <span className="flex items-center gap-0.5"><Star className="h-3 w-3" />{repo.stars}</span>
+                  <span className="flex items-center gap-0.5"><GitBranch className="h-3 w-3" />{repo.default_branch}</span>
                 </div>
               </Card>
             ))}
