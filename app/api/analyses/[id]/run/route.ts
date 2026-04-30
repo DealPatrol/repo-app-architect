@@ -1,6 +1,4 @@
 import { NextRequest } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { z } from 'zod'
 import { getCurrentAccessToken } from '@/lib/auth'
 import {
   getGitHubRepositoryTree,
@@ -16,37 +14,7 @@ import {
   deleteBlueprintsByAnalysis,
   getBlueprintsByAnalysis
 } from '@/lib/queries'
-import { getAnthropicModel } from '@/lib/anthropic-model'
-
-// Schema for AI-generated app blueprints
-const complexityEnum = z.preprocess((val) => {
-  if (typeof val !== 'string') return val
-  const v = val.trim().toLowerCase()
-  if (v === 'easy') return 'simple'
-  return v
-}, z.enum(['simple', 'moderate', 'complex']))
-
-const BlueprintSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  app_type: z.string(),
-  complexity: complexityEnum,
-  reuse_percentage: z.number().min(0).max(100),
-  existing_files: z.array(z.object({
-    path: z.string(),
-    purpose: z.string(),
-  })),
-  missing_files: z.array(z.object({
-    name: z.string(),
-    purpose: z.string(),
-  })),
-  technologies: z.array(z.string()),
-  explanation: z.string(),
-})
-
-const AnalysisOutputSchema = z.object({
-  blueprints: z.array(BlueprintSchema),
-})
+import { runAIAnalysis, getAvailableProviders, type AIProvider } from '@/lib/ai-providers'
 
 const CODE_EXTENSIONS = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs',
@@ -75,8 +43,28 @@ export async function POST(
           controller.close()
           return
         }
-        if (!process.env.ANTHROPIC_API_KEY) {
-          send({ error: 'AI analysis is not configured. Missing ANTHROPIC_API_KEY.' })
+
+        const url = new URL(request.url)
+        const providersParam = url.searchParams.get('providers')
+        const available = getAvailableProviders()
+
+        if (available.length === 0) {
+          send({ error: 'No AI providers configured. Set ANTHROPIC_API_KEY and/or OPENAI_API_KEY.' })
+          controller.close()
+          return
+        }
+
+        let requestedProviders: AIProvider[]
+        if (providersParam) {
+          requestedProviders = providersParam.split(',').filter((p): p is AIProvider =>
+            (p === 'anthropic' || p === 'openai') && available.includes(p as AIProvider)
+          )
+        } else {
+          requestedProviders = available.slice(0, 1)
+        }
+
+        if (requestedProviders.length === 0) {
+          send({ error: `Requested providers not available. Configured: ${available.join(', ')}` })
           controller.close()
           return
         }
@@ -167,177 +155,92 @@ export async function POST(
 
         send({ status: 'scanning', progress: 40 })
 
-        // Update to analyzing
         await updateAnalysisStatus(id, 'analyzing', { total_files: allFiles.length })
         send({ status: 'analyzing', progress: 50 })
 
-        // Build file summary for AI
         const fileSummary = allFiles.map(f => `- ${f.repo}: ${f.path}`).join('\n')
+        const isMultiProvider = requestedProviders.length > 1
+        let anySucceeded = false
 
-        // Use Claude to analyze and discover app blueprints (structured tool output)
-        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        for (let pi = 0; pi < requestedProviders.length; pi++) {
+          const provider = requestedProviders[pi]
+          const progressBase = 50 + Math.round((pi / requestedProviders.length) * 40)
 
-        const userPrompt = `You are acting as an expert software architect and product strategist.
-Analyze these files from GitHub repositories and discover what applications can be built by combining and reusing the existing code.
+          send({
+            status: 'analyzing',
+            progress: progressBase,
+            provider_status: { provider, state: 'running' },
+          })
 
-REPOSITORIES AND FILES:
-${fileSummary}
+          try {
+            await deleteBlueprintsByAnalysis(id, provider)
 
-Identify 3-6 practical applications that match these buckets:
-1) Quick wins (ship-ready or very close),
-2) Missing only a few files,
-3) Larger but still feasible foundations.
+            const blueprintResults = await runAIAnalysis(fileSummary, provider)
 
-For each app blueprint:
-- Give it a clear, descriptive name
-- Describe what the app does
-- Estimate complexity (simple/moderate/complex)
-- Calculate reuse percentage (how much existing code can be reused) and be realistic
-- List existing files that can be reused (with their purpose); prefer highest-value files
-- List missing files needed (with their purpose)
-- For missing_files.name, provide concrete file paths (e.g. "app/api/billing/route.ts")
-- List technologies detected
-- Provide a brief explanation of why this app is possible, including a suggested first build step
+            if (blueprintResults.length === 0) {
+              send({ provider_status: { provider, state: 'empty' } })
+              continue
+            }
 
-Constraints:
-- Use ONLY evidence from the provided files; do not invent major subsystems.
-- Prefer opportunities that combine code across multiple repositories where possible.
-- Keep missing_files concise and implementation-oriented.
-- Avoid duplicate ideas that differ only by naming.
-- Focus on practical, buildable applications based on the actual code patterns you see.`
+            const rankedBlueprints = blueprintResults
+              .map((bp) => normalizeBlueprint(bp))
+              .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
 
-        const aiResponse = await client.messages.create({
-          model: getAnthropicModel(),
-          max_tokens: 4096,
-          system: [
-            {
-              type: 'text',
-              text: 'You are an expert software architect. Your job is to analyze GitHub repository file structures and identify what new applications can be built by combining and reusing the existing code. Focus on practical, buildable applications based on actual code patterns.',
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          tools: [
-            {
-              name: 'report_blueprints',
-              description: 'Report the discovered app blueprints based on repository file analysis',
-              input_schema: {
-                type: 'object' as const,
-                properties: {
-                  blueprints: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name: { type: 'string', description: 'Clear, descriptive name for the app' },
-                        description: { type: 'string', description: 'What the app does' },
-                        app_type: { type: 'string', description: 'Type of application (e.g. web app, CLI tool, API service)' },
-                        complexity: { type: 'string', enum: ['simple', 'moderate', 'complex'] },
-                        reuse_percentage: { type: 'number', minimum: 0, maximum: 100, description: 'Percentage of existing code that can be reused' },
-                        existing_files: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              path: { type: 'string' },
-                              purpose: { type: 'string' },
-                            },
-                            required: ['path', 'purpose'],
-                          },
-                          description: 'Existing files that can be reused',
-                        },
-                        missing_files: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              name: { type: 'string' },
-                              purpose: { type: 'string' },
-                            },
-                            required: ['name', 'purpose'],
-                          },
-                          description: 'New files that need to be created',
-                        },
-                        technologies: { type: 'array', items: { type: 'string' }, description: 'Technologies detected' },
-                        explanation: { type: 'string', description: 'Brief explanation of why this app is feasible' },
-                      },
-                      required: ['name', 'description', 'app_type', 'complexity', 'reuse_percentage', 'existing_files', 'missing_files', 'technologies', 'explanation'],
-                    },
-                  },
-                },
-                required: ['blueprints'],
+            for (const bp of rankedBlueprints) {
+              await createBlueprint({
+                analysis_id: id,
+                name: bp.name,
+                description: bp.description,
+                app_type: bp.app_type,
+                complexity: bp.complexity,
+                reuse_percentage: bp.reuse_percentage,
+                existing_files: bp.existing_files,
+                missing_files: bp.missing_files,
+                estimated_effort: getEffortEstimate(bp.complexity, bp.missing_files.length),
+                technologies: bp.technologies,
+                ai_explanation: bp.explanation,
+                ai_provider: provider,
+              })
+            }
+
+            anySucceeded = true
+            send({ provider_status: { provider, state: 'complete', count: rankedBlueprints.length } })
+          } catch (providerError) {
+            console.error(`[analysis] ${provider} failed:`, providerError)
+            send({
+              provider_status: {
+                provider,
+                state: 'failed',
+                error: providerError instanceof Error ? providerError.message : 'Provider failed',
               },
-            },
-          ],
-          tool_choice: { type: 'tool', name: 'report_blueprints' },
-          messages: [
-            {
-              role: 'user',
-              content: userPrompt,
-            },
-          ],
-        })
-
-        send({ status: 'analyzing', progress: 80 })
-
-        // Extract structured output from tool use response
-        let toolUseBlock = aiResponse.content.find(
-          (block) =>
-            block.type === 'tool_use' &&
-            'name' in block &&
-            (block as { name: string }).name === 'report_blueprints',
-        )
-        if (!toolUseBlock) {
-          toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
-        }
-        const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
-        let parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
-
-        if (rawInput && !parsed?.success) {
-          console.error('[analysis] Blueprint schema validation failed:', parsed?.error?.flatten())
+            })
+            if (!isMultiProvider) {
+              const msg = providerError instanceof Error ? providerError.message : 'AI analysis failed'
+              send({ status: 'failed', error: msg })
+              await updateAnalysisStatus(id, 'failed', { error_message: msg })
+              controller.close()
+              return
+            }
+          }
         }
 
-        const output = parsed?.success ? parsed.data : null
-
-        if (!output?.blueprints?.length) {
-          const parseHint = parsed?.success === false
-            ? 'AI returned blueprints in an unexpected shape. Try again or set ANTHROPIC_ANALYSIS_MODEL to a supported Claude model.'
-            : 'Model did not return usable blueprints (missing tool output). Check ANTHROPIC_API_KEY and model availability.'
-          send({ status: 'failed', error: parseHint })
-          await updateAnalysisStatus(id, 'failed', { error_message: parseHint })
+        if (!anySucceeded) {
+          const msg = 'All AI providers failed to produce blueprints.'
+          send({ status: 'failed', error: msg })
+          await updateAnalysisStatus(id, 'failed', { error_message: msg })
           controller.close()
           return
         }
 
-        // Save blueprints to database
-        if (output?.blueprints) {
-          const rankedBlueprints = output.blueprints
-            .map((bp) => normalizeBlueprint(bp))
-            .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
-
-          for (const bp of rankedBlueprints) {
-            await createBlueprint({
-              analysis_id: id,
-              name: bp.name,
-              description: bp.description,
-              app_type: bp.app_type,
-              complexity: bp.complexity,
-              reuse_percentage: bp.reuse_percentage,
-              existing_files: bp.existing_files,
-              missing_files: bp.missing_files,
-              estimated_effort: getEffortEstimate(bp.complexity, bp.missing_files.length),
-              technologies: bp.technologies,
-              ai_explanation: bp.explanation,
-            })
-          }
-        }
-
-        // Update to complete
         await updateAnalysisStatus(id, 'complete', { analyzed_files: allFiles.length })
-
-        // Get final blueprints
         const finalBlueprints = await getBlueprintsByAnalysis(id)
 
-        send({ status: 'complete', progress: 100, blueprints: finalBlueprints })
+        send({
+          status: 'complete',
+          progress: 100,
+          blueprints: finalBlueprints,
+          providers_used: requestedProviders,
+        })
         controller.close()
 
       } catch (error) {

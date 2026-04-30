@@ -60,6 +60,7 @@ export interface AppBlueprint {
   estimated_effort: string | null
   technologies: string[]
   ai_explanation: string | null
+  ai_provider: string | null
   created_at: string
 }
 
@@ -232,9 +233,13 @@ export async function getBlueprintsByAnalysis(analysisId: string): Promise<AppBl
   return blueprints
 }
 
-export async function deleteBlueprintsByAnalysis(analysisId: string): Promise<void> {
+export async function deleteBlueprintsByAnalysis(analysisId: string, provider?: string): Promise<void> {
   const sql = getDb()
-  await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId}`
+  if (provider) {
+    await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId} AND ai_provider = ${provider}`
+  } else {
+    await sql`DELETE FROM app_blueprints WHERE analysis_id = ${analysisId}`
+  }
 }
 
 export async function createBlueprint(data: {
@@ -249,17 +254,19 @@ export async function createBlueprint(data: {
   estimated_effort: string | null
   technologies: string[]
   ai_explanation: string | null
+  ai_provider?: string | null
 }): Promise<AppBlueprint> {
   const sql = getDb()
   const result = await sql`
     INSERT INTO app_blueprints (
       analysis_id, name, description, app_type, complexity, reuse_percentage,
-      existing_files, missing_files, estimated_effort, technologies, ai_explanation
+      existing_files, missing_files, estimated_effort, technologies, ai_explanation, ai_provider
     )
     VALUES (
       ${data.analysis_id}, ${data.name}, ${data.description}, ${data.app_type}, ${data.complexity},
       ${data.reuse_percentage}, ${JSON.stringify(data.existing_files)}::jsonb, ${JSON.stringify(data.missing_files)}::jsonb,
-      ${data.estimated_effort}, ${JSON.stringify(data.technologies)}::jsonb, ${data.ai_explanation}
+      ${data.estimated_effort}, ${JSON.stringify(data.technologies)}::jsonb, ${data.ai_explanation},
+      ${data.ai_provider ?? 'anthropic'}
     )
     RETURNING *
   `

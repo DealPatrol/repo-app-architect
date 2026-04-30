@@ -20,6 +20,7 @@ import {
   Zap,
   Download,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import type { Analysis, Repository, AppBlueprint } from '@/lib/queries'
 import {
   getBlueprintTier,
@@ -31,6 +32,15 @@ import {
   getOpportunityScore,
   getSuggestedFirstStep,
 } from '@/lib/opportunity-metrics'
+
+type AIProvider = 'anthropic' | 'openai'
+
+interface ProviderInfo {
+  id: AIProvider
+  name: string
+  description: string
+  available: boolean
+}
 
 interface AnalysisDetailProps {
   analysis: Analysis
@@ -58,6 +68,11 @@ const complexityColors = {
   complex: 'bg-chart-5/20 text-chart-5',
 }
 
+const PROVIDER_LABELS: Record<string, { name: string; color: string }> = {
+  anthropic: { name: 'Claude', color: 'bg-orange-500/15 text-orange-400 border-orange-500/25' },
+  openai: { name: 'GPT', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+}
+
 export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisDetailProps) {
   const router = useRouter()
   const [scaffoldLoadingId, setScaffoldLoadingId] = useState<string | null>(null)
@@ -70,6 +85,21 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
   )
   const [localBlueprints, setLocalBlueprints] = useState(blueprints)
   const [runErrorMessage, setRunErrorMessage] = useState<string | null>(analysis.error_message)
+  const [providers, setProviders] = useState<ProviderInfo[]>([])
+  const [selectedProviders, setSelectedProviders] = useState<AIProvider[]>([])
+  const [filterProvider, setFilterProvider] = useState<AIProvider | 'all'>('all')
+  const [providerStatuses, setProviderStatuses] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    fetch('/api/ai-providers')
+      .then(r => r.json())
+      .then((data: ProviderInfo[]) => {
+        setProviders(data)
+        const avail = data.filter(p => p.available).map(p => p.id)
+        setSelectedProviders(avail.length > 0 ? avail : [])
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     setStatus(analysis.status)
@@ -91,6 +121,19 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
 
   const statusInfo = statusConfig[status]
   const StatusIcon = statusInfo.icon
+
+  const uniqueProviders = [...new Set(localBlueprints.map(b => b.ai_provider).filter(Boolean))] as string[]
+  const isComparison = uniqueProviders.length > 1
+
+  const filteredBlueprints = filterProvider === 'all'
+    ? localBlueprints
+    : localBlueprints.filter(b => b.ai_provider === filterProvider)
+
+  const toggleRunProvider = (id: AIProvider) => {
+    setSelectedProviders(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    )
+  }
 
   const generateScaffold = async (blueprint: AppBlueprint) => {
     setScaffoldLoadingId(blueprint.id)
@@ -194,18 +237,21 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
   }
 
   const tierOrder: BlueprintTier[] = ['ship_ready', 'almost_there', 'foundation']
-  const topOpportunities = [...localBlueprints]
+  const topOpportunities = [...filteredBlueprints]
     .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
     .slice(0, 3)
 
   const runAnalysis = async () => {
+    if (selectedProviders.length === 0) return
     setIsRunning(true)
     setStatus('scanning')
     setProgress(0)
     setRunErrorMessage(null)
+    setProviderStatuses({})
 
     try {
-      const response = await fetch(`/api/analyses/${analysis.id}/run`, {
+      const providerParam = selectedProviders.join(',')
+      const response = await fetch(`/api/analyses/${analysis.id}/run?providers=${providerParam}`, {
         method: 'POST',
       })
 
@@ -234,6 +280,8 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                 progress?: number
                 blueprints?: AppBlueprint[]
                 error?: string
+                provider_status?: { provider: string; state: string; count?: number; error?: string }
+                providers_used?: string[]
               }
 
               if (typeof data.error === 'string') {
@@ -252,6 +300,12 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
               }
               if (data.progress !== undefined) setProgress(data.progress)
               if (data.blueprints) setLocalBlueprints(data.blueprints)
+              if (data.provider_status) {
+                setProviderStatuses(prev => ({
+                  ...prev,
+                  [data.provider_status!.provider]: data.provider_status!.state,
+                }))
+              }
             } catch {
               /* incomplete JSON chunk — wait for next read */
             }
@@ -294,19 +348,41 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
         </div>
         
         {(status === 'pending' || status === 'failed' || status === 'complete') && (
-          <Button onClick={runAnalysis} disabled={isRunning}>
-            {isRunning ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Running...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                {status === 'complete' ? 'Run again' : 'Run Analysis'}
-              </>
+          <div className="flex items-center gap-2">
+            {providers.filter(p => p.available).length > 1 && (
+              <div className="flex items-center gap-1.5 mr-1">
+                {providers.filter(p => p.available).map(p => {
+                  const meta = PROVIDER_LABELS[p.id] || { name: p.id, color: 'bg-muted text-muted-foreground' }
+                  return (
+                    <label key={p.id} className="flex items-center gap-1.5 cursor-pointer">
+                      <Checkbox
+                        checked={selectedProviders.includes(p.id)}
+                        onCheckedChange={() => toggleRunProvider(p.id)}
+                        disabled={isRunning}
+                      />
+                      <span className={`text-xs px-1.5 py-0.5 rounded border ${meta.color}`}>
+                        {meta.name}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
             )}
-          </Button>
+            <Button onClick={runAnalysis} disabled={isRunning || selectedProviders.length === 0}>
+              {isRunning ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {status === 'complete' ? 'Run again' : 'Run Analysis'}
+                  {selectedProviders.length > 1 && ` (${selectedProviders.length} models)`}
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -318,7 +394,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
 
       {/* Progress */}
       {isInProgress && (
-        <Card className="p-6">
+        <Card className="p-6 space-y-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
@@ -328,6 +404,21 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
             </div>
             <Progress value={progress} className="h-2" />
           </div>
+          {Object.keys(providerStatuses).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(providerStatuses).map(([provider, state]) => {
+                const meta = PROVIDER_LABELS[provider] || { name: provider, color: 'bg-muted text-muted-foreground' }
+                return (
+                  <div key={provider} className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border ${meta.color}`}>
+                    {state === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {state === 'complete' && <CheckCircle2 className="h-3 w-3" />}
+                    {state === 'failed' && <XCircle className="h-3 w-3" />}
+                    {meta.name}: {state}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </Card>
       )}
 
@@ -358,16 +449,42 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
             {localBlueprints.length > 0 && (
               <>
                 <span className="text-sm text-muted-foreground">
-                  {localBlueprints.length} app{localBlueprints.length !== 1 ? 's' : ''} discovered
+                  {filteredBlueprints.length} app{filteredBlueprints.length !== 1 ? 's' : ''}
+                  {filterProvider !== 'all' && ` from ${PROVIDER_LABELS[filterProvider]?.name || filterProvider}`}
                 </span>
                 <Button variant="outline" size="sm" type="button" onClick={exportAllBlueprints}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export all blueprints (JSON)
+                  Export all (JSON)
                 </Button>
               </>
             )}
           </div>
         </div>
+
+        {isComparison && status === 'complete' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground font-medium">Filter by model:</span>
+            <button
+              onClick={() => setFilterProvider('all')}
+              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${filterProvider === 'all' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+            >
+              All ({localBlueprints.length})
+            </button>
+            {uniqueProviders.map(provider => {
+              const meta = PROVIDER_LABELS[provider] || { name: provider, color: 'bg-muted text-muted-foreground' }
+              const count = localBlueprints.filter(b => b.ai_provider === provider).length
+              return (
+                <button
+                  key={provider}
+                  onClick={() => setFilterProvider(provider as AIProvider)}
+                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${filterProvider === provider ? meta.color : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                >
+                  {meta.name} ({count})
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {status === 'complete' && topOpportunities.length > 0 && (
           <Card className="p-5 border-border/80 bg-card/60">
@@ -416,10 +533,10 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
           </Card>
         )}
 
-        {localBlueprints.length > 0 && (
+        {filteredBlueprints.length > 0 && (
           <div className="space-y-12">
             {tierOrder.map((tier) => {
-              const inTier = localBlueprints
+              const inTier = filteredBlueprints
                 .filter((b) => getBlueprintTier(b) === tier)
                 .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
               if (inTier.length === 0) return null
@@ -449,6 +566,11 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                             <Zap className="h-5 w-5" />
                           </div>
                           <div className="flex flex-col items-end gap-1">
+                            {blueprint.ai_provider && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${PROVIDER_LABELS[blueprint.ai_provider]?.color || 'bg-muted text-muted-foreground'}`}>
+                                {PROVIDER_LABELS[blueprint.ai_provider]?.name || blueprint.ai_provider}
+                              </span>
+                            )}
                             <span className={`text-xs px-2 py-1 rounded-full ${complexityColors[blueprint.complexity]}`}>
                               {blueprint.complexity}
                             </span>

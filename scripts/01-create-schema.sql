@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS app_blueprints (
   estimated_effort VARCHAR(100),
   technologies JSONB DEFAULT '[]',
   ai_explanation TEXT,
+  ai_provider VARCHAR(50) DEFAULT 'anthropic',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
