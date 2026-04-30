@@ -8,10 +8,12 @@ import {
   type AppBlueprint,
 } from '@/lib/queries';
 import { generateBlueprints } from '@/lib/blueprint-generator';
+import { collectRepositoryFiles } from '@/lib/github-repo-files';
 
 type GenerateBody = {
   sourceName?: string;
   files?: string[];
+  repositories?: string[];
 };
 
 function extractProjectFiles(projects: Awaited<ReturnType<typeof getProjectsByOrganization>>) {
@@ -45,9 +47,20 @@ export async function POST(request: NextRequest) {
     const projects = orgId ? await getProjectsByOrganization(orgId) : [];
 
     const sourceName = body.sourceName?.trim() || 'workspace';
-    const filesFromRequest = Array.isArray(body.files) ? body.files.filter((f): f is string => typeof f === 'string') : [];
+    const filesFromRequest = Array.isArray(body.files)
+      ? body.files.filter((f): f is string => typeof f === 'string')
+      : [];
+    const repositories = Array.isArray(body.repositories)
+      ? body.repositories.filter((r): r is string => typeof r === 'string' && r.trim().length > 0)
+      : [];
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+    const githubCollection =
+      repositories.length > 0
+        ? await collectRepositoryFiles(repositories, githubToken)
+        : { files: [], errors: [] as string[] };
+    const githubFiles = githubCollection.files;
     const inferredProjectFiles = extractProjectFiles(projects);
-    const files = [...new Set([...filesFromRequest, ...inferredProjectFiles])];
+    const files = [...new Set([...filesFromRequest, ...githubFiles, ...inferredProjectFiles])];
 
     if (files.length === 0) {
       return NextResponse.json(
@@ -87,6 +100,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       sourceName,
+      repositories,
+      repositoryErrors: githubCollection.errors,
       generatedCount: saved.length,
       blueprints: saved,
     });

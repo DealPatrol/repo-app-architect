@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Sparkles, RefreshCw, FileCode2, Target } from 'lucide-react';
+import { Sparkles, RefreshCw, FileCode2, Target, Github, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { type AppBlueprint } from '@/lib/queries';
 
@@ -11,6 +11,7 @@ interface BlueprintsPanelProps {
 
 export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
   const [sourceName, setSourceName] = useState('workspace');
+  const [repoInput, setRepoInput] = useState('');
   const [repoFiles, setRepoFiles] = useState('');
   const [blueprints, setBlueprints] = useState(initialBlueprints);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +26,10 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
     setIsGenerating(true);
     setError(null);
     try {
+      const repositories = repoInput
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
       const files = repoFiles
         .split('\n')
         .map((line) => line.trim())
@@ -35,6 +40,7 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceName: sourceName.trim() || 'workspace',
+          repositories,
           files,
         }),
       });
@@ -61,7 +67,7 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
       <section className="rounded-lg border border-border bg-card p-6">
         <h2 className="text-xl font-semibold">Generate app blueprints</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Paste repository file paths (one per line). We will derive buildable app possibilities.
+          Enter GitHub repositories for one-click analysis, or paste file paths manually.
         </p>
 
         <div className="mt-4 grid gap-4">
@@ -76,7 +82,26 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
           </label>
 
           <label className="space-y-2">
-            <span className="text-sm font-medium">Repository file list</span>
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Github className="h-4 w-4" />
+              GitHub repositories (one per line)
+            </span>
+            <textarea
+              value={repoInput}
+              onChange={(e) => setRepoInput(e.target.value)}
+              className="min-h-[110px] w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs"
+              placeholder={'owner/repo\nhttps://github.com/vercel/next.js'}
+            />
+            <p className="text-xs text-muted-foreground">
+              Supports <code>owner/repo</code> and full GitHub URLs.
+            </p>
+          </label>
+
+          <label className="space-y-2">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Link2 className="h-4 w-4" />
+              Optional manual repository file list
+            </span>
             <textarea
               value={repoFiles}
               onChange={(e) => setRepoFiles(e.target.value)}
@@ -89,7 +114,11 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
         <div className="mt-4 flex gap-3">
-          <Button onClick={generate} disabled={isGenerating} className="gap-2">
+          <Button
+            onClick={generate}
+            disabled={isGenerating || (!repoInput.trim() && !repoFiles.trim())}
+            className="gap-2"
+          >
             {isGenerating ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -98,7 +127,7 @@ export function BlueprintsPanel({ initialBlueprints }: BlueprintsPanelProps) {
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Generate blueprints
+                Generate from repos
               </>
             )}
           </Button>

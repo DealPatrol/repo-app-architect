@@ -11,7 +11,7 @@ export default async function BlueprintsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Blueprints</h1>
         <p className="mt-2 text-muted-foreground">
-          Generate app possibilities from your repository file index and see what you can build.
+          Generate app possibilities directly from GitHub repositories or a pasted file index.
         </p>
       </div>
 
