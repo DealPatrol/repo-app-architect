@@ -2,9 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Github, BarChart3, FolderGit2, Sparkles, CreditCard } from 'lucide-react'
+import {
+  Layers,
+  Github,
+  BarChart3,
+  FolderGit2,
+  Sparkles,
+  CreditCard,
+  Menu,
+  X,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AuthUser } from '@/lib/auth'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface DashboardHeaderProps {
   user: AuthUser | null
@@ -19,6 +30,7 @@ const navItems = [
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const pathname = usePathname()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <>
@@ -56,9 +68,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-3">
                 {user.github_avatar_url && (
                   <img
                     src={user.github_avatar_url}
@@ -66,7 +78,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     className="h-8 w-8 rounded-full ring-2 ring-border"
                   />
                 )}
-                <div className="hidden sm:block">
+                <div>
                   <p className="text-sm font-medium text-foreground leading-none">@{user.github_username}</p>
                   <a
                     href="/api/auth/logout"
@@ -79,18 +91,97 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             ) : (
               <Link
                 href="/api/auth/github/login"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
               >
                 <Github className="h-4 w-4" />
-                <span className="hidden sm:inline">Connect GitHub</span>
+                Connect GitHub
               </Link>
             )}
+
+            {/* Mobile hamburger */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
       </header>
 
-      <nav className="md:hidden border-b border-border/50 bg-background/60 backdrop-blur-sm">
-        <div className="container mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2">
+      {/* Mobile nav drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40 top-16">
+          <div
+            className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <nav className="relative bg-background border-b border-border/50 shadow-lg">
+            <div className="container mx-auto px-4 py-3 space-y-1">
+              {navItems.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-foreground/10 text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+
+              <div className="border-t border-border/50 pt-3 mt-3">
+                {user ? (
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    {user.github_avatar_url && (
+                      <img
+                        src={user.github_avatar_url}
+                        alt={user.github_username}
+                        className="h-9 w-9 rounded-full ring-2 ring-border"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">@{user.github_username}</p>
+                      <a
+                        href="/api/auth/logout"
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Sign out
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <Link
+                    href="/api/auth/github/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
+                  >
+                    <Github className="h-5 w-5" />
+                    Connect GitHub
+                  </Link>
+                )}
+              </div>
+            </div>
+          </nav>
+        </div>
+      )}
+
+      {/* Desktop-only bottom strip for active page breadcrumb on mobile */}
+      <div className="md:hidden border-b border-border/50 bg-background/60 backdrop-blur-sm">
+        <div className="container mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2 scrollbar-none">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -112,7 +203,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             )
           })}
         </div>
-      </nav>
+      </div>
     </>
   )
 }

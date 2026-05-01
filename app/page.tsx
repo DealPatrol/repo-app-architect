@@ -1,6 +1,19 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check } from 'lucide-react'
+import {
+  Github,
+  Sparkles,
+  Code2,
+  Layers,
+  ArrowRight,
+  AlertCircle,
+  Shield,
+  Zap,
+  GitBranch,
+  Check,
+  GitMerge,
+  Globe,
+} from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
@@ -10,6 +23,22 @@ const ERROR_MESSAGES: Record<string, string> = {
   token_exchange_failed: 'Could not exchange the GitHub code for a token. Check GITHUB_CLIENT_SECRET and that the OAuth callback URL matches your GitHub app.',
   github_user_fetch_failed: 'Signed in with GitHub but could not load your profile. Try again.',
   oauth_callback_failed: 'Something went wrong finishing sign-in. Try again.',
+}
+
+function GitLabIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+    </svg>
+  )
+}
+
+function BitbucketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z" />
+    </svg>
+  )
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -51,13 +80,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </div>
       </header>
 
-      {/* Hero Section */}
       <main>
+        {/* Hero Section */}
         <section className="relative overflow-hidden">
-          {/* Background gradient effects */}
           <div className="absolute inset-0 -z-10">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-chart-1/5 rounded-full blur-3xl" />
             <div className="absolute top-20 right-1/4 w-72 h-72 bg-chart-5/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-1/2 w-80 h-80 bg-chart-2/3 rounded-full blur-3xl opacity-30" />
           </div>
 
           <div className="container mx-auto px-4 pt-20 pb-16 md:pt-32 md:pb-24">
@@ -70,30 +99,45 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <span className="text-border">·</span>
                 <span>Cross-repo blueprint engine powered by Claude AI</span>
               </div>
-              
+
               <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-balance leading-[1.1]">
                 Ship what you&apos;ve
                 <span className="block bg-gradient-to-r from-chart-1 via-chart-2 to-chart-4 bg-clip-text text-transparent">
                   already built
                 </span>
               </h1>
-              
+
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                CodeVault scans your GitHub repositories and discovers products hiding across your codebase.
-                Get AI-generated blueprints showing exactly what you can ship — and what&apos;s missing.
+                CodeVault scans your repositories across GitHub, GitLab, and Bitbucket — then discovers
+                products hiding in your codebase. Get AI blueprints showing exactly what you can ship.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-                <Button size="lg" className="min-w-[220px] h-12 text-base shadow-lg shadow-primary/20" asChild>
-                  <Link href="/api/auth/github/login">
-                    <Github className="h-5 w-5 mr-2" />
-                    Get Started Free
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="min-w-[220px] h-12 text-base" asChild>
+              {/* Platform sign-in options */}
+              <div className="flex flex-col items-center gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <Button size="lg" className="min-w-[200px] h-12 text-base shadow-lg shadow-primary/20" asChild>
+                    <Link href="/api/auth/github/login">
+                      <Github className="h-5 w-5 mr-2" />
+                      Start with GitHub
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="min-w-[200px] h-12 text-base" asChild>
+                    <Link href="/api/auth/gitlab/login">
+                      <GitLabIcon className="h-5 w-5 mr-2 text-orange-500" />
+                      Start with GitLab
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="min-w-[200px] h-12 text-base" asChild>
+                    <Link href="/api/auth/bitbucket/login">
+                      <BitbucketIcon className="h-5 w-5 mr-2 text-blue-500" />
+                      Start with Bitbucket
+                    </Link>
+                  </Button>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
                   <Link href="/dashboard">
-                    View Dashboard
+                    View Dashboard without signing in
                   </Link>
                 </Button>
               </div>
@@ -116,8 +160,43 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
 
-        {/* Metrics bar */}
+        {/* Platform support strip */}
         <section className="border-y border-border/50 bg-card/30">
+          <div className="container mx-auto px-4 py-8">
+            <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
+              Connect repositories from any platform
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+              <div className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group">
+                <div className="h-9 w-9 rounded-lg bg-card border border-border/60 flex items-center justify-center group-hover:border-border transition-colors shadow-sm">
+                  <Github className="h-5 w-5" />
+                </div>
+                <span className="font-medium text-sm">GitHub</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group">
+                <div className="h-9 w-9 rounded-lg bg-card border border-border/60 flex items-center justify-center group-hover:border-border transition-colors shadow-sm">
+                  <GitLabIcon className="h-5 w-5 text-orange-500" />
+                </div>
+                <span className="font-medium text-sm">GitLab</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group">
+                <div className="h-9 w-9 rounded-lg bg-card border border-border/60 flex items-center justify-center group-hover:border-border transition-colors shadow-sm">
+                  <BitbucketIcon className="h-5 w-5 text-blue-500" />
+                </div>
+                <span className="font-medium text-sm">Bitbucket</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-muted-foreground group">
+                <div className="h-9 w-9 rounded-lg bg-card border border-dashed border-border/40 flex items-center justify-center shadow-sm">
+                  <Globe className="h-5 w-5 text-muted-foreground/50" />
+                </div>
+                <span className="font-medium text-sm text-muted-foreground/60">Public URL</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Metrics bar */}
+        <section className="border-b border-border/50">
           <div className="container mx-auto px-4 py-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
               <div>
@@ -140,7 +219,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
 
-        {/* Feature Cards */}
+        {/* How it works */}
         <section className="container mx-auto px-4 py-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How CodeVault works</h2>
@@ -153,11 +232,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <div className="group relative p-8 rounded-2xl border border-border/60 bg-card/50 hover:bg-card/80 hover:border-border transition-all duration-300 hover:shadow-lg hover:shadow-black/5">
               <div className="absolute top-6 right-6 text-5xl font-bold text-muted/40 select-none">1</div>
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-chart-1/20 to-chart-1/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Github className="h-7 w-7 text-chart-1" />
+                <GitMerge className="h-7 w-7 text-chart-1" />
               </div>
-              <h3 className="font-semibold text-xl mb-3">Connect repos</h3>
+              <h3 className="font-semibold text-xl mb-3">Connect any platform</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Link your GitHub repositories with read-only OAuth. We scan file structures — never store your source code.
+                Link repos from GitHub, GitLab, or Bitbucket with read-only OAuth — or paste any public repo URL.
+                We scan file structures, never store your source code.
               </p>
             </div>
 
@@ -168,7 +248,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </div>
               <h3 className="font-semibold text-xl mb-3">AI analyzes patterns</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Claude AI examines every file across all your repos — identifying components, APIs, utilities, and how they fit together.
+                Claude AI examines every file across all your repos — identifying components, APIs, utilities,
+                and how they fit together.
               </p>
             </div>
 
@@ -179,7 +260,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </div>
               <h3 className="font-semibold text-xl mb-3">Get blueprints</h3>
               <p className="text-muted-foreground leading-relaxed">
-                See exactly what apps you can ship. Each blueprint shows files to reuse, what&apos;s missing, effort estimates, and a build plan.
+                See exactly what apps you can ship. Each blueprint shows files to reuse, what&apos;s missing,
+                effort estimates, and a full build plan.
               </p>
             </div>
           </div>
@@ -194,12 +276,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   Stop rebuilding what you already have
                 </h2>
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                  Most teams have 60-80% of their next product scattered across existing repos. CodeVault finds those hidden assets and shows you the shortest path to shipping.
+                  Most teams have 60-80% of their next product scattered across existing repos on multiple
+                  platforms. CodeVault finds those hidden assets and shows you the shortest path to shipping.
                 </p>
                 <ul className="space-y-4">
                   {[
                     'Identifies reusable components across all your repos',
-                    'Calculates exactly what percentage of code you can reuse',
+                    'Works across GitHub, GitLab, and Bitbucket simultaneously',
                     'Shows the specific files missing to complete each app',
                     'Generates scaffold code and build plans for missing pieces',
                   ].map((item) => (
@@ -225,6 +308,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   "name": "Customer Dashboard",
   "reuse_percentage": 78,
   "complexity": "moderate",
+  "sources": ["github", "gitlab"],
   "existing_files": [
     "components/Chart.tsx",
     "lib/api-client.ts",
@@ -244,6 +328,68 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
 
+        {/* Platform deep-dive */}
+        <section className="border-t border-border/50 bg-card/20">
+          <div className="container mx-auto px-4 py-24">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Recover repos from anywhere</h2>
+              <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
+                Wherever your code lives, CodeVault can find it and bring it into a single unified analysis.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="group p-6 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:shadow-black/5 hover:border-border transition-all duration-300">
+                <div className="h-12 w-12 rounded-xl bg-foreground/5 border border-border/60 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Github className="h-6 w-6" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">GitHub</h3>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  Sign in with GitHub OAuth to instantly list all your public and private repositories.
+                  Supports organizations and personal accounts.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Public repos', 'Private repos', 'Organizations'].map((tag) => (
+                    <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="group p-6 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:shadow-black/5 hover:border-border transition-all duration-300">
+                <div className="h-12 w-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <GitLabIcon className="h-6 w-6 text-orange-500" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">GitLab</h3>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  Connect GitLab to import projects from gitlab.com. Works with personal projects,
+                  groups, and subgroups.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Personal projects', 'Groups', 'Subgroups'].map((tag) => (
+                    <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="group p-6 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:shadow-black/5 hover:border-border transition-all duration-300">
+                <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <BitbucketIcon className="h-6 w-6 text-blue-500" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Bitbucket</h3>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  Link your Bitbucket workspace to pull in repositories from both personal accounts
+                  and teams.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Personal repos', 'Teams', 'Workspaces'].map((tag) => (
+                    <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="border-t border-border/50">
           <div className="container mx-auto px-4 py-24">
@@ -252,15 +398,30 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 Ready to discover what you can ship?
               </h2>
               <p className="text-lg text-muted-foreground">
-                Connect your GitHub and get your first blueprint in under a minute. Free to use, no credit card required.
+                Connect any of your platforms and get your first blueprint in under a minute.
+                Free to start, no credit card required.
               </p>
-              <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
-                <Link href="/api/auth/github/login">
-                  <Github className="h-5 w-5 mr-2" />
-                  Start with GitHub
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
+                  <Link href="/api/auth/github/login">
+                    <Github className="h-5 w-5 mr-2" />
+                    Start with GitHub
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+                  <Link href="/api/auth/gitlab/login">
+                    <GitLabIcon className="h-5 w-5 mr-2 text-orange-500" />
+                    Start with GitLab
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+                  <Link href="/api/auth/bitbucket/login">
+                    <BitbucketIcon className="h-5 w-5 mr-2 text-blue-500" />
+                    Start with Bitbucket
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -268,14 +429,38 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/30">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-foreground/10 flex items-center justify-center">
-                <Layers className="h-4 w-4" />
+        <div className="container mx-auto px-4 py-10">
+          <div className="grid sm:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="h-7 w-7 rounded-lg bg-foreground/10 flex items-center justify-center">
+                  <Layers className="h-4 w-4" />
+                </div>
+                <span className="font-bold">CodeVault</span>
               </div>
-              <span className="font-medium">CodeVault</span>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                AI-powered code intelligence that discovers products hiding in your existing repositories.
+              </p>
             </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-3">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+                <li><Link href="/dashboard/analyses" className="hover:text-foreground transition-colors">Analyses</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-3">Platforms</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/api/auth/github/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><Github className="h-3.5 w-3.5" />GitHub</Link></li>
+                <li><Link href="/api/auth/gitlab/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><GitLabIcon className="h-3.5 w-3.5 text-orange-500" />GitLab</Link></li>
+                <li><Link href="/api/auth/bitbucket/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><BitbucketIcon className="h-3.5 w-3.5 text-blue-500" />Bitbucket</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} CodeVault. All rights reserved.</p>
             <p>Powered by Claude AI · Built with Next.js</p>
           </div>
         </div>
