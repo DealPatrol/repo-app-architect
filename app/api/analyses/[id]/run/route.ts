@@ -20,35 +20,79 @@ import { getAnthropicModel } from '@/lib/anthropic-model'
 
 // Schema for AI-generated app blueprints
 const complexityEnum = z.preprocess((val) => {
-  if (typeof val !== 'string') return val
+  if (typeof val !== 'string') return 'moderate'
   const v = val.trim().toLowerCase()
-  if (v === 'easy' || v === 'low' || v === 'trivial' || v === 'basic') return 'simple'
-  if (v === 'medium' || v === 'intermediate' || v === 'average') return 'moderate'
-  if (v === 'hard' || v === 'high' || v === 'advanced' || v === 'difficult') return 'complex'
-  return v
+  if (v === 'easy' || v === 'low' || v === 'trivial' || v === 'basic' || v === 'simple') return 'simple'
+  if (v === 'medium' || v === 'intermediate' || v === 'average' || v === 'moderate') return 'moderate'
+  if (v === 'hard' || v === 'high' || v === 'advanced' || v === 'difficult' || v === 'complex') return 'complex'
+  return 'moderate'
 }, z.enum(['simple', 'moderate', 'complex']))
 
 const BlueprintSchema = z.object({
   name: z.string(),
-  description: z.string(),
-  app_type: z.string(),
-  complexity: complexityEnum,
-  reuse_percentage: z.coerce.number().min(0).max(100),
+  description: z.string().default(''),
+  app_type: z.string().default('web app'),
+  complexity: complexityEnum.default('moderate'),
+  reuse_percentage: z.coerce.number().min(0).max(100).default(50),
   existing_files: z.array(z.object({
     path: z.string(),
-    purpose: z.string(),
-  })).default([]),
+    purpose: z.string().default(''),
+  }).passthrough()).default([]),
   missing_files: z.array(z.object({
     name: z.string(),
-    purpose: z.string(),
-  })).default([]),
+    purpose: z.string().default(''),
+  }).passthrough()).default([]),
   technologies: z.array(z.string()).default([]),
-  explanation: z.string(),
-})
+  explanation: z.string().default(''),
+}).passthrough()
 
-const AnalysisOutputSchema = z.object({
-  blueprints: z.array(BlueprintSchema),
-})
+function parseBlueprints(rawInput: unknown): z.infer<typeof BlueprintSchema>[] {
+  if (!rawInput || typeof rawInput !== 'object') return []
+
+  const input = rawInput as Record<string, unknown>
+  let rawBlueprints: unknown[] = []
+
+  if (Array.isArray(input.blueprints)) {
+    rawBlueprints = input.blueprints
+  } else if (Array.isArray(input)) {
+    rawBlueprints = input
+  } else if (Array.isArray(input.apps)) {
+    rawBlueprints = input.apps
+  } else if (Array.isArray(input.results)) {
+    rawBlueprints = input.results
+  }
+
+  if (rawBlueprints.length === 0) return []
+
+  const valid: z.infer<typeof BlueprintSchema>[] = []
+  for (const item of rawBlueprints) {
+    if (!item || typeof item !== 'object') continue
+    const bp = item as Record<string, unknown>
+    const name = bp.name ?? bp.app_name ?? bp.title
+    if (typeof name !== 'string' || !name.trim()) continue
+
+    const normalized = {
+      ...bp,
+      name,
+      description: bp.description ?? bp.summary ?? bp.overview ?? '',
+      app_type: bp.app_type ?? bp.type ?? bp.category ?? 'web app',
+      explanation: bp.explanation ?? bp.ai_explanation ?? bp.rationale ?? bp.reasoning ?? '',
+      reuse_percentage: bp.reuse_percentage ?? bp.reuse ?? bp.reusability ?? 50,
+      existing_files: bp.existing_files ?? bp.reusable_files ?? bp.files_to_reuse ?? [],
+      missing_files: bp.missing_files ?? bp.files_needed ?? bp.new_files ?? [],
+      technologies: bp.technologies ?? bp.tech_stack ?? bp.stack ?? [],
+    }
+
+    const result = BlueprintSchema.safeParse(normalized)
+    if (result.success) {
+      valid.push(result.data)
+    } else {
+      console.warn('[analysis] Skipping invalid blueprint:', name, result.error.flatten().fieldErrors)
+    }
+  }
+
+  return valid
+}
 
 const CODE_EXTENSIONS = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs',
@@ -297,27 +341,23 @@ Constraints:
           toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
         }
         const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
-        const parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
 
-        if (rawInput && !parsed?.success) {
-          console.error('[analysis] Blueprint schema validation failed:', parsed?.error?.flatten())
-        }
+        const blueprintsFromAI = parseBlueprints(rawInput)
 
-        const output = parsed?.success ? parsed.data : null
-
-        if (!output?.blueprints?.length) {
-          const parseHint = parsed?.success === false
-            ? 'AI returned blueprints in an unexpected shape. Try again or set ANTHROPIC_ANALYSIS_MODEL to a supported Claude model.'
+        if (blueprintsFromAI.length === 0) {
+          const msg = rawInput
+            ? 'AI returned data but no valid blueprints could be extracted. This may happen with very small repositories. Try adding more repos or running again.'
             : 'Model did not return usable blueprints (missing tool output). Check ANTHROPIC_API_KEY and model availability.'
-          send({ status: 'failed', error: parseHint })
-          await updateAnalysisStatus(id, 'failed', { error_message: parseHint })
+          console.error('[analysis] No valid blueprints parsed from:', JSON.stringify(rawInput).slice(0, 500))
+          send({ status: 'failed', error: msg })
+          await updateAnalysisStatus(id, 'failed', { error_message: msg })
           controller.close()
           return
         }
 
         // Save blueprints to database
-        if (output?.blueprints) {
-          const rankedBlueprints = output.blueprints
+        {
+          const rankedBlueprints = blueprintsFromAI
             .map((bp) => normalizeBlueprint(bp))
             .sort((a, b) => getOpportunityScore(b) - getOpportunityScore(a))
 
