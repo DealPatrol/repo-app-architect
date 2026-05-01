@@ -2,6 +2,8 @@ import { Suspense } from 'react'
 import { RepositoriesList } from '@/components/repositories-list'
 import { getAllRepositories, type Repository } from '@/lib/queries'
 
+export const dynamic = 'force-dynamic'
+
 function RepositoriesFallback() {
   return (
     <div className="space-y-4">

@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card'
 import { FolderGit2, Sparkles, Code2, Plus, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   let repositories: Repository[] = []
   let analyses: Analysis[] = []
