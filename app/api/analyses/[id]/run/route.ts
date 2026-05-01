@@ -22,7 +22,9 @@ import { getAnthropicModel } from '@/lib/anthropic-model'
 const complexityEnum = z.preprocess((val) => {
   if (typeof val !== 'string') return val
   const v = val.trim().toLowerCase()
-  if (v === 'easy') return 'simple'
+  if (v === 'easy' || v === 'low' || v === 'trivial' || v === 'basic') return 'simple'
+  if (v === 'medium' || v === 'intermediate' || v === 'average') return 'moderate'
+  if (v === 'hard' || v === 'high' || v === 'advanced' || v === 'difficult') return 'complex'
   return v
 }, z.enum(['simple', 'moderate', 'complex']))
 
@@ -31,16 +33,16 @@ const BlueprintSchema = z.object({
   description: z.string(),
   app_type: z.string(),
   complexity: complexityEnum,
-  reuse_percentage: z.number().min(0).max(100),
+  reuse_percentage: z.coerce.number().min(0).max(100),
   existing_files: z.array(z.object({
     path: z.string(),
     purpose: z.string(),
-  })),
+  })).default([]),
   missing_files: z.array(z.object({
     name: z.string(),
     purpose: z.string(),
-  })),
-  technologies: z.array(z.string()),
+  })).default([]),
+  technologies: z.array(z.string()).default([]),
   explanation: z.string(),
 })
 
@@ -108,6 +110,7 @@ export async function POST(
 
         // Fetch file trees from GitHub for each repository
         const allFiles: { repo: string; path: string; type: string }[] = []
+        const repoErrors: string[] = []
 
         for (const repo of repositories) {
           try {
@@ -152,13 +155,17 @@ export async function POST(
               })
             }
           } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e)
             console.error(`Error fetching tree for ${repo.full_name}:`, e)
+            repoErrors.push(`${repo.full_name}: ${errMsg}`)
           }
         }
 
         if (allFiles.length === 0) {
-          const msg =
-            'No source files found to analyze (after skipping dependencies/build folders). Add repos with application code or widen file types.'
+          const details = repoErrors.length > 0
+            ? `Repository errors: ${repoErrors.join('; ')}`
+            : 'After skipping dependencies/build folders, no qualifying source files remain.'
+          const msg = `No source files found to analyze. ${details} Add repos with application code or check your GitHub access token.`
           send({ status: 'failed', error: msg })
           await updateAnalysisStatus(id, 'failed', { error_message: msg })
           controller.close()
@@ -290,7 +297,7 @@ Constraints:
           toolUseBlock = aiResponse.content.find((block) => block.type === 'tool_use')
         }
         const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
-        let parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
+        const parsed = rawInput ? AnalysisOutputSchema.safeParse(rawInput) : null
 
         if (rawInput && !parsed?.success) {
           console.error('[analysis] Blueprint schema validation failed:', parsed?.error?.flatten())
@@ -317,9 +324,9 @@ Constraints:
           for (const bp of rankedBlueprints) {
             await createBlueprint({
               analysis_id: id,
-              name: bp.name,
+              name: bp.name.slice(0, 255),
               description: bp.description,
-              app_type: bp.app_type,
+              app_type: bp.app_type?.slice(0, 100) ?? null,
               complexity: bp.complexity,
               reuse_percentage: bp.reuse_percentage,
               existing_files: bp.existing_files,
@@ -342,10 +349,13 @@ Constraints:
 
       } catch (error) {
         console.error('Analysis error:', error)
-        await updateAnalysisStatus(id, 'failed', {
-          error_message: error instanceof Error ? error.message : 'Unknown error'
-        })
-        send({ status: 'failed', error: 'Analysis failed' })
+        const errorDetail = error instanceof Error ? error.message : 'Unknown error'
+        try {
+          await updateAnalysisStatus(id, 'failed', { error_message: errorDetail })
+        } catch (dbErr) {
+          console.error('Failed to update analysis status after error:', dbErr)
+        }
+        send({ status: 'failed', error: `Analysis failed: ${errorDetail}` })
         controller.close()
       }
     },
