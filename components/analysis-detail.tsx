@@ -256,6 +256,8 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
               /* incomplete JSON chunk — wait for next read */
             }
           }
+
+          if (done) break
         }
       }
 
