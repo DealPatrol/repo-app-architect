@@ -342,13 +342,20 @@ Constraints:
         }
         const rawInput = toolUseBlock?.type === 'tool_use' ? toolUseBlock.input : null
 
+        // Log the full AI response structure for debugging
+        console.log('[analysis] Tool use block found:', !!toolUseBlock)
+        console.log('[analysis] Raw input type:', typeof rawInput)
+        console.log('[analysis] Raw input keys:', rawInput && typeof rawInput === 'object' ? Object.keys(rawInput as object) : 'N/A')
+        console.log('[analysis] Raw input preview:', JSON.stringify(rawInput).slice(0, 1000))
+
         const blueprintsFromAI = parseBlueprints(rawInput)
 
         if (blueprintsFromAI.length === 0) {
+          const inputPreview = rawInput ? JSON.stringify(rawInput).slice(0, 300) : 'null'
           const msg = rawInput
-            ? 'AI returned data but no valid blueprints could be extracted. This may happen with very small repositories. Try adding more repos or running again.'
+            ? `AI returned data but no valid blueprints could be extracted. Debug: keys=${Object.keys(rawInput as object).join(',')}, preview=${inputPreview}`
             : 'Model did not return usable blueprints (missing tool output). Check ANTHROPIC_API_KEY and model availability.'
-          console.error('[analysis] No valid blueprints parsed from:', JSON.stringify(rawInput).slice(0, 500))
+          console.error('[analysis] No valid blueprints parsed. Full input:', JSON.stringify(rawInput).slice(0, 2000))
           send({ status: 'failed', error: msg })
           await updateAnalysisStatus(id, 'failed', { error_message: msg })
           controller.close()
