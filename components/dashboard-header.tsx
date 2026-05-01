@@ -21,14 +21,14 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                 <Layers className="h-5 w-5 text-background" />
               </div>
-              <span className="font-semibold text-lg">CodeVault</span>
+              <span className="font-bold text-lg tracking-tight">CodeVault</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
@@ -41,10 +41,10 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-muted text-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                        ? 'bg-foreground/10 text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
                     )}
                   >
                     <item.icon className="h-4 w-4" />
@@ -58,23 +58,29 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <span className="hidden sm:block text-sm text-muted-foreground">
-                  Signed in as{' '}
-                  <span className="font-medium text-foreground">@{user.github_username}</span>
-                </span>
-                <a
-                  href="/api/auth/logout"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign out
-                </a>
+                {user.github_avatar_url && (
+                  <img
+                    src={user.github_avatar_url}
+                    alt={user.github_username}
+                    className="h-8 w-8 rounded-full ring-2 ring-border"
+                  />
+                )}
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-foreground leading-none">@{user.github_username}</p>
+                  <a
+                    href="/api/auth/logout"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Sign out
+                  </a>
+                </div>
               </div>
             ) : (
               <Link
                 href="/api/auth/github/login"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
               >
-                <Github className="h-5 w-5" />
+                <Github className="h-4 w-4" />
                 <span className="hidden sm:inline">Connect GitHub</span>
               </Link>
             )}
@@ -82,7 +88,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </div>
       </header>
 
-      <nav className="md:hidden border-b border-border">
+      <nav className="md:hidden border-b border-border/50 bg-background/60 backdrop-blur-sm">
         <div className="container mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2">
           {navItems.map((item) => {
             const isActive =
@@ -93,10 +99,10 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                  'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
                   isActive
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
                 )}
               >
                 <item.icon className="h-4 w-4" />
