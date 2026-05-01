@@ -28,20 +28,24 @@ const complexityEnum = z.preprocess((val) => {
   return 'moderate'
 }, z.enum(['simple', 'moderate', 'complex']))
 
+const existingFileSchema = z.union([
+  z.object({ path: z.string(), purpose: z.string().default('') }).passthrough(),
+  z.string().transform((s) => ({ path: s, purpose: '' })),
+])
+
+const missingFileSchema = z.union([
+  z.object({ name: z.string(), purpose: z.string().default('') }).passthrough(),
+  z.string().transform((s) => ({ name: s, purpose: '' })),
+])
+
 const BlueprintSchema = z.object({
   name: z.string(),
   description: z.string().default(''),
   app_type: z.string().default('web app'),
   complexity: complexityEnum.default('moderate'),
   reuse_percentage: z.coerce.number().min(0).max(100).default(50),
-  existing_files: z.array(z.object({
-    path: z.string(),
-    purpose: z.string().default(''),
-  }).passthrough()).default([]),
-  missing_files: z.array(z.object({
-    name: z.string(),
-    purpose: z.string().default(''),
-  }).passthrough()).default([]),
+  existing_files: z.array(existingFileSchema).default([]),
+  missing_files: z.array(missingFileSchema).default([]),
   technologies: z.array(z.string()).default([]),
   explanation: z.string().default(''),
 }).passthrough()
@@ -71,6 +75,27 @@ function parseBlueprints(rawInput: unknown): z.infer<typeof BlueprintSchema>[] {
     const name = bp.name ?? bp.app_name ?? bp.title
     if (typeof name !== 'string' || !name.trim()) continue
 
+    const rawExisting = bp.existing_files ?? bp.reusable_files ?? bp.files_to_reuse ?? []
+    const rawMissing = bp.missing_files ?? bp.files_needed ?? bp.new_files ?? bp.files_to_create ?? []
+
+    const existingFiles = Array.isArray(rawExisting) ? rawExisting.map((f: unknown) => {
+      if (typeof f === 'string') return f
+      if (f && typeof f === 'object') {
+        const fo = f as Record<string, unknown>
+        return { path: fo.path ?? fo.file ?? fo.filename ?? fo.name ?? '', purpose: fo.purpose ?? fo.description ?? fo.reason ?? '' }
+      }
+      return null
+    }).filter(Boolean) : []
+
+    const missingFiles = Array.isArray(rawMissing) ? rawMissing.map((f: unknown) => {
+      if (typeof f === 'string') return f
+      if (f && typeof f === 'object') {
+        const fo = f as Record<string, unknown>
+        return { name: fo.name ?? fo.file ?? fo.filename ?? fo.path ?? '', purpose: fo.purpose ?? fo.description ?? fo.reason ?? '' }
+      }
+      return null
+    }).filter(Boolean) : []
+
     const normalized = {
       ...bp,
       name,
@@ -78,8 +103,8 @@ function parseBlueprints(rawInput: unknown): z.infer<typeof BlueprintSchema>[] {
       app_type: bp.app_type ?? bp.type ?? bp.category ?? 'web app',
       explanation: bp.explanation ?? bp.ai_explanation ?? bp.rationale ?? bp.reasoning ?? '',
       reuse_percentage: bp.reuse_percentage ?? bp.reuse ?? bp.reusability ?? 50,
-      existing_files: bp.existing_files ?? bp.reusable_files ?? bp.files_to_reuse ?? [],
-      missing_files: bp.missing_files ?? bp.files_needed ?? bp.new_files ?? [],
+      existing_files: existingFiles,
+      missing_files: missingFiles,
       technologies: bp.technologies ?? bp.tech_stack ?? bp.stack ?? [],
     }
 
