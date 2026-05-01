@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Github, BarChart3, FolderGit2, Sparkles } from 'lucide-react'
+import { Layers, Github, BarChart3, FolderGit2, Sparkles, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AuthUser } from '@/lib/auth'
 
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/dashboard', label: 'Overview', icon: BarChart3 },
   { href: '/dashboard/repositories', label: 'Repositories', icon: FolderGit2 },
   { href: '/dashboard/analyses', label: 'Analyses', icon: Sparkles },
+  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
 ]
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {

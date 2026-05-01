@@ -35,6 +35,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <span className="font-bold text-lg tracking-tight">CodeVault</span>
           </div>
           <nav className="flex items-center gap-4">
+            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
+              Pricing
+            </Link>
             <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
               Dashboard
             </Link>

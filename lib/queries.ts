@@ -63,6 +63,82 @@ export interface AppBlueprint {
   created_at: string
 }
 
+// Subscription types & queries
+export interface Subscription {
+  id: string
+  github_id: number
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  plan: 'free' | 'pro'
+  status: 'active' | 'past_due' | 'canceled' | 'trialing'
+  current_period_end: string | null
+  analyses_used_this_month: number
+  billing_cycle_anchor: string
+  created_at: string
+  updated_at: string
+}
+
+export async function getSubscriptionByGithubId(githubId: number): Promise<Subscription | null> {
+  const sql = getDb()
+  const rows = await sql`SELECT * FROM subscriptions WHERE github_id = ${githubId} LIMIT 1`
+  return (rows[0] as Subscription) || null
+}
+
+export async function getSubscriptionByStripeCustomerId(customerId: string): Promise<Subscription | null> {
+  const sql = getDb()
+  const rows = await sql`SELECT * FROM subscriptions WHERE stripe_customer_id = ${customerId} LIMIT 1`
+  return (rows[0] as Subscription) || null
+}
+
+export async function upsertSubscription(data: {
+  github_id: number
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  plan?: 'free' | 'pro'
+  status?: 'active' | 'past_due' | 'canceled' | 'trialing'
+  current_period_end?: string | null
+}): Promise<Subscription> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO subscriptions (github_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end)
+    VALUES (
+      ${data.github_id},
+      ${data.stripe_customer_id ?? null},
+      ${data.stripe_subscription_id ?? null},
+      ${data.plan ?? 'free'},
+      ${data.status ?? 'active'},
+      ${data.current_period_end ?? null}
+    )
+    ON CONFLICT (github_id) DO UPDATE SET
+      stripe_customer_id = COALESCE(${data.stripe_customer_id ?? null}, subscriptions.stripe_customer_id),
+      stripe_subscription_id = COALESCE(${data.stripe_subscription_id ?? null}, subscriptions.stripe_subscription_id),
+      plan = COALESCE(${data.plan ?? null}, subscriptions.plan),
+      status = COALESCE(${data.status ?? null}, subscriptions.status),
+      current_period_end = COALESCE(${data.current_period_end ?? null}, subscriptions.current_period_end),
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `
+  return result[0] as Subscription
+}
+
+export async function incrementAnalysisUsage(githubId: number): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE subscriptions
+    SET analyses_used_this_month = analyses_used_this_month + 1, updated_at = CURRENT_TIMESTAMP
+    WHERE github_id = ${githubId}
+  `
+}
+
+export async function resetMonthlyUsage(githubId: number): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE subscriptions
+    SET analyses_used_this_month = 0, billing_cycle_anchor = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    WHERE github_id = ${githubId}
+  `
+}
+
 // Repository queries
 export async function getAllRepositories(): Promise<Repository[]> {
   const sql = getDb()

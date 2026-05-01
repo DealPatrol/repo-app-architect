@@ -86,6 +86,25 @@ CREATE TABLE IF NOT EXISTS app_blueprints (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Subscriptions table (Stripe billing)
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  github_id BIGINT NOT NULL UNIQUE REFERENCES user_auth(github_id),
+  stripe_customer_id VARCHAR(255) UNIQUE,
+  stripe_subscription_id VARCHAR(255) UNIQUE,
+  plan VARCHAR(50) DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
+  status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'past_due', 'canceled', 'trialing')),
+  current_period_end TIMESTAMP WITH TIME ZONE,
+  analyses_used_this_month INTEGER DEFAULT 0,
+  billing_cycle_anchor TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_github_id ON subscriptions(github_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_user_auth_github_id ON user_auth(github_id);
 CREATE INDEX IF NOT EXISTS idx_repositories_github_id ON repositories(github_id);
