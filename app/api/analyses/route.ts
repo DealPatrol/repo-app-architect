@@ -29,12 +29,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one repository is required' }, { status: 400 })
     }
 
-    // Create the analysis
     const analysis = await createAnalysis(name.trim())
 
-    // Link repositories to the analysis
+    const linked: string[] = []
     for (const repoId of repositoryIds) {
-      await linkAnalysisToRepository(analysis.id, repoId)
+      try {
+        await linkAnalysisToRepository(analysis.id, repoId)
+        linked.push(repoId as string)
+      } catch (e) {
+        console.error(`Failed to link repository ${repoId} to analysis ${analysis.id}:`, e)
+      }
+    }
+
+    if (linked.length === 0) {
+      return NextResponse.json(
+        { error: 'Failed to link any repositories to the analysis. Verify repository IDs are valid.' },
+        { status: 400 },
+      )
     }
 
     return NextResponse.json(analysis)
