@@ -203,6 +203,7 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
     setStatus('scanning')
     setProgress(0)
     setRunErrorMessage(null)
+    setLocalBlueprints([])
 
     try {
       const response = await fetch(`/api/analyses/${analysis.id}/run`, {
@@ -214,51 +215,58 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
       }
 
       const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response stream available')
+      }
+
       const decoder = new TextDecoder()
       let sseBuffer = ''
       let streamEndedFailed = false
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          sseBuffer += decoder.decode(value, { stream: !done })
-          const rawLines = sseBuffer.split('\n')
-          sseBuffer = rawLines.pop() ?? ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (value) {
+          sseBuffer += decoder.decode(value, { stream: true })
+        }
+        if (done) {
+          sseBuffer += decoder.decode(undefined, { stream: false })
+        }
+        const rawLines = sseBuffer.split('\n')
+        sseBuffer = rawLines.pop() ?? ''
 
-          for (const line of rawLines) {
-            const trimmed = line.trim()
-            if (!trimmed.startsWith('data: ')) continue
-            try {
-              const data = JSON.parse(trimmed.slice(6)) as {
-                status?: Analysis['status']
-                progress?: number
-                blueprints?: AppBlueprint[]
-                error?: string
-              }
+        for (const line of rawLines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(trimmed.slice(6)) as {
+              status?: Analysis['status']
+              progress?: number
+              blueprints?: AppBlueprint[]
+              error?: string
+            }
 
-              if (typeof data.error === 'string') {
-                setRunErrorMessage(data.error)
-                if (!data.status) {
-                  streamEndedFailed = true
-                  setStatus('failed')
-                }
-              }
-              if (data.status === 'failed') {
+            if (typeof data.error === 'string') {
+              setRunErrorMessage(data.error)
+              if (!data.status) {
                 streamEndedFailed = true
                 setStatus('failed')
               }
-              if (data.status && data.status !== 'failed') {
-                setStatus(data.status)
-              }
-              if (data.progress !== undefined) setProgress(data.progress)
-              if (data.blueprints) setLocalBlueprints(data.blueprints)
-            } catch {
-              /* incomplete JSON chunk — wait for next read */
             }
+            if (data.status === 'failed') {
+              streamEndedFailed = true
+              setStatus('failed')
+            }
+            if (data.status && data.status !== 'failed') {
+              setStatus(data.status)
+            }
+            if (data.progress !== undefined) setProgress(data.progress)
+            if (data.blueprints) setLocalBlueprints(data.blueprints)
+          } catch {
+            /* incomplete JSON chunk — wait for next read */
           }
-
-          if (done) break
         }
+
+        if (done) break
       }
 
       if (!streamEndedFailed) {
