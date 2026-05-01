@@ -8,7 +8,7 @@ export function getDb() {
       'Please configure your Neon database connection string in your environment variables.'
     )
   }
-  return neon(databaseUrl)
+  return neon(databaseUrl, { fetchOptions: { cache: 'no-store' } })
 }
 
 // Export a validation function for startup checks
