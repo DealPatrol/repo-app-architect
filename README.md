@@ -1,4 +1,4 @@
-# CodeVault Backend
+# RepoFuse Backend
 
 An AI-powered code intelligence platform that scans your GitHub repositories and discovers what applications you can build by combining existing files and components.
 
@@ -102,7 +102,7 @@ scripts/
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd codevault-backend
+cd repofuse-backend
 ```
 
 2. **Install dependencies**

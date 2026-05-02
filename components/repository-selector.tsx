@@ -173,7 +173,7 @@ export function RepositorySelector() {
           <FolderGit2 className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
           <h3 className="font-semibold text-foreground mb-1">No repositories found</h3>
           <p className="text-sm text-muted-foreground">
-            Create some repositories on GitHub to get started with CodeVault.
+            Create some repositories on GitHub to get started with RepoFuse.
           </p>
         </Card>
       )}

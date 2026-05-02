@@ -16,7 +16,7 @@ export async function initializeDemoData() {
           -1,
           'demo-repo',
           'demo-user/demo-repo',
-          'A sample repository to demonstrate CodeVault analysis',
+          'A sample repository to demonstrate RepoFuse analysis',
           'https://github.com/demo-user/demo-repo',
           'main',
           'TypeScript',
@@ -28,7 +28,7 @@ export async function initializeDemoData() {
 
     return { success: true }
   } catch (error) {
-    console.error('[CodeVault] Error initializing demo data:', error)
+    console.error('[RepoFuse] Error initializing demo data:', error)
     return { success: false, error: String(error) }
   }
 }
