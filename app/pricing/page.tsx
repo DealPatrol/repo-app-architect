@@ -1,45 +1,53 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Check, Layers, ArrowRight, Sparkles, Github } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, Github, Crown, Zap } from 'lucide-react'
+import { PLANS } from '@/lib/stripe'
+
+import { PLANS } from '@/lib/stripe'
 
 const plans = [
   {
     name: 'Free',
     price: '$0',
     period: 'forever',
-    description: 'For individuals exploring their codebase',
+    description: 'Perfect for exploring and learning',
     features: [
-      'Up to 5 repositories',
-      '3 analyses per month',
-      'AI-powered blueprints',
-      'Export as JSON',
-      'Build plan downloads',
+      `Up to ${PLANS.free.repos_limit} repositories`,
+      `${PLANS.free.analyses_per_month} analyses per month`,
+      'AI-powered app blueprints',
+      'Gap discovery & analysis',
+      'Template browsing',
+      'JSON export',
     ],
+    icon: Zap,
     cta: 'Get Started Free',
     ctaHref: '/api/auth/github/login',
     highlighted: false,
   },
   {
     name: 'Pro',
-    price: '$19',
+    price: `$${PLANS.pro.price_monthly}`,
     period: '/month',
-    description: 'For teams shipping faster with code reuse',
+    description: 'For serious builders and teams',
     features: [
       'Unlimited repositories',
       'Unlimited analyses',
-      'AI-powered blueprints',
-      'Export as JSON & PDF',
-      'Build plan downloads',
-      'Scaffold generation',
+      'AI-powered app blueprints',
+      'Scaffold code generation',
+      'Template assembly hub',
       'Priority AI processing',
-      'GitHub repo creation from blueprints',
+      'Complete gap roadmaps',
+      'Cancel anytime',
     ],
-    cta: 'Start Pro Plan',
-    ctaHref: '/api/auth/github/login',
+    icon: Crown,
+    cta: 'Start Pro Trial',
+    ctaHref: '/dashboard/billing',
     highlighted: true,
   },
 ]
+
+import { Crown, Zap } from 'lucide-react'
 
 export default function PricingPage() {
   return (
@@ -48,8 +56,8 @@ export default function PricingPage() {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
-              <Layers className="h-5 w-5 text-background" />
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-chart-1 to-chart-1/80 flex items-center justify-center shadow-sm">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-lg tracking-tight">CodeVault</span>
           </Link>
@@ -77,7 +85,7 @@ export default function PricingPage() {
             Choose your plan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free and upgrade when you need unlimited analyses and premium features.
+            Start free and upgrade when you're ready for unlimited analyses, scaffold generation, and more.
           </p>
         </div>
 
