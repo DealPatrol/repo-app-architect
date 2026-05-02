@@ -1,4 +1,4 @@
-# CodeVault Backend - Quick Start Guide
+# RepoFuse Backend - Quick Start Guide
 
 ## Prerequisites
 

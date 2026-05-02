@@ -4,7 +4,7 @@
 
 ### Overview
 
-CodeVault is a Next.js 16 app (App Router) that connects to GitHub repos, scans file trees, and uses Anthropic Claude to generate "App Blueprints" showing what new apps can be built from existing code.
+RepoFuse is a Next.js 16 app (App Router) that connects to GitHub repos, scans file trees, and uses Anthropic Claude to generate "App Blueprints" showing what new apps can be built from existing code.
 
 ### Tech stack
 

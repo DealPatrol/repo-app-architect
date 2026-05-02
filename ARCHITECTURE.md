@@ -1,4 +1,4 @@
-# CodeVault - System Architecture
+# RepoFuse - System Architecture
 
 ## High-Level Architecture
 

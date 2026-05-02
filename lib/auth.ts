@@ -20,7 +20,7 @@ async function fetchGitHubUserFromToken(accessToken: string): Promise<{
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'CodeVault',
+      'User-Agent': 'RepoFuse',
     },
     cache: 'no-store',
   })

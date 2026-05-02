@@ -1,4 +1,4 @@
-# CodeVault - Vercel Deployment Setup
+# RepoFuse - Vercel Deployment Setup
 
 ## Option A: Vercel Native Integration (Simplest)
 
@@ -13,7 +13,7 @@ Go to your Vercel project → **Settings** → **Environment Variables** and add
 | `DATABASE_URL` | Production, Preview, Development | Neon PostgreSQL connection string |
 | `GITHUB_CLIENT_ID` | Production, Preview, Development | GitHub OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | Production, Preview, Development | GitHub OAuth App client secret |
-| `NEXT_PUBLIC_APP_URL` | Production | Your production URL (e.g. `https://codevault.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Production | Your production URL (e.g. `https://repofuse.vercel.app`) |
 | `NEXT_PUBLIC_APP_URL` | Preview | Leave blank — Vercel sets this automatically for previews |
 | `OPENAI_API_KEY` | Production, Preview | OpenAI API key for AI analysis |
 | `ANTHROPIC_API_KEY` | Production, Preview | Anthropic API key for scaffold generation |

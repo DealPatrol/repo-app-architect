@@ -1,4 +1,4 @@
-# CodeVault Backend - Implementation Summary
+# RepoFuse Backend - Implementation Summary
 
 ## ✅ Completed Architecture
 

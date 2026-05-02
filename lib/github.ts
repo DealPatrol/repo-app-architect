@@ -27,7 +27,7 @@ async function githubRequest<T>(url: string, accessToken: string): Promise<T> {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'CodeVault',
+      'User-Agent': 'RepoFuse',
     },
     cache: 'no-store',
   })

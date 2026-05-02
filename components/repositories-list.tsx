@@ -220,7 +220,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-          <p className="text-muted-foreground">Sign in with GitHub, import repositories, and track them in CodeVault.</p>
+          <p className="text-muted-foreground">Sign in with GitHub, import repositories, and track them in RepoFuse.</p>
         </div>
         {loadingAuth ? (
           <Button variant="outline" disabled>
@@ -282,7 +282,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
             <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
             <h3 className="font-semibold text-foreground">Connect your GitHub account</h3>
             <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-              Once you sign in, CodeVault can read your repositories and show what you can build from the code you already own.
+              Once you sign in, RepoFuse can read your repositories and show what you can build from the code you already own.
             </p>
             <Button className="mt-4" asChild>
               <a href="/api/auth/github/login">
@@ -385,7 +385,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
       <Card className="p-6 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Tracked repositories</h2>
-          <p className="text-sm text-muted-foreground">These are the repositories CodeVault can analyze right now.</p>
+          <p className="text-sm text-muted-foreground">These are the repositories RepoFuse can analyze right now.</p>
         </div>
 
         <div className="space-y-3">
