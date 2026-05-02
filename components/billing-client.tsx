@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { CreditsDisplay } from '@/components/credits-display'
 import {
   CreditCard,
   Sparkles,
@@ -25,6 +26,7 @@ interface BillingClientProps {
   status: string
   currentPeriodEnd: string | null
   hasStripeCustomer: boolean
+  userId?: string
 }
 
 export function BillingClient({
@@ -36,6 +38,7 @@ export function BillingClient({
   status,
   currentPeriodEnd,
   hasStripeCustomer,
+  userId,
 }: BillingClientProps) {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
@@ -162,7 +165,7 @@ export function BillingClient({
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                Upgrade to Pro — $19/mo
+                Upgrade to Pro — $20/mo
               </Button>
             ) : null}
           </div>
@@ -223,6 +226,17 @@ export function BillingClient({
           </div>
         </Card>
       </div>
+
+      {/* Credits Section for Pro Users */}
+      {isPro && userId && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">Credits & Usage</h2>
+            <p className="text-sm text-muted-foreground">Track your credits and see how they're used</p>
+          </div>
+          <CreditsDisplay userId={userId} />
+        </div>
+      )}
 
       {/* Compare plans */}
       {!isPro && (

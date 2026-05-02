@@ -30,6 +30,7 @@ export default async function BillingPage() {
       status={subscription?.status ?? 'active'}
       currentPeriodEnd={subscription?.current_period_end ?? null}
       hasStripeCustomer={!!subscription?.stripe_customer_id}
+      userId={user?.id}
     />
   )
 }

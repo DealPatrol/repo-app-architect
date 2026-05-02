@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Check, ArrowRight, Sparkles, Github, Crown, Zap } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, Github, Crown, Zap, Zap as Credits } from 'lucide-react'
 import { PLANS } from '@/lib/stripe'
-
-import { PLANS } from '@/lib/stripe'
+import { CREDITS } from '@/lib/credits'
 
 const plans = [
   {
@@ -38,6 +37,7 @@ const plans = [
       'Template assembly hub',
       'Priority AI processing',
       'Complete gap roadmaps',
+      `${CREDITS.INITIAL_GRANT.toLocaleString()} monthly credits`,
       'Cancel anytime',
     ],
     icon: Crown,
@@ -46,8 +46,6 @@ const plans = [
     highlighted: true,
   },
 ]
-
-import { Crown, Zap } from 'lucide-react'
 
 export default function PricingPage() {
   return (

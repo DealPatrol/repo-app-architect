@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
-import { upsertSubscription, getSubscriptionByStripeCustomerId } from '@/lib/queries'
+import { upsertSubscription, getSubscriptionByStripeCustomerId, getUserByGithubId } from '@/lib/queries'
+import { grantCredits, CREDITS } from '@/lib/credits'
 import type Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -38,6 +39,22 @@ export async function POST(request: NextRequest) {
               status: 'active',
               current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
             })
+            
+            // Grant initial credits on signup
+            try {
+              const user = await getUserByGithubId(githubId)
+              if (user) {
+                await grantCredits(
+                  user.id,
+                  CREDITS.INITIAL_GRANT,
+                  'Pro plan signup bonus',
+                  { stripe_customer_id: session.customer as string }
+                )
+                console.log(`[v0] Granted ${CREDITS.INITIAL_GRANT} credits to user ${user.id}`)
+              }
+            } catch (err) {
+              console.error('[v0] Failed to grant signup credits:', err)
+            }
           }
         }
         break
@@ -84,6 +101,34 @@ export async function POST(request: NextRequest) {
               github_id: existing.github_id,
               status: 'past_due',
             })
+          }
+        }
+        break
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice
+        if (invoice.customer && invoice.subscription) {
+          const existing = await getSubscriptionByStripeCustomerId(invoice.customer as string)
+          if (existing) {
+            // Grant monthly renewal credits on successful payment (but only if not the initial invoice)
+            try {
+              // Check if this is a renewal (not the initial invoice by checking if invoice number > 1)
+              if (invoice.number && invoice.number !== '0001') {
+                const user = await getUserByGithubId(existing.github_id)
+                if (user) {
+                  await grantCredits(
+                    user.id,
+                    CREDITS.MONTHLY_GRANT,
+                    'Monthly subscription renewal',
+                    { invoice_id: invoice.id, stripe_customer_id: invoice.customer as string }
+                  )
+                  console.log(`[v0] Granted ${CREDITS.MONTHLY_GRANT} monthly renewal credits to user ${user.id}`)
+                }
+              }
+            } catch (err) {
+              console.error('[v0] Failed to grant renewal credits:', err)
+            }
           }
         }
         break

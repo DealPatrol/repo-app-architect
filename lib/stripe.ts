@@ -25,7 +25,7 @@ export const PLANS = {
     name: 'Pro',
     analyses_per_month: -1,
     repos_limit: -1,
-    price_monthly: 19,
+    price_monthly: 20, // Updated to $20 for profitability
   },
 } as const
 
