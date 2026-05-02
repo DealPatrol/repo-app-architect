@@ -1,5 +1,8 @@
 import { createMissingGap, createTemplate, type AppBlueprint } from '@/lib/queries'
 
+// Type definitions
+type MissingFile = { name: string; purpose: string }
+
 /**
  * Generate missing file gaps from a blueprint's missing_files array
  * Called after blueprint creation during analysis
@@ -177,7 +180,7 @@ function estimateEffort(complexity: 'low' | 'medium' | 'high'): number {
 }
 
 // Dependency inference
-function inferDependencies(fileName: string, allFiles: typeof missing_files): string[] {
+function inferDependencies(fileName: string, allFiles: MissingFile[]): string[] {
   const lower = fileName.toLowerCase()
   const deps: string[] = []
 
@@ -237,6 +240,3 @@ function sumTotalFiles(blueprints: AppBlueprint[]): number {
 function sumMissingFiles(blueprints: AppBlueprint[]): number {
   return blueprints.reduce((sum, b) => sum + (b.missing_files?.length || 0), 0)
 }
-
-// Type import (fix the type import issue)
-type missing_files = Array<{ name: string; purpose: string }>
