@@ -141,7 +141,6 @@ Example structure:
 
     console.log('[v0] Scaffold generated successfully')
 
-    return NextResponse.json({
     // Deduct credits after successful generation
     let creditsUsed = 0
     if (userId) {

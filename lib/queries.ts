@@ -90,6 +90,12 @@ export async function getSubscriptionByStripeCustomerId(customerId: string): Pro
   return (rows[0] as Subscription) || null
 }
 
+export async function getUserByGithubId(githubId: number): Promise<{ id: string; github_id: number } | null> {
+  const sql = getDb()
+  const rows = await sql`SELECT id, github_id FROM user_auth WHERE github_id = ${githubId} LIMIT 1`
+  return (rows[0] as { id: string; github_id: number }) || null
+}
+
 export async function upsertSubscription(data: {
   github_id: number
   stripe_customer_id?: string | null
