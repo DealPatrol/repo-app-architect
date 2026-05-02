@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[v0] Generating scaffold for app:', appName)
+    console.log('[v0] Calling Claude with model:', getAnthropicModel())
 
     // Generate scaffold structure using Claude
     const response = await client.messages.create({
@@ -37,22 +38,30 @@ Technologies: ${technologies.join(', ')}
 Existing files available: ${existingFiles.join(', ')}
 Missing files to generate: ${missingFiles.join(', ')}
 
-Create a JSON structure with:
-1. Project structure (folders and file paths)
-2. package.json content
-3. README.md content with setup instructions
-4. .env.example content
-5. For each missing file, provide the complete code
-6. Include practical placeholder logic that compiles and clearly marks TODO integration points
+Create a JSON object with:
+1. "structure": Object mapping folder/file paths to descriptions
+2. "files": Object with file paths as keys and content objects/strings as values
+   - "package.json": Object with package.json content
+   - "README.md": String with markdown content
+   - ".env.example": String with env vars
+   - Other files: String with complete code
 
-Return ONLY valid JSON with this structure:
+IMPORTANT: 
+- Return ONLY valid JSON, no markdown, no extra text
+- All strings must use proper JSON escaping
+- No trailing commas
+- All quoted keys and values
+
+Example structure:
 {
-  "structure": { "folder/file": "description" },
+  "structure": {
+    "src": "Source files",
+    "src/index.ts": "Entry point"
+  },
   "files": {
-    "package.json": { "content": "..." },
-    "README.md": "...",
-    ".env.example": "...",
-    "src/file.ts": "..."
+    "package.json": {"name": "app", "version": "1.0.0"},
+    "README.md": "# App\\n\\nDescription here",
+    "src/index.ts": "// TODO: implement main logic\\nconsole.log('Hello')"
   }
 }`,
         },
@@ -64,17 +73,53 @@ Return ONLY valid JSON with this structure:
       throw new Error('Unexpected response type from Claude')
     }
 
-    // Parse the JSON response
+    // Parse the JSON response with better error handling
     let scaffold
     try {
       const raw = content.text.trim()
-      const normalized = raw.startsWith('```')
-        ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-        : raw
-      scaffold = JSON.parse(normalized)
+      
+      console.log('[v0] Raw Claude response length:', raw.length)
+      console.log('[v0] First 200 chars:', raw.substring(0, 200))
+      
+      // Extract JSON from various markdown formats
+      let jsonStr = raw
+      
+      // Remove markdown code blocks
+      if (jsonStr.includes('```')) {
+        const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+        if (match && match[1]) {
+          jsonStr = match[1].trim()
+          console.log('[v0] Extracted JSON from markdown')
+        }
+      }
+      
+      // Try to find JSON object if there's extra text
+      if (!jsonStr.startsWith('{')) {
+        const objMatch = jsonStr.match(/\{[\s\S]*\}/)
+        if (objMatch) {
+          jsonStr = objMatch[0]
+          console.log('[v0] Extracted JSON object from text')
+        }
+      }
+      
+      console.log('[v0] JSON string to parse length:', jsonStr.length)
+      
+      // Parse JSON
+      scaffold = JSON.parse(jsonStr)
+      
+      // Validate structure
+      if (!scaffold.structure || !scaffold.files) {
+        console.error('[v0] Invalid scaffold structure')
+        throw new Error('Invalid scaffold structure - missing required fields (structure, files)')
+      }
+      
+      console.log('[v0] Successfully parsed scaffold with', Object.keys(scaffold.structure).length, 'structure items')
     } catch (e) {
-      console.error('[v0] Failed to parse Claude response:', content.text)
-      throw new Error('Failed to parse scaffold generation')
+      console.error('[v0] Failed to parse Claude response:', {
+        error: e instanceof Error ? e.message : String(e),
+        rawContent: content.text.substring(0, 500),
+      })
+      throw new Error(`Failed to parse scaffold generation: ${e instanceof Error ? e.message : 'Unknown error'}`)
     }
 
     console.log('[v0] Scaffold generated successfully')
@@ -86,8 +131,12 @@ Return ONLY valid JSON with this structure:
     })
   } catch (error) {
     console.error('[v0] Scaffold generation error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate scaffold'
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate scaffold' },
+      { 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

@@ -341,3 +341,199 @@ export async function createBlueprint(data: {
   `
   return result[0] as AppBlueprint
 }
+
+// Gap & Template types
+export interface MissingFileGap {
+  id: string
+  blueprint_id: string
+  file_name: string
+  file_path: string
+  purpose: string
+  complexity: 'low' | 'medium' | 'high'
+  estimated_hours: number
+  category: 'auth' | 'api' | 'ui' | 'database' | 'utils' | 'config' | 'other'
+  dependencies: string[] // file names this depends on
+  is_blocking: boolean
+  suggested_stub: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CompletedGap {
+  id: string
+  gap_id: string
+  blueprint_id: string
+  completed_at: string
+  created_at: string
+}
+
+export interface Template {
+  id: string
+  name: string
+  description: string | null
+  blueprint_ids: string[] // which blueprints this template combines
+  tech_stack: string[]
+  estimated_hours: number
+  reuse_percentage: number
+  total_files: number
+  missing_files: number
+  tier: 'quick_start' | 'standard' | 'comprehensive'
+  featured: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface GapSummary {
+  total_gaps: number
+  by_category: Record<string, number>
+  total_hours: number
+  blocking_gaps: number
+  completed_count: number
+}
+
+// Gap queries
+export async function getMissingGapsByBlueprint(blueprintId: string): Promise<MissingFileGap[]> {
+  const sql = getDb()
+  const gaps = await sql`
+    SELECT * FROM missing_file_gaps 
+    WHERE blueprint_id = ${blueprintId}
+    ORDER BY is_blocking DESC, complexity DESC
+  `
+  return gaps as MissingFileGap[]
+}
+
+export async function getAllMissingGaps(): Promise<MissingFileGap[]> {
+  const sql = getDb()
+  const gaps = await sql`
+    SELECT * FROM missing_file_gaps 
+    ORDER BY is_blocking DESC, complexity DESC, created_at DESC
+  `
+  return gaps as MissingFileGap[]
+}
+
+export async function createMissingGap(data: {
+  blueprint_id: string
+  file_name: string
+  file_path: string
+  purpose: string
+  complexity: 'low' | 'medium' | 'high'
+  estimated_hours: number
+  category: 'auth' | 'api' | 'ui' | 'database' | 'utils' | 'config' | 'other'
+  dependencies?: string[]
+  is_blocking?: boolean
+  suggested_stub?: string | null
+}): Promise<MissingFileGap> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO missing_file_gaps (
+      blueprint_id, file_name, file_path, purpose, complexity, estimated_hours,
+      category, dependencies, is_blocking, suggested_stub
+    )
+    VALUES (
+      ${data.blueprint_id}, ${data.file_name}, ${data.file_path}, ${data.purpose},
+      ${data.complexity}, ${data.estimated_hours}, ${data.category},
+      ${JSON.stringify(data.dependencies || [])}::jsonb, ${data.is_blocking ?? false}, ${data.suggested_stub ?? null}
+    )
+    ON CONFLICT (blueprint_id, file_path) DO UPDATE SET
+      purpose = EXCLUDED.purpose,
+      complexity = EXCLUDED.complexity,
+      estimated_hours = EXCLUDED.estimated_hours,
+      category = EXCLUDED.category,
+      dependencies = EXCLUDED.dependencies,
+      is_blocking = EXCLUDED.is_blocking,
+      suggested_stub = EXCLUDED.suggested_stub,
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `
+  return result[0] as MissingFileGap
+}
+
+export async function markGapAsComplete(gapId: string, blueprintId: string): Promise<CompletedGap> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO completed_gaps (gap_id, blueprint_id)
+    VALUES (${gapId}, ${blueprintId})
+    ON CONFLICT DO NOTHING
+    RETURNING *
+  `
+  return result[0] as CompletedGap
+}
+
+export async function getCompletedGapCount(blueprintId: string): Promise<number> {
+  const sql = getDb()
+  const result = await sql`
+    SELECT COUNT(*) as count FROM completed_gaps WHERE blueprint_id = ${blueprintId}
+  `
+  return result[0].count as number
+}
+
+export async function getGapSummary(): Promise<GapSummary> {
+  const sql = getDb()
+  const gaps = await sql`
+    SELECT 
+      COUNT(*) as total_gaps,
+      COUNT(CASE WHEN is_blocking THEN 1 END) as blocking_gaps,
+      SUM(estimated_hours) as total_hours,
+      json_object_agg(category, category_count) as by_category
+    FROM (
+      SELECT category, COUNT(*) as category_count FROM missing_file_gaps GROUP BY category
+    ) subq
+  `
+  const completed = await sql`SELECT COUNT(*) as count FROM completed_gaps`
+  
+  return {
+    total_gaps: gaps[0]?.total_gaps || 0,
+    blocking_gaps: gaps[0]?.blocking_gaps || 0,
+    total_hours: gaps[0]?.total_hours || 0,
+    by_category: gaps[0]?.by_category || {},
+    completed_count: completed[0]?.count || 0,
+  }
+}
+
+// Template queries
+export async function createTemplate(data: {
+  name: string
+  description: string | null
+  blueprint_ids: string[]
+  tech_stack: string[]
+  estimated_hours: number
+  reuse_percentage: number
+  total_files: number
+  missing_files: number
+  tier: 'quick_start' | 'standard' | 'comprehensive'
+  featured?: boolean
+}): Promise<Template> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO templates (
+      name, description, blueprint_ids, tech_stack, estimated_hours, reuse_percentage,
+      total_files, missing_files, tier, featured
+    )
+    VALUES (
+      ${data.name}, ${data.description}, ${JSON.stringify(data.blueprint_ids)}::jsonb,
+      ${JSON.stringify(data.tech_stack)}::jsonb, ${data.estimated_hours}, ${data.reuse_percentage},
+      ${data.total_files}, ${data.missing_files}, ${data.tier}, ${data.featured ?? false}
+    )
+    RETURNING *
+  `
+  return result[0] as Template
+}
+
+export async function getFeaturedTemplates(): Promise<Template[]> {
+  const sql = getDb()
+  const templates = await sql`
+    SELECT * FROM templates 
+    WHERE featured = true
+    ORDER BY tier, estimated_hours ASC
+  `
+  return templates as Template[]
+}
+
+export async function getAllTemplates(): Promise<Template[]> {
+  const sql = getDb()
+  const templates = await sql`
+    SELECT * FROM templates 
+    ORDER BY tier, estimated_hours ASC
+  `
+  return templates as Template[]
+}
