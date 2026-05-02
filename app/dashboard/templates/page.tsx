@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { TemplateAssemblyCard } from '@/components/template-assembly-card'
 import { getAllTemplates, getFeaturedTemplates } from '@/lib/queries'
 
+export const dynamic = 'force-dynamic'
+
 function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">

@@ -9,6 +9,8 @@ import { MissingFileCard } from '@/components/missing-file-card'
 import { getAllMissingGaps, getGapSummary } from '@/lib/queries'
 import { groupGapsByPriority, calculateTotalEffort, gapCategories } from '@/lib/gap-priorities'
 
+export const dynamic = 'force-dynamic'
+
 function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
