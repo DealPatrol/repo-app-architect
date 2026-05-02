@@ -42,4 +42,11 @@ pnpm build      # production build (requires valid DATABASE_URL at build time)
 
 - No automated test suite exists in this repo.
 - Manual testing flow: Sign in via GitHub OAuth → Add repositories → Create analysis → Run analysis → View blueprints.
-- The `pnpm lint` command has 2 pre-existing errors that are not related to the blueprint flow.
+- The `pnpm lint` command has pre-existing errors (10 errors, 24 warnings) that are not caused by agent changes. The original note about "2 pre-existing errors" undercounts; the actual count as of the current codebase is higher.
+
+### Dev server startup notes
+
+- The dev server starts successfully even with a placeholder `DATABASE_URL`. Database connections are lazy (on-demand via API routes), so the server itself boots fine.
+- `pnpm install` may show a warning about ignored build scripts for `sharp` and `unrs-resolver`. These do not affect development.
+- The GitHub OAuth env vars in this repo use `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (not `GITHUB_ID` / `GITHUB_SECRET`). If secrets are injected under different names, map them in `.env.local`.
+- `NEXT_PUBLIC_APP_URL` must be set to the local dev server URL (default port 3000) for local OAuth callback redirects to work.
