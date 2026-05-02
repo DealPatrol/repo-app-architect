@@ -23,10 +23,52 @@ function LoadingSkeleton() {
 }
 
 async function TemplateHubContent() {
-  const [featured, all] = await Promise.all([
-    getFeaturedTemplates(),
-    getAllTemplates(),
-  ])
+  let featured = []
+  let all = []
+  let setupRequired = false
+
+  try {
+    const result = await Promise.all([
+      getFeaturedTemplates(),
+      getAllTemplates(),
+    ])
+    featured = result[0]
+    all = result[1]
+  } catch (error) {
+    console.error('[v0] Failed to fetch templates:', error)
+    setupRequired = true
+  }
+
+  if (setupRequired || !all.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/analyses">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">Template Assembly Hub</h1>
+            <p className="text-muted-foreground">Pre-built project combinations ready to assemble</p>
+          </div>
+        </div>
+
+        <Card className="p-12 text-center border-2 border-dashed">
+          <Lightbulb className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">No templates available yet</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Templates will be generated once you run an analysis on your repositories.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/analyses">
+              Run an Analysis
+            </Link>
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
   const nonFeatured = all.filter(t => !featured.some(f => f.id === t.id))
 
