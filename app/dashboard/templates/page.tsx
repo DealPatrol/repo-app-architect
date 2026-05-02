@@ -23,10 +23,17 @@ function LoadingSkeleton() {
 }
 
 async function TemplateHubContent() {
-  const [featured, all] = await Promise.all([
-    getFeaturedTemplates(),
-    getAllTemplates(),
-  ])
+  let featured: Awaited<ReturnType<typeof getFeaturedTemplates>> = []
+  let all: Awaited<ReturnType<typeof getAllTemplates>> = []
+
+  try {
+    ;[featured, all] = await Promise.all([
+      getFeaturedTemplates(),
+      getAllTemplates(),
+    ])
+  } catch {
+    // Database tables may not exist yet
+  }
 
   const nonFeatured = all.filter(t => !featured.some(f => f.id === t.id))
 
