@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
-import { getAnalysisById, getUserById } from '@/lib/queries'
+import { getAnalysisById } from '@/lib/queries'
 
 const model = 'openai/gpt-4-turbo'
 
