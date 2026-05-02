@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-        if (invoice.customer && invoice.subscription) {
+        if (invoice.customer) {
           const existing = await getSubscriptionByStripeCustomerId(invoice.customer as string)
           if (existing) {
             // Grant monthly renewal credits on successful payment (but only if not the initial invoice)
