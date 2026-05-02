@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
               <Layers className="h-5 w-5 text-background" />
             </div>
-            <span className="font-bold text-lg tracking-tight">CodeVault</span>
+            <span className="font-bold text-lg tracking-tight">RepoFuse</span>
           </div>
           <nav className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">

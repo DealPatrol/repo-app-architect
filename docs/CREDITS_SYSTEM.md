@@ -1,4 +1,4 @@
-# CodeVault Credits System
+# RepoFuse Credits System
 
 ## Overview
 

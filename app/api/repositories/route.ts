@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const githubRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'CodeVault',
+        'User-Agent': 'RepoFuse',
       },
     })
 

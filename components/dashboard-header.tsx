@@ -29,7 +29,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                 <Layers className="h-5 w-5 text-background" />
               </div>
-              <span className="font-bold text-lg tracking-tight">CodeVault</span>
+              <span className="font-bold text-lg tracking-tight">RepoFuse</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
