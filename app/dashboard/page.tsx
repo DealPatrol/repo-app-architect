@@ -1,7 +1,7 @@
-import { getAllRepositories, getAllAnalyses, type Analysis, type Repository } from '@/lib/queries'
+import { getAllRepositories, getAllAnalyses, getGapSummary, type Analysis, type Repository } from '@/lib/queries'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { FolderGit2, Sparkles, Code2, Plus, ArrowRight, Zap } from 'lucide-react'
+import { FolderGit2, Sparkles, Code2, Plus, ArrowRight, Zap, AlertCircle, Lightbulb } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -9,10 +9,12 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   let repositories: Repository[] = []
   let analyses: Analysis[] = []
+  let gapSummary = { total_gaps: 0, blocking_gaps: 0, total_hours: 0, completed_count: 0, by_category: {} }
 
   try {
     repositories = await getAllRepositories()
     analyses = await getAllAnalyses()
+    gapSummary = await getGapSummary()
   } catch {
     // Database not available yet
   }
@@ -85,7 +87,7 @@ export default async function DashboardPage() {
             </Button>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card className="group p-6 hover:shadow-lg hover:shadow-black/5 transition-all duration-300 hover:border-border">
               <div className="flex items-start justify-between mb-5">
                 <div className="h-12 w-12 rounded-xl bg-chart-1/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -127,6 +129,50 @@ export default async function DashboardPage() {
                 </Link>
               </Button>
             </Card>
+
+            <Card className="group p-6 hover:shadow-lg hover:shadow-black/5 transition-all duration-300 hover:border-border">
+              <div className="flex items-start justify-between mb-5">
+                <div className="h-12 w-12 rounded-xl bg-chart-3/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Lightbulb className="h-6 w-6 text-chart-3" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                  Quick ideas
+                </span>
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">Template Hub</h3>
+              <p className="text-sm text-muted-foreground mb-5">
+                Pre-configured combinations you can assemble into products today.
+              </p>
+              <Button variant="outline" size="sm" className="group-hover:bg-foreground/5" asChild>
+                <Link href="/dashboard/templates">
+                  Explore Templates
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </Card>
+
+            {gapSummary.total_gaps > 0 && (
+              <Card className="group p-6 hover:shadow-lg hover:shadow-black/5 transition-all duration-300 hover:border-border border-amber-200 bg-amber-50/50">
+                <div className="flex items-start justify-between mb-5">
+                  <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <AlertCircle className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+                    {gapSummary.total_gaps} open
+                  </span>
+                </div>
+                <h3 className="font-semibold text-lg text-foreground mb-1">Missing Code</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  {Math.round(gapSummary.total_hours)} hours of features ready to build
+                </p>
+                <Button size="sm" asChild>
+                  <Link href="/dashboard/gaps">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    View Dashboard
+                  </Link>
+                </Button>
+              </Card>
+            )}
           </div>
         )}
       </section>

@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Sparkles, Plus, Loader2, CheckCircle2, XCircle, Clock, ArrowRight, FolderGit2 } from 'lucide-react'
+import { FeatureEducationBanner } from '@/components/feature-education-banner'
 import type { Analysis, Repository } from '@/lib/queries'
 
 interface AnalysesListProps {
@@ -101,6 +102,8 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
 
   return (
     <div className="space-y-6">
+      <FeatureEducationBanner />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
