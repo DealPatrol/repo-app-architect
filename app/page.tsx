@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Testimonials } from '@/components/testimonials'
+import { ImpactStats } from '@/components/impact-stats'
 import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check } from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -243,6 +245,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
         </section>
+
+        {/* Impact Stats */}
+        <ImpactStats />
+
+        {/* Testimonials */}
+        <Testimonials />
 
         {/* CTA Section */}
         <section className="border-t border-border/50">

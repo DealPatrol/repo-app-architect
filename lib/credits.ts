@@ -236,3 +236,69 @@ export async function getCreditUsageSummary(userId: string): Promise<{
     scaffolds_used: parseInt(breakdown?.scaffolds_used || '0'),
   }
 }
+
+// Token tracking - store token usage per analysis
+export interface TokenUsageRecord {
+  id: string
+  user_id: string
+  analysis_id: string
+  tokens_used: number
+  estimated_cost: number
+  model_used: string
+  created_at: string
+}
+
+export async function trackTokenUsage(
+  userId: string,
+  analysisId: string,
+  tokensUsed: number,
+  estimatedCost: number,
+  modelUsed: string
+): Promise<void> {
+  const sql = getDb()
+  
+  try {
+    // Create token_usage table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS token_usage (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        analysis_id UUID NOT NULL,
+        tokens_used INT,
+        estimated_cost DECIMAL(10, 4),
+        model_used VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (analysis_id) REFERENCES analyses(id) ON DELETE CASCADE
+      )
+    `
+  } catch (e) {
+    // Table might already exist
+  }
+  
+  try {
+    await sql`
+      INSERT INTO token_usage (user_id, analysis_id, tokens_used, estimated_cost, model_used)
+      VALUES (${userId}, ${analysisId}, ${tokensUsed}, ${estimatedCost}, ${modelUsed})
+    `
+  } catch (error) {
+    console.error('[v0] Error tracking token usage:', error)
+  }
+}
+
+export async function getMonthlyTokenUsage(userId: string): Promise<number> {
+  const sql = getDb()
+  
+  try {
+    const result = await sql`
+      SELECT SUM(tokens_used) as total FROM token_usage
+      WHERE user_id = ${userId}
+      AND created_at > NOW() - INTERVAL '30 days'
+    `
+    
+    return parseInt(result[0]?.total || '0')
+  } catch (error) {
+    console.error('[v0] Error getting monthly token usage:', error)
+    return 0
+  }
+}

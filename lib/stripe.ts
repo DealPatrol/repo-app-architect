@@ -20,12 +20,24 @@ export const PLANS = {
     analyses_per_month: 3,
     repos_limit: 5,
     price_monthly: 0,
+    ai_provider: 'builtin' as const,
+    description: 'Perfect for exploring',
+  },
+  byok: {
+    name: 'BYOK',
+    analyses_per_month: -1,
+    repos_limit: -1,
+    price_monthly: 9.99,
+    ai_provider: 'user' as const,
+    description: 'Bring your own API key',
   },
   pro: {
     name: 'Pro',
     analyses_per_month: -1,
     repos_limit: -1,
-    price_monthly: 20, // Updated to $20 for profitability
+    price_monthly: 20,
+    ai_provider: 'builtin' as const,
+    description: 'All features included',
   },
 } as const
 

@@ -543,3 +543,78 @@ export async function getAllTemplates(): Promise<Template[]> {
   `
   return templates as Template[]
 }
+
+// API Key management queries
+export interface UserAPIKey {
+  id: string
+  user_id: string
+  provider: 'anthropic' | 'openai' | 'grok' | 'deepinfra'
+  enabled: boolean
+  created_at: string
+  last_used_at: string | null
+}
+
+export async function getUserAPIKeys(userId: string): Promise<UserAPIKey[]> {
+  const sql = getDb()
+  const keys = await sql`
+    SELECT id, user_id, provider, enabled, created_at, last_used_at 
+    FROM user_api_keys 
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `
+  return keys as UserAPIKey[]
+}
+
+export async function getUserAPIKey(userId: string, provider: string): Promise<UserAPIKey | null> {
+  const sql = getDb()
+  const keys = await sql`
+    SELECT id, user_id, provider, enabled, created_at, last_used_at 
+    FROM user_api_keys 
+    WHERE user_id = ${userId} AND provider = ${provider}
+    LIMIT 1
+  `
+  return (keys[0] as UserAPIKey) || null
+}
+
+export async function storeEncryptedAPIKey(
+  userId: string,
+  provider: string,
+  encryptedKey: string
+): Promise<UserAPIKey> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO user_api_keys (user_id, provider, encrypted_key, enabled)
+    VALUES (${userId}, ${provider}, ${encryptedKey}, true)
+    ON CONFLICT (user_id, provider) DO UPDATE
+    SET encrypted_key = EXCLUDED.encrypted_key, enabled = true, created_at = CURRENT_TIMESTAMP
+    RETURNING id, user_id, provider, enabled, created_at, last_used_at
+  `
+  return result[0] as UserAPIKey
+}
+
+export async function deleteAPIKey(userId: string, provider: string): Promise<boolean> {
+  const sql = getDb()
+  const result = await sql`
+    DELETE FROM user_api_keys 
+    WHERE user_id = ${userId} AND provider = ${provider}
+  `
+  return result.count > 0
+}
+
+export async function updateAPIKeyLastUsed(userId: string, provider: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE user_api_keys 
+    SET last_used_at = CURRENT_TIMESTAMP
+    WHERE user_id = ${userId} AND provider = ${provider}
+  `
+}
+
+export async function updatePreferredProvider(userId: string, provider: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE users 
+    SET preferred_ai_provider = ${provider}
+    WHERE id = ${userId}
+  `
+}
