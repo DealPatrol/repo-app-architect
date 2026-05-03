@@ -50,33 +50,27 @@ export function getAISDKModel(provider: AIProvider, apiKey?: string): string {
 }
 
 /**
- * Validate that an API key is valid for the given provider
+ * Validate that an API key has the correct format for the given provider
  */
-export async function validateAPIKey(provider: AIProvider, apiKey: string): Promise<boolean> {
-  try {
-    // Make a simple request to validate the API key
-    switch (provider) {
-      case 'anthropic':
-        // Test Anthropic key by checking if it's the right format
-        return apiKey.startsWith('sk-ant-') && apiKey.length > 20
-      case 'openai':
-        // Test OpenAI key format
-        return (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-')) && apiKey.length > 20
-      case 'grok':
-        // Test Grok/xAI key format
-        return apiKey.startsWith('xai-') && apiKey.length > 20
-      case 'deepinfra':
-        // Test DeepInfra key format
-        return apiKey.length > 20
-      case 'builtin':
-        // Builtin doesn't need validation
-        return true
-      default:
-        return false
-    }
-  } catch (error) {
-    console.error(`[v0] API key validation error for ${provider}:`, error)
-    return false
+export function validateAPIKeyFormat(provider: AIProvider, apiKey: string): boolean {
+  switch (provider) {
+    case 'anthropic':
+      // Test Anthropic key by checking if it's the right format
+      return apiKey.startsWith('sk-ant-') && apiKey.length > 20
+    case 'openai':
+      // Test OpenAI key format
+      return (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-')) && apiKey.length > 20
+    case 'grok':
+      // Test Grok/xAI key format
+      return apiKey.startsWith('xai-') && apiKey.length > 20
+    case 'deepinfra':
+      // Test DeepInfra key format
+      return apiKey.length > 20
+    case 'builtin':
+      // Builtin doesn't need validation
+      return true
+    default:
+      return false
   }
 }
 
