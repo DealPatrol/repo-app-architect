@@ -100,20 +100,7 @@ export async function generateTextWithProvider(
   return response.text
 }
 
-/**
- * Validate if an API key is valid for the provider
- */
-export async function validateAPIKey(provider: AIProvider, apiKey: string): Promise<boolean> {
-  try {
-    // Quick validation by attempting a small request
-    const testPrompt = 'Say "ok" in one word'
-    const response = await generateTextWithProvider(provider, testPrompt, apiKey, { maxTokens: 10 })
-    return response.length > 0
-  } catch (error) {
-    console.error(`[v0] API key validation failed for ${provider}:`, error)
-    return false
-  }
-}
+
 
 /**
  * Get provider display name
