@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAPIKeys, storeEncryptedAPIKey, deleteAPIKey } from '@/lib/queries'
-import { encryptAPIKey, validateAPIKey } from '@/lib/ai-providers'
+import { encryptAPIKey } from '@/lib/api-key-encryption'
+import { validateAPIKey } from '@/lib/ai-providers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,8 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Encrypt and store the key
-    const { encryptAPIKey: encryptKey } = await import('@/lib/api-key-encryption')
-    const encryptedKey = encryptKey(apiKey, user.id)
+    const encryptedKey = encryptAPIKey(apiKey, user.id)
     
     const stored = await storeEncryptedAPIKey(user.id, provider, encryptedKey)
 
