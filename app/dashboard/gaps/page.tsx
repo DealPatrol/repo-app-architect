@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { GapPriorityMatrix } from '@/components/gap-priority-matrix'
 import { MissingFileCard } from '@/components/missing-file-card'
-import { getAllMissingGaps, getGapSummary, type MissingFileGap } from '@/lib/queries'
+import { getAllMissingGaps, getGapSummary } from '@/lib/queries'
 import { groupGapsByPriority, calculateTotalEffort, gapCategories } from '@/lib/gap-priorities'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +25,7 @@ function LoadingSkeleton() {
 }
 
 async function GapsDashboardContent() {
-  let gaps: MissingFileGap[] = []
+  let gaps = []
   let summary = { total_gaps: 0, blocking_gaps: 0, total_hours: 0, by_category: {}, completed_count: 0 }
   let setupRequired = false
 
