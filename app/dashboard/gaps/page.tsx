@@ -25,8 +25,8 @@ function LoadingSkeleton() {
 }
 
 async function GapsDashboardContent() {
-  let gaps = []
-  let summary = { total_gaps: 0, blocking_gaps: 0, total_hours: 0, by_category: {}, completed_count: 0 }
+  let gaps: any[] = []
+  let summary: any = { total_gaps: 0, blocking_gaps: 0, total_hours: 0, by_category: {}, completed_count: 0 }
   let setupRequired = false
 
   try {
