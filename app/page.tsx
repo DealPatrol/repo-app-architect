@@ -79,7 +79,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                CodeVault scans your GitHub repositories and discovers products hiding across your codebase.
+                RepoFuse scans your GitHub repositories and discovers products hiding across your codebase.
                 Get AI-generated blueprints showing exactly what you can ship — and what&apos;s missing.
               </p>
 
@@ -143,7 +143,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         {/* Feature Cards */}
         <section className="container mx-auto px-4 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How CodeVault works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How RepoFuse works</h2>
             <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
               Three steps from scattered code to a launch-ready blueprint
             </p>
@@ -193,9 +193,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
                   Stop rebuilding what you already have
                 </h2>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                  Most teams have 60-80% of their next product scattered across existing repos. CodeVault finds those hidden assets and shows you the shortest path to shipping.
-                </p>
+              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                Most teams have 60-80% of their next product scattered across existing repos. RepoFuse finds those hidden assets and shows you the shortest path to shipping.
+              </p>
                 <ul className="space-y-4">
                   {[
                     'Identifies reusable components across all your repos',
@@ -280,7 +280,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <div className="h-7 w-7 rounded-lg bg-foreground/10 flex items-center justify-center">
                 <Layers className="h-4 w-4" />
               </div>
-              <span className="font-medium">CodeVault</span>
+              <span className="font-medium">RepoFuse</span>
             </div>
             <p>Powered by Claude AI · Built with Next.js</p>
           </div>
