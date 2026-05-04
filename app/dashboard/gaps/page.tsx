@@ -199,6 +199,7 @@ async function GapsDashboardContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(categoryGroups).map(([category, categoryGaps]) => {
               const cat = gapCategories[category] || gapCategories.other
+              const gaps_array = categoryGaps as any[]
               return (
                 <Card key={category} className="p-3">
                   <div className="flex items-start gap-2">
@@ -208,10 +209,10 @@ async function GapsDashboardContent() {
                         {cat.name}
                       </p>
                       <p className="text-lg font-bold">
-                        {categoryGaps.length}
+                        {gaps_array.length}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {Math.round(calculateTotalEffort(categoryGaps))}h
+                        {Math.round(calculateTotalEffort(gaps_array))}h
                       </p>
                     </div>
                   </div>
