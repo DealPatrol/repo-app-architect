@@ -75,8 +75,7 @@ export default function PricingPage() {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <RepoFuseLogo className="h-9 w-9" />
-            <span className="font-bold text-lg tracking-tight">RepoFuse</span>
+            <RepoFuseLogo className="h-12 w-12" />
           </Link>
           <nav className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
