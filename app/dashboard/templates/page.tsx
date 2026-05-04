@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TemplateAssemblyCard } from '@/components/template-assembly-card'
-import { getAllTemplates, getFeaturedTemplates, type Template } from '@/lib/queries'
+import { getAllTemplates, getFeaturedTemplates } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,8 +23,8 @@ function LoadingSkeleton() {
 }
 
 async function TemplateHubContent() {
-  let featured: Template[] = []
-  let all: Template[] = []
+  let featured = []
+  let all = []
   let setupRequired = false
 
   try {

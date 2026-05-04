@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Testimonials } from '@/components/testimonials'
 import { ImpactStats } from '@/components/impact-stats'
+import { RepoFuseLogo } from '@/components/repofuse-logo'
 import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check } from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -31,9 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
-              <Layers className="h-5 w-5 text-background" />
-            </div>
+            <RepoFuseLogo className="h-9 w-9" />
             <span className="font-bold text-lg tracking-tight">RepoFuse</span>
           </div>
           <nav className="flex items-center gap-4">

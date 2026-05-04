@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Check, ArrowRight, Sparkles, Github, Crown, Zap, Zap as Credits } from 'lucide-react'
+import { RepoFuseLogo } from '@/components/repofuse-logo'
 import { PLANS } from '@/lib/stripe'
 import { CREDITS } from '@/lib/credits'
 
@@ -74,9 +75,7 @@ export default function PricingPage() {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-chart-1 to-chart-1/80 flex items-center justify-center shadow-sm">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+            <RepoFuseLogo className="h-9 w-9" />
             <span className="font-bold text-lg tracking-tight">RepoFuse</span>
           </Link>
           <nav className="flex items-center gap-4">
