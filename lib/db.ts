@@ -1,33 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
-
-let supabaseClient: ReturnType<typeof createClient> | null = null
+import { neon } from '@neondatabase/serverless'
 
 export function getDb() {
-  if (supabaseClient) {
-    return supabaseClient
-  }
-
-  const supabaseUrl = process.env.SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseServiceKey) {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl) {
     throw new Error(
-      'Supabase environment variables are not set. ' +
-      'Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment variables.'
+      'DATABASE_URL environment variable is not set. ' +
+      'Please configure your Supabase database connection string in your environment variables.'
     )
   }
-
-  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    db: {
-      schema: 'public',
-    },
-  })
-
-  return supabaseClient
+  // Use Neon's HTTP driver which is browser-safe and works with Supabase PostgreSQL
+  return neon(databaseUrl, { fetchOptions: { cache: 'no-store' } })
 }
 
 // Export a validation function for startup checks
