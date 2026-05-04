@@ -1,29 +1,33 @@
-import postgres from 'postgres'
+import { createClient } from '@supabase/supabase-js'
 
-let sql: ReturnType<typeof postgres> | null = null
+let supabaseClient: ReturnType<typeof createClient> | null = null
 
 export function getDb() {
-  if (sql) {
-    return sql
+  if (supabaseClient) {
+    return supabaseClient
   }
 
-  const databaseUrl = process.env.DATABASE_URL
-  if (!databaseUrl) {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error(
-      'DATABASE_URL environment variable is not set. ' +
-      'Please configure your Supabase PostgreSQL connection string in your environment variables.'
+      'Supabase environment variables are not set. ' +
+      'Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment variables.'
     )
   }
 
-  // Create connection pool with Supabase
-  sql = postgres(databaseUrl, {
-    max: 20, // Connection pool size
-    idle_timeout: 30, // 30 seconds idle timeout
-    connect_timeout: 10, // 10 second connect timeout
-    prepare: true, // Use prepared statements
+  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    db: {
+      schema: 'public',
+    },
   })
 
-  return sql
+  return supabaseClient
 }
 
 // Export a validation function for startup checks
@@ -33,14 +37,6 @@ export function validateDatabaseConnection() {
     return { connected: true }
   } catch (error) {
     return { connected: false, error: String(error) }
-  }
-}
-
-// Close the database connection (for graceful shutdown)
-export async function closeDatabase() {
-  if (sql) {
-    await sql.end()
-    sql = null
   }
 }
 
