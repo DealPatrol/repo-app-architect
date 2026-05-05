@@ -35,8 +35,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { appName, description, technologies, existingFiles, missingFiles } = await request.json()
-
     if (!appName || !description || !technologies) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }

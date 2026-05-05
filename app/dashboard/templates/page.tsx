@@ -68,6 +68,8 @@ async function TemplateHubContent() {
         </Card>
       </div>
     )
+  }
+
   let featured: Awaited<ReturnType<typeof getFeaturedTemplates>> = []
   let all: Awaited<ReturnType<typeof getAllTemplates>> = []
 
