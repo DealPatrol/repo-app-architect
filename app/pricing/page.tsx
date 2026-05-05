@@ -73,19 +73,19 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex-1 flex items-center">
-            <RepoFuseLogo className="h-12 w-64 md:w-80" />
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <RepoFuseLogo className="h-40 w-full max-w-xl" />
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <nav className="flex items-center gap-8">
+            <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Dashboard
             </Link>
-            <Button size="sm" asChild>
+            <Button size="sm" variant="outline" className="border-border/60 hover:bg-accent" asChild>
               <Link href="/api/auth/github/login">
                 <Github className="h-4 w-4 mr-2" />
-                Sign in
+                Sign in with GitHub
               </Link>
             </Button>
           </nav>

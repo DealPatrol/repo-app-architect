@@ -277,10 +277,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/30">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center">
-              <RepoFuseLogo className="h-8 w-20" />
+              <RepoFuseLogo className="h-20 w-48" />
             </div>
             <p>Powered by Claude AI · Built with Next.js</p>
           </div>
