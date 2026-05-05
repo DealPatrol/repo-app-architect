@@ -8,7 +8,7 @@ export function RepoFuseLogo({ className = "h-9 w-9" }: { className?: string }) 
         alt="RepoFuse Logo" 
         width={400}
         height={100}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain object-left"
         priority
       />
     </div>
