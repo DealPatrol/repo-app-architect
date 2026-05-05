@@ -50,3 +50,5 @@ pnpm build      # production build (requires valid DATABASE_URL at build time)
 - `pnpm install` may show a warning about ignored build scripts for `sharp` and `unrs-resolver`. These do not affect development.
 - The GitHub OAuth env vars in this repo use `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (not `GITHUB_ID` / `GITHUB_SECRET`). If secrets are injected under different names, map them in `.env.local`.
 - `NEXT_PUBLIC_APP_URL` must be set to the local dev server URL (default port 3000) for local OAuth callback redirects to work.
+- Next.js 16 emits a console warning: `The "middleware" file convention is deprecated. Please use "proxy" instead.` This is a cosmetic warning from the Next.js 16 migration and does not affect functionality — the middleware works correctly.
+- Node.js 20 and pnpm must be installed in the VM. The update script handles this via NodeSource and `npm install -g pnpm`.
