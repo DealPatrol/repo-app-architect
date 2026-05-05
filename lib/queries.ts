@@ -90,6 +90,12 @@ export async function getSubscriptionByStripeCustomerId(customerId: string): Pro
   return (rows[0] as Subscription) || null
 }
 
+export async function getUserByGithubId(githubId: number): Promise<{ id: string; github_id: number } | null> {
+  const sql = getDb()
+  const rows = await sql`SELECT id, github_id FROM user_auth WHERE github_id = ${githubId} LIMIT 1`
+  return (rows[0] as { id: string; github_id: number }) || null
+}
+
 export async function upsertSubscription(data: {
   github_id: number
   stripe_customer_id?: string | null
@@ -536,4 +542,149 @@ export async function getAllTemplates(): Promise<Template[]> {
     ORDER BY tier, estimated_hours ASC
   `
   return templates as Template[]
+}
+
+// API Key management queries
+export interface UserAPIKey {
+  id: string
+  user_id: string
+  provider: 'anthropic' | 'openai' | 'grok' | 'deepinfra'
+  enabled: boolean
+  created_at: string
+  last_used_at: string | null
+}
+
+export async function getUserAPIKeys(userId: string): Promise<UserAPIKey[]> {
+  const sql = getDb()
+  const keys = await sql`
+    SELECT id, user_id, provider, enabled, created_at, last_used_at 
+    FROM user_api_keys 
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `
+  return keys as UserAPIKey[]
+}
+
+export async function getUserAPIKey(userId: string, provider: string): Promise<UserAPIKey | null> {
+  const sql = getDb()
+  const keys = await sql`
+    SELECT id, user_id, provider, enabled, created_at, last_used_at 
+    FROM user_api_keys 
+    WHERE user_id = ${userId} AND provider = ${provider}
+    LIMIT 1
+  `
+  return (keys[0] as UserAPIKey) || null
+}
+
+export async function storeEncryptedAPIKey(
+  userId: string,
+  provider: string,
+  encryptedKey: string
+): Promise<UserAPIKey> {
+  const sql = getDb()
+  const result = await sql`
+    INSERT INTO user_api_keys (user_id, provider, encrypted_key, enabled)
+    VALUES (${userId}, ${provider}, ${encryptedKey}, true)
+    ON CONFLICT (user_id, provider) DO UPDATE
+    SET encrypted_key = EXCLUDED.encrypted_key, enabled = true, created_at = CURRENT_TIMESTAMP
+    RETURNING id, user_id, provider, enabled, created_at, last_used_at
+  `
+  return result[0] as UserAPIKey
+}
+
+export async function deleteAPIKey(userId: string, provider: string): Promise<boolean> {
+  const sql = getDb()
+  const result = await sql`
+    DELETE FROM user_api_keys 
+    WHERE user_id = ${userId} AND provider = ${provider}
+  `
+  return result.count > 0
+}
+
+export async function updateAPIKeyLastUsed(userId: string, provider: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE user_api_keys 
+    SET last_used_at = CURRENT_TIMESTAMP
+    WHERE user_id = ${userId} AND provider = ${provider}
+  `
+}
+
+export async function updatePreferredProvider(userId: string, provider: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE users 
+    SET preferred_ai_provider = ${provider}
+    WHERE id = ${userId}
+  `
+}
+
+// Blueprint view tracking for usage limits
+export interface BlueprintView {
+  id: string
+  user_id: string
+  blueprint_id: string
+  first_viewed_at: string
+  view_count: number
+  last_viewed_at: string
+}
+
+export async function trackBlueprintView(userId: string, blueprintId: string): Promise<void> {
+  try {
+    const sql = getDb()
+    await sql`
+      INSERT INTO blueprint_views (user_id, blueprint_id, first_viewed_at, view_count, last_viewed_at)
+      VALUES (${userId}, ${blueprintId}, NOW(), 1, NOW())
+      ON CONFLICT (user_id, blueprint_id) 
+      DO UPDATE SET 
+        view_count = blueprint_views.view_count + 1,
+        last_viewed_at = NOW()
+    `
+  } catch {
+    // Table may not exist yet - silently ignore
+  }
+}
+
+export async function countUserBlueprintViews(userId: string): Promise<number> {
+  try {
+    const sql = getDb()
+    const result = await sql`
+      SELECT COUNT(*) as count FROM blueprint_views WHERE user_id = ${userId}
+    `
+    return Number(result[0]?.count || 0)
+  } catch {
+    // Table may not exist yet - return 0
+    return 0
+  }
+}
+
+export async function getUserViewedBlueprintIds(userId: string): Promise<string[]> {
+  try {
+    const sql = getDb()
+    const result = await sql`
+      SELECT blueprint_id FROM blueprint_views WHERE user_id = ${userId}
+    `
+    return (result || []).map((r: { blueprint_id: string }) => r.blueprint_id)
+  } catch {
+    // Table may not exist yet - return empty array
+    return []
+  }
+}
+
+export async function canViewBlueprint(userId: string, blueprintId: string, limit: number): Promise<boolean> {
+  try {
+    const sql = getDb()
+    // Check if already viewed
+    const alreadyViewed = await sql`
+      SELECT 1 FROM blueprint_views WHERE user_id = ${userId} AND blueprint_id = ${blueprintId}
+    `
+    if (alreadyViewed.length > 0) return true
+    
+    // Check if under limit
+    const viewCount = await countUserBlueprintViews(userId)
+    return viewCount < limit
+  } catch {
+    // Table may not exist yet - allow view
+    return true
+  }
 }

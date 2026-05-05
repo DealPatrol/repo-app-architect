@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { CreditsDisplay } from '@/components/credits-display'
 import {
   CreditCard,
   Sparkles,
@@ -21,10 +22,14 @@ interface BillingClientProps {
   planName: string
   analysesUsed: number
   analysesLimit: number
+  blueprintsUsed?: number
+  blueprintsLimit?: number
   reposLimit: number
   status: string
   currentPeriodEnd: string | null
   hasStripeCustomer: boolean
+  userId?: string
+  isTrialing?: boolean
 }
 
 export function BillingClient({
@@ -32,10 +37,14 @@ export function BillingClient({
   planName,
   analysesUsed,
   analysesLimit,
+  blueprintsUsed = 0,
+  blueprintsLimit = 2,
   reposLimit,
   status,
   currentPeriodEnd,
   hasStripeCustomer,
+  userId,
+  isTrialing = false,
 }: BillingClientProps) {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
@@ -162,7 +171,7 @@ export function BillingClient({
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                Upgrade to Pro — $19/mo
+                Upgrade to Pro — 7 days free, then $20/mo
               </Button>
             ) : null}
           </div>
@@ -203,6 +212,27 @@ export function BillingClient({
               )}
             </div>
 
+            {/* Blueprint views for free users */}
+            {!isPro && blueprintsLimit > 0 && (
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Blueprints Viewed</span>
+                  <span className="font-medium text-foreground">
+                    {blueprintsUsed} / {blueprintsLimit}
+                  </span>
+                </div>
+                <Progress value={Math.min(100, Math.round((blueprintsUsed / blueprintsLimit) * 100))} className="h-2" />
+                {blueprintsUsed >= blueprintsLimit && (
+                  <p className="text-xs text-destructive mt-2">
+                    You&apos;ve viewed all your free blueprints.{' '}
+                    <button onClick={handleUpgrade} className="underline font-medium hover:no-underline">
+                      Upgrade for unlimited
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
+
             {!isPro && (
               <div className="rounded-xl border border-chart-1/20 bg-chart-1/5 p-4">
                 <div className="flex items-start gap-3">
@@ -223,6 +253,17 @@ export function BillingClient({
           </div>
         </Card>
       </div>
+
+      {/* Credits Section for Pro Users */}
+      {isPro && userId && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">Credits & Usage</h2>
+            <p className="text-sm text-muted-foreground">Track your credits and see how they're used</p>
+          </div>
+          <CreditsDisplay userId={userId} />
+        </div>
+      )}
 
       {/* Compare plans */}
       {!isPro && (

@@ -5,9 +5,10 @@ export function getDb() {
   if (!databaseUrl) {
     throw new Error(
       'DATABASE_URL environment variable is not set. ' +
-      'Please configure your Neon database connection string in your environment variables.'
+      'Please configure your Supabase database connection string in your environment variables.'
     )
   }
+  // Use Neon's HTTP driver which is browser-safe and works with Supabase PostgreSQL
   return neon(databaseUrl, { fetchOptions: { cache: 'no-store' } })
 }
 

@@ -25,6 +25,49 @@ function LoadingSkeleton() {
 }
 
 async function GapsDashboardContent() {
+  let gaps: any[] = []
+  let summary: any = { total_gaps: 0, blocking_gaps: 0, total_hours: 0, by_category: {}, completed_count: 0 }
+  let setupRequired = false
+
+  try {
+    [gaps, summary] = await Promise.all([
+      getAllMissingGaps(),
+      getGapSummary(),
+    ])
+  } catch (error) {
+    console.error('[v0] Failed to fetch gaps:', error)
+    setupRequired = true
+  }
+
+  if (setupRequired || !gaps.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/analyses">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">Missing Code Dashboard</h1>
+            <p className="text-muted-foreground">Strategic view of everything that needs to be built</p>
+          </div>
+        </div>
+
+        <Card className="p-12 text-center border-2 border-dashed">
+          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">No gaps found yet</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Run an analysis on your repositories first to discover missing code that needs to be built.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/analyses">
+              Run an Analysis
+            </Link>
+          </Button>
+        </Card>
+      </div>
+    )
   let gaps: Awaited<ReturnType<typeof getAllMissingGaps>> = []
   let summary: Awaited<ReturnType<typeof getGapSummary>> = {
     total_gaps: 0,
@@ -172,6 +215,7 @@ async function GapsDashboardContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(categoryGroups).map(([category, categoryGaps]) => {
               const cat = gapCategories[category] || gapCategories.other
+              const gaps_array = categoryGaps as any[]
               return (
                 <Card key={category} className="p-3">
                   <div className="flex items-start gap-2">
@@ -181,10 +225,10 @@ async function GapsDashboardContent() {
                         {cat.name}
                       </p>
                       <p className="text-lg font-bold">
-                        {categoryGaps.length}
+                        {gaps_array.length}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {Math.round(calculateTotalEffort(categoryGaps))}h
+                        {Math.round(calculateTotalEffort(gaps_array))}h
                       </p>
                     </div>
                   </div>

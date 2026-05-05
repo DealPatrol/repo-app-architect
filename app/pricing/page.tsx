@@ -1,42 +1,70 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Check, Layers, ArrowRight, Sparkles, Github } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, Github, Crown, Zap, Zap as Credits } from 'lucide-react'
+import { RepoFuseLogo } from '@/components/repofuse-logo'
+import { PLANS } from '@/lib/stripe'
+import { CREDITS } from '@/lib/credits'
 
 const plans = [
   {
     name: 'Free',
     price: '$0',
     period: 'forever',
-    description: 'For individuals exploring their codebase',
+    description: 'Perfect for exploring and learning',
     features: [
-      'Up to 5 repositories',
-      '3 analyses per month',
-      'AI-powered blueprints',
-      'Export as JSON',
-      'Build plan downloads',
+      `Up to ${PLANS.free.repos_limit} repositories`,
+      `${PLANS.free.blueprints_viewable} blueprint views`,
+      'AI-powered app blueprints',
+      'Gap discovery & analysis',
+      'Template browsing',
+      'JSON export',
     ],
+    icon: Zap,
     cta: 'Get Started Free',
     ctaHref: '/api/auth/github/login',
     highlighted: false,
   },
   {
-    name: 'Pro',
-    price: '$19',
+    name: 'BYOK',
+    price: `$${PLANS.byok.price_monthly}`,
     period: '/month',
-    description: 'For teams shipping faster with code reuse',
+    description: 'Bring your own API key',
     features: [
       'Unlimited repositories',
       'Unlimited analyses',
-      'AI-powered blueprints',
-      'Export as JSON & PDF',
-      'Build plan downloads',
-      'Scaffold generation',
-      'Priority AI processing',
-      'GitHub repo creation from blueprints',
+      'Use your own API keys',
+      'Support for Anthropic, OpenAI, Grok, DeepInfra',
+      'Up to 95% cheaper than Pro',
+      'Full feature access',
+      'Cancel anytime',
+      'Perfect for cost-conscious builders',
     ],
-    cta: 'Start Pro Plan',
-    ctaHref: '/api/auth/github/login',
+    icon: Sparkles,
+    cta: 'Start BYOK',
+    ctaHref: '/dashboard/settings',
+    highlighted: false,
+  },
+  {
+    name: 'Pro',
+    price: `$${PLANS.pro.price_monthly}`,
+    period: '/month',
+    description: '7 days free, then $20/mo',
+    features: [
+      '7-day free trial',
+      'Unlimited repositories',
+      'Unlimited analyses',
+      'AI-powered app blueprints',
+      'Scaffold code generation',
+      'Template assembly hub',
+      'Priority AI processing',
+      'Complete gap roadmaps',
+      `${CREDITS.INITIAL_GRANT.toLocaleString()} monthly credits`,
+      'Cancel anytime',
+    ],
+    icon: Crown,
+    cta: 'Start 7-Day Free Trial',
+    ctaHref: '/dashboard/billing',
     highlighted: true,
   },
 ]
@@ -48,6 +76,7 @@ export default function PricingPage() {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
+            <RepoFuseLogo className="h-12 w-32" />
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
               <Layers className="h-5 w-5 text-background" />
             </div>
@@ -77,7 +106,7 @@ export default function PricingPage() {
             Choose your plan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free and upgrade when you need unlimited analyses and premium features.
+            Start free and upgrade when you're ready for unlimited analyses, scaffold generation, and more.
           </p>
         </div>
 

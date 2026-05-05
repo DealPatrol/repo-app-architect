@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicModel } from '@/lib/anthropic-model'
+import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
+
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 import { getCurrentUser } from '@/lib/auth'
 import { getSubscriptionByGithubId, upsertSubscription } from '@/lib/queries'
 
@@ -13,6 +18,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { appName, description, technologies, existingFiles, missingFiles, userId } = await request.json()
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Sign in with GitHub to generate scaffolds.' }, { status: 401 })
@@ -35,6 +41,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Check credit balance before proceeding
+    if (userId) {
+      const currentBalance = await getCreditBalance(userId)
+      if (currentBalance < CREDITS.SCAFFOLD_COST) {
+        return NextResponse.json(
+          {
+            error: 'Insufficient credits',
+            required: CREDITS.SCAFFOLD_COST,
+            available: currentBalance,
+            message: 'Upgrade to Pro to get unlimited scaffold generation with 5,000 monthly credits.',
+          },
+          { status: 402 }
+        )
+      }
+    }
+
+    console.log('[v0] Generating scaffold for app:', appName)
+    console.log('[v0] Calling Claude with model:', getAnthropicModel())
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await client.messages.create({
@@ -114,10 +138,27 @@ Example structure:
       throw new Error(`Failed to parse scaffold: ${e instanceof Error ? e.message : 'Invalid JSON'}`)
     }
 
+    console.log('[v0] Scaffold generated successfully')
+
+    // Deduct credits after successful generation
+    let creditsUsed = 0
+    if (userId) {
+      const deductResult = await deductCredits(userId, CREDITS.SCAFFOLD_COST, 'scaffold', {
+        appName,
+        technologies,
+      })
+      
+      if (deductResult.success) {
+        creditsUsed = CREDITS.SCAFFOLD_COST
+        console.log(`[v0] Deducted ${CREDITS.SCAFFOLD_COST} credits from user ${userId}`)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       scaffold,
       appName,
+      creditsUsed,
     })
   } catch (error) {
     console.error('[scaffold] Generation error:', error)

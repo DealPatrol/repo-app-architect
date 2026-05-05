@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Testimonials } from '@/components/testimonials'
+import { ImpactStats } from '@/components/impact-stats'
+import { RepoFuseLogo } from '@/components/repofuse-logo'
 import { Github, Sparkles, Code2, Layers, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check } from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -29,6 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
+            <RepoFuseLogo className="h-14 w-40" />
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
               <Layers className="h-5 w-5 text-background" />
             </div>
@@ -193,6 +197,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
                   Stop rebuilding what you already have
                 </h2>
+              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                Most teams have 60-80% of their next product scattered across existing repos. RepoFuse finds those hidden assets and shows you the shortest path to shipping.
+              </p>
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                   Most teams have 60-80% of their next product scattered across existing repos. RepoFuse finds those hidden assets and shows you the shortest path to shipping.
                 </p>
@@ -243,6 +250,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
         </section>
+
+        {/* Impact Stats */}
+        <ImpactStats />
+
+        {/* Testimonials */}
+        <Testimonials />
 
         {/* CTA Section */}
         <section className="border-t border-border/50">

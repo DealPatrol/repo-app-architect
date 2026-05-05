@@ -19,6 +19,8 @@ import {
   Plus,
   Zap,
   Download,
+  Lock,
+  Crown,
 } from 'lucide-react'
 import type { Analysis, Repository, AppBlueprint } from '@/lib/queries'
 import {
@@ -36,6 +38,10 @@ interface AnalysisDetailProps {
   analysis: Analysis
   repositories: Repository[]
   blueprints: AppBlueprint[]
+  blueprintLimit?: number
+  viewedBlueprintIds?: string[]
+  isTrialing?: boolean
+  userPlan?: string
 }
 
 const statusConfig: Record<Analysis['status'], {
@@ -58,8 +64,19 @@ const complexityColors = {
   complex: 'bg-chart-5/20 text-chart-5',
 }
 
-export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisDetailProps) {
+export function AnalysisDetail({ 
+  analysis, 
+  repositories, 
+  blueprints, 
+  blueprintLimit = -1,
+  viewedBlueprintIds = [],
+  isTrialing = false,
+  userPlan = 'free',
+}: AnalysisDetailProps) {
   const router = useRouter()
+  const [trackedViews, setTrackedViews] = useState<Set<string>>(new Set(viewedBlueprintIds))
+  const isFreePlan = userPlan === 'free' && !isTrialing
+  const viewLimit = blueprintLimit > 0 ? blueprintLimit : Infinity
   const [scaffoldLoadingId, setScaffoldLoadingId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [status, setStatus] = useState(analysis.status)
@@ -452,7 +469,52 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                     <p className="text-sm text-muted-foreground max-w-3xl">{meta.subtitle}</p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    {inTier.map((blueprint) => (
+                    {inTier.map((blueprint, idx) => {
+                      // Check if this blueprint is viewable
+                      const isViewed = trackedViews.has(blueprint.id)
+                      const currentViewCount = trackedViews.size
+                      const canView = !isFreePlan || isViewed || currentViewCount < viewLimit
+                      const isLocked = isFreePlan && !canView
+
+                      // Track view when first rendered (if allowed)
+                      if (canView && !isViewed && isFreePlan) {
+                        // Track this view
+                        fetch('/api/blueprints/track-view', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ blueprintId: blueprint.id }),
+                        }).catch(() => {})
+                        setTrackedViews(prev => new Set([...prev, blueprint.id]))
+                      }
+
+                      if (isLocked) {
+                        return (
+                          <Card key={blueprint.id} className="p-6 flex flex-col border-dashed opacity-75">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Lock className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                                  Locked
+                                </span>
+                              </div>
+                            </div>
+                            <h3 className="font-semibold text-muted-foreground text-lg mb-2">{blueprint.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{blueprint.description}</p>
+                            <div className="pt-4 border-t border-border">
+                              <Link href="/pricing">
+                                <Button size="sm" className="w-full">
+                                  <Crown className="h-4 w-4 mr-2" />
+                                  Upgrade to View — 7 days free
+                                </Button>
+                              </Link>
+                            </div>
+                          </Card>
+                        )
+                      }
+
+                      return (
                       <Card key={blueprint.id} className="p-6 flex flex-col">
                         <div className="flex items-start justify-between mb-4">
                           <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
@@ -561,7 +623,8 @@ export function AnalysisDetail({ analysis, repositories, blueprints }: AnalysisD
                           </div>
                         ) : null}
                       </Card>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )

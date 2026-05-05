@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
+import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
+import { getAnalysisById } from '@/lib/queries'
 
 const model = 'openai/gpt-4-turbo'
 
@@ -20,9 +22,28 @@ interface AppSuggestion {
 
 export async function POST(request: NextRequest) {
   try {
-    const { analysisId, selectedRepos } = (await request.json()) as {
+    const { analysisId, selectedRepos, userId } = (await request.json()) as {
       analysisId: string
       selectedRepos: SelectedRepository[]
+      userId: string
+    }
+
+    // Check credit balance before proceeding
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 401 })
+    }
+
+    const currentBalance = await getCreditBalance(userId)
+    if (currentBalance < CREDITS.ANALYSIS_COST) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient credits',
+          required: CREDITS.ANALYSIS_COST,
+          available: currentBalance,
+          message: 'Upgrade to Pro to get unlimited analyses with 5,000 monthly credits.',
+        },
+        { status: 402 }
+      )
     }
 
     // Get all repo files from database
@@ -74,11 +95,29 @@ Return as JSON array of app suggestions. Focus on practical, buildable applicati
       console.error('Failed to parse AI response:', e)
     }
 
+    // Deduct credits for successful analysis
+    const deductResult = await deductCredits(userId, CREDITS.ANALYSIS_COST, 'analysis', {
+      analysisId,
+      selectedRepos: selectedRepos.map((r) => r.name),
+    })
+
+    if (!deductResult.success) {
+      console.error('[v0] Failed to deduct credits:', deductResult.error)
+      return NextResponse.json(
+        { error: 'Failed to process analysis' },
+        { status: 500 }
+      )
+    }
+
+    const newBalance = deductResult.transaction?.balance_after || 0
+
     return NextResponse.json({
       analysisId,
       suggestions,
       totalSuggestions: suggestions.length,
       completeSuggestions: suggestions.filter((suggestion) => suggestion.is_complete).length,
+      creditsUsed: CREDITS.ANALYSIS_COST,
+      creditsRemaining: newBalance,
     })
   } catch (error) {
     console.error('Analysis error:', error)

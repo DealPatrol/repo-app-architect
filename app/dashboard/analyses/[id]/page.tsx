@@ -4,7 +4,11 @@ import {
   getAnalysisById,
   getBlueprintsByAnalysis,
   getRepositoriesForAnalysis,
+  getSubscriptionByGithubId,
+  getUserViewedBlueprintIds,
 } from '@/lib/queries'
+import { getCurrentUser } from '@/lib/auth'
+import { PLANS } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,10 +18,14 @@ export default async function AnalysisDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const user = await getCurrentUser()
 
   let analysis = null
-  let repositories = []
-  let blueprints = []
+  let repositories: any[] = []
+  let blueprints: any[] = []
+  let userPlan = 'free'
+  let viewedBlueprintIds: string[] = []
+  let isTrialing = false
 
   try {
     ;[analysis, repositories, blueprints] = await Promise.all([
@@ -25,6 +33,17 @@ export default async function AnalysisDetailPage({
       getRepositoriesForAnalysis(id),
       getBlueprintsByAnalysis(id),
     ])
+
+    if (user) {
+      const [subscription, viewedIds] = await Promise.all([
+        getSubscriptionByGithubId(user.github_id),
+        getUserViewedBlueprintIds(user.id),
+      ])
+      userPlan = subscription?.plan || 'free'
+      viewedBlueprintIds = viewedIds
+      // Check if in trial via Stripe (subscription status = 'trialing')
+      isTrialing = subscription?.status === 'trialing'
+    }
   } catch {
     notFound()
   }
@@ -33,11 +52,18 @@ export default async function AnalysisDetailPage({
     notFound()
   }
 
+  const planConfig = PLANS[userPlan as keyof typeof PLANS] || PLANS.free
+  const blueprintLimit = planConfig.blueprints_viewable
+
   return (
     <AnalysisDetail
       analysis={analysis}
       repositories={repositories}
       blueprints={blueprints}
+      blueprintLimit={blueprintLimit}
+      viewedBlueprintIds={viewedBlueprintIds}
+      isTrialing={isTrialing}
+      userPlan={userPlan}
     />
   )
 }
