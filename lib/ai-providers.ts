@@ -94,7 +94,7 @@ export async function generateTextWithProvider(
   const response = await generateText({
     model,
     prompt,
-    maxTokens: options?.maxTokens || 4096,
+    maxOutputTokens: options?.maxTokens || 4096,
   })
 
   return response.text
