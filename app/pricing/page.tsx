@@ -75,12 +75,8 @@ export default function PricingPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center">
             <RepoFuseLogo className="h-12 w-32" />
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
-              <Layers className="h-5 w-5 text-background" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">RepoFuse</span>
           </Link>
           <nav className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

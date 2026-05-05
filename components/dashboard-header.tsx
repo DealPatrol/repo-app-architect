@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Github, BarChart3, FolderGit2, Sparkles, CreditCard } from 'lucide-react'
+import { Github, BarChart3, FolderGit2, Sparkles, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RepoFuseLogo } from '@/components/repofuse-logo'
 import type { AuthUser } from '@/lib/auth'
@@ -26,12 +26,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <RepoFuseLogo className="h-12 w-28" />
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                <Layers className="h-5 w-5 text-background" />
-              </div>
-              <span className="font-bold text-lg tracking-tight">RepoFuse</span>
+            <Link href="/" className="flex items-center group">
+              <RepoFuseLogo className="h-12 w-32" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
