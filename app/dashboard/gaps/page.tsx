@@ -68,13 +68,6 @@ async function GapsDashboardContent() {
         </Card>
       </div>
     )
-  let gaps: Awaited<ReturnType<typeof getAllMissingGaps>> = []
-  let summary: Awaited<ReturnType<typeof getGapSummary>> = {
-    total_gaps: 0,
-    blocking_gaps: 0,
-    total_hours: 0,
-    completed_count: 0,
-    by_category: {},
   }
 
   try {
