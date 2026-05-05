@@ -5,14 +5,13 @@ import { PLATFORMS } from '@/lib/platform-config'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Github, Zap, GitBranch, Code2, CheckCircle2, type LucideIcon } from 'lucide-react'
+import { Github, Zap, GitBranch, CheckCircle2, type LucideIcon } from 'lucide-react'
 
 const platformIcons: Record<string, LucideIcon> = {
   github: Github,
   vercel: Zap,
   gitlab: GitBranch,
-  replit: Code2,
-  netlify: Zap,
+  bitbucket: GitBranch,
 }
 
 export function PlatformSelector() {
@@ -70,9 +69,8 @@ export function PlatformSelector() {
                     <p className="text-xs text-muted-foreground">
                       {platform.id === 'github' && 'Git repositories'}
                       {platform.id === 'vercel' && 'Deployed projects'}
-                      {platform.id === 'replit' && 'Replit repls'}
                       {platform.id === 'gitlab' && 'GitLab repos'}
-                      {platform.id === 'netlify' && 'Netlify sites'}
+                      {platform.id === 'bitbucket' && 'Bitbucket repos'}
                     </p>
                   </div>
                 </div>
