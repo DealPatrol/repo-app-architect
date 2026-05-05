@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { getStripe } from '@/lib/stripe'
+import { isStripeConfigured, getStripe } from '@/lib/stripe'
 import { getSubscriptionByGithubId } from '@/lib/queries'
 
 export async function POST() {
   try {
+    if (!isStripeConfigured()) {
+      return NextResponse.json({ error: 'Billing is not configured yet. Please contact support.' }, { status: 503 })
+    }
+
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -12,7 +16,7 @@ export async function POST() {
 
     const sub = await getSubscriptionByGithubId(user.github_id)
     if (!sub?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No billing account found' }, { status: 404 })
+      return NextResponse.json({ error: 'No billing account found. Upgrade to Pro first.' }, { status: 404 })
     }
 
     const stripe = getStripe()
@@ -26,6 +30,6 @@ export async function POST() {
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('Stripe portal error:', error)
-    return NextResponse.json({ error: 'Failed to create portal session' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to open billing portal. Please try again.' }, { status: 500 })
   }
 }

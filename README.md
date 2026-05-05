@@ -102,7 +102,7 @@ scripts/
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd codevault-backend
+cd repofuse-backend
 ```
 
 2. **Install dependencies**

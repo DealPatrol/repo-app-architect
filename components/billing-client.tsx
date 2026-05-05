@@ -56,14 +56,14 @@ export function BillingClient({
     setCheckoutLoading(true)
     try {
       const res = await fetch('/api/stripe/checkout', { method: 'POST' })
-      const data = await res.json()
-      if (data.url) {
+      const data = await res.json().catch(() => ({ error: 'Unexpected server error' }))
+      if (res.ok && data.url) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Failed to start checkout')
+        alert(data.error || 'Billing is not available right now. Please try again later.')
       }
     } catch {
-      alert('Failed to start checkout')
+      alert('Could not connect to billing. Please check your connection and try again.')
     } finally {
       setCheckoutLoading(false)
     }
@@ -73,14 +73,14 @@ export function BillingClient({
     setPortalLoading(true)
     try {
       const res = await fetch('/api/stripe/portal', { method: 'POST' })
-      const data = await res.json()
-      if (data.url) {
+      const data = await res.json().catch(() => ({ error: 'Unexpected server error' }))
+      if (res.ok && data.url) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Failed to open billing portal')
+        alert(data.error || 'Billing portal is not available right now. Please try again later.')
       }
     } catch {
-      alert('Failed to open billing portal')
+      alert('Could not connect to billing. Please check your connection and try again.')
     } finally {
       setPortalLoading(false)
     }

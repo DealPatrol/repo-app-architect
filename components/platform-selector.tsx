@@ -48,7 +48,7 @@ export function PlatformSelector() {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Connect Your Platforms</h2>
         <p className="text-muted-foreground">
-          Connect your code platforms so CodeVault can analyze all your code in one place.
+          Connect your code platforms so RepoFuse can analyze all your code in one place.
         </p>
       </div>
 
@@ -99,7 +99,7 @@ export function PlatformSelector() {
 
       <div className="p-4 rounded-lg bg-muted/50 border border-border">
         <p className="text-sm text-muted-foreground">
-          <strong>Why connect multiple platforms?</strong> CodeVault scans all your connected platforms to find reusable code patterns and discover applications you can build by combining code from different sources.
+          <strong>Why connect multiple platforms?</strong> RepoFuse scans all your connected platforms to find reusable code patterns and discover applications you can build by combining code from different sources.
         </p>
       </div>
     </div>

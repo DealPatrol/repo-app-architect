@@ -6,6 +6,8 @@ import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
+import { getCurrentUser } from '@/lib/auth'
+import { getSubscriptionByGithubId, upsertSubscription } from '@/lib/queries'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +19,23 @@ export async function POST(request: NextRequest) {
     }
 
     const { appName, description, technologies, existingFiles, missingFiles, userId } = await request.json()
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in with GitHub to generate scaffolds.' }, { status: 401 })
+    }
+
+    let sub = await getSubscriptionByGithubId(user.github_id).catch(() => null)
+    if (!sub) {
+      sub = await upsertSubscription({ github_id: user.github_id }).catch(() => null)
+    }
+    if (sub?.plan !== 'pro') {
+      return NextResponse.json(
+        { error: 'Scaffold generation is a Pro feature. Upgrade your plan to use it.' },
+        { status: 403 },
+      )
+    }
+
+    const { appName, description, technologies, existingFiles, missingFiles } = await request.json()
 
     if (!appName || !description || !technologies) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -40,20 +59,20 @@ export async function POST(request: NextRequest) {
 
     console.log('[v0] Generating scaffold for app:', appName)
     console.log('[v0] Calling Claude with model:', getAnthropicModel())
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    // Generate scaffold structure using Claude
     const response = await client.messages.create({
       model: getAnthropicModel(),
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [
         {
           role: 'user',
           content: `Generate a complete project scaffold for "${appName}".
 
 Description: ${description}
-Technologies: ${technologies.join(', ')}
-Existing files available: ${existingFiles.join(', ')}
-Missing files to generate: ${missingFiles.join(', ')}
+Technologies: ${(technologies ?? []).join(', ')}
+Existing files available: ${(existingFiles ?? []).join(', ')}
+Missing files to generate: ${(missingFiles ?? []).join(', ')}
 
 Create a JSON object with:
 1. "structure": Object mapping folder/file paths to descriptions
@@ -90,53 +109,33 @@ Example structure:
       throw new Error('Unexpected response type from Claude')
     }
 
-    // Parse the JSON response with better error handling
     let scaffold
     try {
       const raw = content.text.trim()
-      
-      console.log('[v0] Raw Claude response length:', raw.length)
-      console.log('[v0] First 200 chars:', raw.substring(0, 200))
-      
-      // Extract JSON from various markdown formats
       let jsonStr = raw
-      
-      // Remove markdown code blocks
+
       if (jsonStr.includes('```')) {
         const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
         if (match && match[1]) {
           jsonStr = match[1].trim()
-          console.log('[v0] Extracted JSON from markdown')
         }
       }
-      
-      // Try to find JSON object if there's extra text
+
       if (!jsonStr.startsWith('{')) {
         const objMatch = jsonStr.match(/\{[\s\S]*\}/)
         if (objMatch) {
           jsonStr = objMatch[0]
-          console.log('[v0] Extracted JSON object from text')
         }
       }
-      
-      console.log('[v0] JSON string to parse length:', jsonStr.length)
-      
-      // Parse JSON
+
       scaffold = JSON.parse(jsonStr)
-      
-      // Validate structure
-      if (!scaffold.structure || !scaffold.files) {
-        console.error('[v0] Invalid scaffold structure')
-        throw new Error('Invalid scaffold structure - missing required fields (structure, files)')
+
+      if (!scaffold.structure && !scaffold.files) {
+        throw new Error('Invalid scaffold structure - missing required fields')
       }
-      
-      console.log('[v0] Successfully parsed scaffold with', Object.keys(scaffold.structure).length, 'structure items')
     } catch (e) {
-      console.error('[v0] Failed to parse Claude response:', {
-        error: e instanceof Error ? e.message : String(e),
-        rawContent: content.text.substring(0, 500),
-      })
-      throw new Error(`Failed to parse scaffold generation: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      console.error('[scaffold] Failed to parse Claude response:', content.text.slice(0, 500))
+      throw new Error(`Failed to parse scaffold: ${e instanceof Error ? e.message : 'Invalid JSON'}`)
     }
 
     console.log('[v0] Scaffold generated successfully')
@@ -162,13 +161,9 @@ Example structure:
       creditsUsed,
     })
   } catch (error) {
-    console.error('[v0] Scaffold generation error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate scaffold'
+    console.error('[scaffold] Generation error:', error)
     return NextResponse.json(
-      { 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
-      },
+      { error: error instanceof Error ? error.message : 'Failed to generate scaffold' },
       { status: 500 }
     )
   }

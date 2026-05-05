@@ -8,11 +8,17 @@ export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
 
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return NextResponse.json({ error: 'Missing signature or webhook secret' }, { status: 400 })
+  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET || !process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 400 })
   }
 
-  const stripe = getStripe()
+  let stripe: ReturnType<typeof getStripe>
+  try {
+    stripe = getStripe()
+  } catch {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
+  }
+
   let event: Stripe.Event
 
   try {

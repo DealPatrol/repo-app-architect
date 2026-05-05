@@ -1,4 +1,4 @@
--- CodeVault Backend Database Schema
+-- RepoFuse Backend Database Schema
 -- AI-powered code analysis tool for discovering apps hidden in your repos
 
 -- User authentication table (GitHub OAuth)

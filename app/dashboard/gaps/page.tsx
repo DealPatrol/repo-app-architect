@@ -68,6 +68,22 @@ async function GapsDashboardContent() {
         </Card>
       </div>
     )
+  let gaps: Awaited<ReturnType<typeof getAllMissingGaps>> = []
+  let summary: Awaited<ReturnType<typeof getGapSummary>> = {
+    total_gaps: 0,
+    blocking_gaps: 0,
+    total_hours: 0,
+    completed_count: 0,
+    by_category: {},
+  }
+
+  try {
+    ;[gaps, summary] = await Promise.all([
+      getAllMissingGaps(),
+      getGapSummary(),
+    ])
+  } catch {
+    // Database tables may not exist yet
   }
 
   const gapsByPriority = groupGapsByPriority(gaps)
@@ -147,7 +163,7 @@ async function GapsDashboardContent() {
               <p className="text-xs font-semibold mb-1 text-green-700">Completed</p>
               <p className="text-2xl font-bold text-green-600">{summary.completed_count}</p>
               <p className="text-xs text-green-600/70 mt-1">
-                {Math.round((summary.completed_count / summary.total_gaps) * 100)}% of targets
+                {summary.total_gaps > 0 ? Math.round((summary.completed_count / summary.total_gaps) * 100) : 0}% of targets
               </p>
             </div>
             <TrendingUp className="w-5 h-5 text-green-600" />

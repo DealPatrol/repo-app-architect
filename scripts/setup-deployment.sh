@@ -26,7 +26,7 @@ check_cmd jq  "brew install jq  /  apt install jq"
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║       CodeVault — deployment setup           ║${NC}"
+echo -e "${CYAN}║       RepoFuse — deployment setup            ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -86,7 +86,7 @@ info "Step 3/5 — App environment variables"
 prompt_plain  DATABASE_URL       "  DATABASE_URL (Neon PostgreSQL)"
 prompt_plain  GITHUB_CLIENT_ID   "  GITHUB_CLIENT_ID"
 prompt_secret GITHUB_CLIENT_SECRET "  GITHUB_CLIENT_SECRET"
-prompt_plain  APP_URL            "  NEXT_PUBLIC_APP_URL (e.g. https://codevault.vercel.app)"
+prompt_plain  APP_URL            "  NEXT_PUBLIC_APP_URL (e.g. https://repofuse.vercel.app)"
 prompt_secret OPENAI_API_KEY     "  OPENAI_API_KEY"
 prompt_secret ANTHROPIC_API_KEY  "  ANTHROPIC_API_KEY"
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getDb } from '@/lib/db'
 import { GITHUB_ACCESS_TOKEN_COOKIE } from '@/lib/auth'
+import { upsertSubscription } from '@/lib/queries'
 
 function getBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest) {
           github_avatar_url = ${githubUser.avatar_url},
           updated_at = CURRENT_TIMESTAMP
       `
+      await upsertSubscription({ github_id: githubUser.id })
     } catch (dbError) {
       console.error('[v0] OAuth callback DB write failed; continuing with cookie session:', dbError)
     }

@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { getStripe, getPriceId } from '@/lib/stripe'
+import { isStripeConfigured, getStripe, getPriceId } from '@/lib/stripe'
 import { getSubscriptionByGithubId, upsertSubscription } from '@/lib/queries'
 
 export async function POST() {
   try {
+    if (!isStripeConfigured()) {
+      return NextResponse.json({ error: 'Billing is not configured yet. Please contact support.' }, { status: 503 })
+    }
+
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     const priceId = getPriceId()
-    if (!priceId) {
-      return NextResponse.json({ error: 'Stripe pricing not configured' }, { status: 503 })
-    }
-
     const stripe = getStripe()
     let sub = await getSubscriptionByGithubId(user.github_id)
 
