@@ -70,9 +70,6 @@ async function TemplateHubContent() {
     )
   }
 
-  let featured: Awaited<ReturnType<typeof getFeaturedTemplates>> = []
-  let all: Awaited<ReturnType<typeof getAllTemplates>> = []
-
   try {
     ;[featured, all] = await Promise.all([
       getFeaturedTemplates(),
