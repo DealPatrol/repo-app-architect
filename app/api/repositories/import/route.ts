@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentAccessToken } from '@/lib/auth'
+import { getCurrentAccessToken, getCurrentUser } from '@/lib/auth'
 import { listGitHubRepositories } from '@/lib/github'
-import { createRepository } from '@/lib/queries'
+import { createRepository, getAllRepositories, getSubscriptionByGithubId, upsertSubscription } from '@/lib/queries'
+import { PLANS } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,35 @@ export async function POST(request: NextRequest) {
 
     if (repositoryIds.length === 0) {
       return NextResponse.json({ error: 'At least one repository must be selected' }, { status: 400 })
+    }
+
+    const user = await getCurrentUser()
+    let repoLimit = -1
+    if (user) {
+      let sub = await getSubscriptionByGithubId(user.github_id).catch(() => null)
+      if (!sub) {
+        sub = await upsertSubscription({ github_id: user.github_id }).catch(() => null)
+      }
+      if (sub && sub.plan !== 'pro') {
+        repoLimit = PLANS.free.repos_limit
+      }
+    }
+
+    if (repoLimit > 0) {
+      const existingRepos = await getAllRepositories()
+      const slotsLeft = repoLimit - existingRepos.length
+      if (slotsLeft <= 0) {
+        return NextResponse.json(
+          { error: `Free plan is limited to ${repoLimit} repositories. Upgrade to Pro for unlimited repos.` },
+          { status: 403 },
+        )
+      }
+      if (repositoryIds.length > slotsLeft) {
+        return NextResponse.json(
+          { error: `You can only add ${slotsLeft} more repo${slotsLeft === 1 ? '' : 's'} on the free plan. Upgrade to Pro for unlimited.` },
+          { status: 403 },
+        )
+      }
     }
 
     const githubRepositories = await listGitHubRepositories(accessToken)

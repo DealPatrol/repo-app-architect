@@ -2,6 +2,10 @@ import Stripe from 'stripe'
 
 let stripeInstance: Stripe | null = null
 
+export function isStripeConfigured(): boolean {
+  return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_PRICE_ID)
+}
+
 export function getStripe(): Stripe {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY is not set')
