@@ -19,7 +19,7 @@ export default async function BillingPage() {
     }
   }
 
-  const plan = subscription?.plan === 'pro' ? 'pro' : subscription?.plan === 'byok' ? 'byok' : 'free'
+  const plan = (subscription?.plan as 'pro' | 'byok' | 'free' | undefined) ?? 'free'
   const limits = PLANS[plan as keyof typeof PLANS] || PLANS.free
   const isTrialing = subscription?.status === 'trialing'
 
