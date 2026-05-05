@@ -6,8 +6,8 @@ export function RepoFuseLogo({ className = "h-9 w-9" }: { className?: string }) 
       <Image 
         src="/repofuse-logo-3d.jpg" 
         alt="RepoFuse Logo" 
-        width={200}
-        height={50}
+        width={400}
+        height={100}
         className="w-full h-full object-contain"
         priority
       />
