@@ -14,7 +14,7 @@ const plans = [
     description: 'Perfect for exploring and learning',
     features: [
       `Up to ${PLANS.free.repos_limit} repositories`,
-      `${PLANS.free.analyses_per_month} analyses per month`,
+      `${PLANS.free.blueprints_viewable} blueprint views`,
       'AI-powered app blueprints',
       'Gap discovery & analysis',
       'Template browsing',
@@ -49,8 +49,9 @@ const plans = [
     name: 'Pro',
     price: `$${PLANS.pro.price_monthly}`,
     period: '/month',
-    description: 'For serious builders and teams',
+    description: '7 days free, then $20/mo',
     features: [
+      '7-day free trial',
       'Unlimited repositories',
       'Unlimited analyses',
       'AI-powered app blueprints',
@@ -62,7 +63,7 @@ const plans = [
       'Cancel anytime',
     ],
     icon: Crown,
-    cta: 'Start Pro Trial',
+    cta: 'Start 7-Day Free Trial',
     ctaHref: '/dashboard/billing',
     highlighted: true,
   },

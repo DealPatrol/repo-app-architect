@@ -618,3 +618,54 @@ export async function updatePreferredProvider(userId: string, provider: string):
     WHERE id = ${userId}
   `
 }
+
+// Blueprint view tracking for usage limits
+export interface BlueprintView {
+  id: string
+  user_id: string
+  blueprint_id: string
+  first_viewed_at: string
+  view_count: number
+  last_viewed_at: string
+}
+
+export async function trackBlueprintView(userId: string, blueprintId: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    INSERT INTO blueprint_views (user_id, blueprint_id, first_viewed_at, view_count, last_viewed_at)
+    VALUES (${userId}, ${blueprintId}, NOW(), 1, NOW())
+    ON CONFLICT (user_id, blueprint_id) 
+    DO UPDATE SET 
+      view_count = blueprint_views.view_count + 1,
+      last_viewed_at = NOW()
+  `
+}
+
+export async function countUserBlueprintViews(userId: string): Promise<number> {
+  const sql = getDb()
+  const result = await sql`
+    SELECT COUNT(*) as count FROM blueprint_views WHERE user_id = ${userId}
+  `
+  return Number(result[0]?.count || 0)
+}
+
+export async function getUserViewedBlueprintIds(userId: string): Promise<string[]> {
+  const sql = getDb()
+  const result = await sql`
+    SELECT blueprint_id FROM blueprint_views WHERE user_id = ${userId}
+  `
+  return result.map((r: { blueprint_id: string }) => r.blueprint_id)
+}
+
+export async function canViewBlueprint(userId: string, blueprintId: string, limit: number): Promise<boolean> {
+  const sql = getDb()
+  // Check if already viewed
+  const alreadyViewed = await sql`
+    SELECT 1 FROM blueprint_views WHERE user_id = ${userId} AND blueprint_id = ${blueprintId}
+  `
+  if (alreadyViewed.length > 0) return true
+  
+  // Check if under limit
+  const viewCount = await countUserBlueprintViews(userId)
+  return viewCount < limit
+}

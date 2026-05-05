@@ -17,15 +17,17 @@ export function getStripe(): Stripe {
 export const PLANS = {
   free: {
     name: 'Free',
-    analyses_per_month: 3,
+    analyses_per_month: 2,
+    blueprints_viewable: 2,
     repos_limit: 5,
     price_monthly: 0,
     ai_provider: 'builtin' as const,
-    description: 'Perfect for exploring',
+    description: 'View 2 blueprints',
   },
   byok: {
     name: 'BYOK',
     analyses_per_month: -1,
+    blueprints_viewable: -1,
     repos_limit: -1,
     price_monthly: 9.99,
     ai_provider: 'user' as const,
@@ -34,10 +36,12 @@ export const PLANS = {
   pro: {
     name: 'Pro',
     analyses_per_month: -1,
+    blueprints_viewable: -1,
     repos_limit: -1,
     price_monthly: 20,
+    trial_days: 7,
     ai_provider: 'builtin' as const,
-    description: 'All features included',
+    description: '7 days free, then $20/mo',
   },
 } as const
 

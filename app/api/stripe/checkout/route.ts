@@ -41,6 +41,7 @@ export async function POST() {
       success_url: `${appUrl}/dashboard?upgraded=true`,
       cancel_url: `${appUrl}/pricing`,
       subscription_data: {
+        trial_period_days: 7,
         metadata: { github_id: String(user.github_id) },
       },
     })
