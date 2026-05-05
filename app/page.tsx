@@ -30,9 +30,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <RepoFuseLogo className="h-10 w-48" />
+            <RepoFuseLogo className="h-40 w-full max-w-xl" />
           </Link>
           <nav className="flex items-center gap-8">
             <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
