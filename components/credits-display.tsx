@@ -21,7 +21,7 @@ export function CreditsDisplay({ userId }: CreditsDisplayProps) {
     const fetchCredits = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/credits/summary?userId=${userId}`)
+        const response = await fetch('/api/credits/summary')
         if (!response.ok) throw new Error('Failed to fetch credits')
         const data = await response.json()
         setCredits(data.credits)
