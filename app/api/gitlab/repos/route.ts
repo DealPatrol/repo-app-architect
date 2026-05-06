@@ -35,7 +35,7 @@ export async function GET() {
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'User-Agent': 'CodeVault',
+            'User-Agent': 'RepoFuse',
           },
           cache: 'no-store',
         }

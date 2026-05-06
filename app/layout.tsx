@@ -8,9 +8,9 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'CodeVault - Discover Apps Hidden in Your Code',
-  description: 'AI-powered GitHub repository analyzer that discovers what apps you can build from your existing code',
-  generator: 'v0.app',
+  title: 'RepoFuse - Discover Apps Hidden in Your Code',
+  description: 'RepoFuse scans your GitHub, GitLab, and Bitbucket repositories and uses AI to discover what apps you can build from the code you already own.',
+  metadataBase: new URL('https://repofuse.com'),
   icons: {
     icon: [
       {

@@ -35,7 +35,7 @@ export async function GET() {
       const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'User-Agent': 'CodeVault',
+          'User-Agent': 'RepoFuse',
         },
         cache: 'no-store',
       })

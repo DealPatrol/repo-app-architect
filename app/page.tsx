@@ -61,7 +61,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex items-center justify-center shadow-sm">
               <Layers className="h-5 w-5 text-background" />
             </div>
-            <span className="font-bold text-lg tracking-tight">CodeVault</span>
+            <span className="font-bold text-lg tracking-tight">RepoFuse</span>
           </div>
           <nav className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
@@ -108,7 +108,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                CodeVault scans your repositories across GitHub, GitLab, and Bitbucket — then discovers
+                RepoFuse scans your repositories across GitHub, GitLab, and Bitbucket — then discovers
                 products hiding in your codebase. Get AI blueprints showing exactly what you can ship.
               </p>
 
@@ -222,7 +222,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         {/* How it works */}
         <section className="container mx-auto px-4 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How CodeVault works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How RepoFuse works</h2>
             <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
               Three steps from scattered code to a launch-ready blueprint
             </p>
@@ -277,7 +277,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </h2>
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                   Most teams have 60-80% of their next product scattered across existing repos on multiple
-                  platforms. CodeVault finds those hidden assets and shows you the shortest path to shipping.
+                  platforms. RepoFuse finds those hidden assets and shows you the shortest path to shipping.
                 </p>
                 <ul className="space-y-4">
                   {[
@@ -334,7 +334,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Recover repos from anywhere</h2>
               <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
-                Wherever your code lives, CodeVault can find it and bring it into a single unified analysis.
+                Wherever your code lives, RepoFuse can find it and bring it into a single unified analysis.
               </p>
             </div>
 
@@ -436,7 +436,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <div className="h-7 w-7 rounded-lg bg-foreground/10 flex items-center justify-center">
                   <Layers className="h-4 w-4" />
                 </div>
-                <span className="font-bold">CodeVault</span>
+                <span className="font-bold">RepoFuse</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 AI-powered code intelligence that discovers products hiding in your existing repositories.
@@ -460,7 +460,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
           <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} CodeVault. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} RepoFuse. All rights reserved.</p>
             <p>Powered by Claude AI · Built with Next.js</p>
           </div>
         </div>

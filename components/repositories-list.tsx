@@ -296,7 +296,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
           <h3 className="font-semibold text-foreground">Connect your GitHub account</h3>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-            Once you sign in, CodeVault can read your repositories and show what you can build
+            Once you sign in, RepoFuse can read your repositories and show what you can build
             from the code you already own.
           </p>
           <Button className="mt-4" asChild>
