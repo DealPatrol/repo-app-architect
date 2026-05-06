@@ -7,9 +7,11 @@ function getBaseUrl(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const clientId = process.env.GITLAB_CLIENT_ID
+  const from = request.nextUrl.searchParams.get('from')
+  const errorBase = from === 'dashboard' ? '/dashboard/repositories' : '/'
 
   if (!clientId) {
-    return NextResponse.redirect(new URL('/?error=gitlab_oauth_not_configured', getBaseUrl(request)))
+    return NextResponse.redirect(new URL(`${errorBase}?error=gitlab_oauth_not_configured`, getBaseUrl(request)))
   }
 
   const state = crypto.randomUUID()
@@ -25,6 +27,14 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(`https://gitlab.com/oauth/authorize?${params.toString()}`)
   response.cookies.set('gitlab_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 10,
+  })
+  // Persist the return destination across the OAuth round-trip
+  response.cookies.set('gitlab_oauth_from', from ?? '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

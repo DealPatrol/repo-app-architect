@@ -7,9 +7,11 @@ function getBaseUrl(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const clientId = process.env.BITBUCKET_CLIENT_ID
+  const from = request.nextUrl.searchParams.get('from')
+  const errorBase = from === 'dashboard' ? '/dashboard/repositories' : '/'
 
   if (!clientId) {
-    return NextResponse.redirect(new URL('/?error=bitbucket_oauth_not_configured', getBaseUrl(request)))
+    return NextResponse.redirect(new URL(`${errorBase}?error=bitbucket_oauth_not_configured`, getBaseUrl(request)))
   }
 
   const state = crypto.randomUUID()
@@ -27,6 +29,13 @@ export async function GET(request: NextRequest) {
     `https://bitbucket.org/site/oauth2/authorize?${params.toString()}`
   )
   response.cookies.set('bitbucket_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 10,
+  })
+  response.cookies.set('bitbucket_oauth_from', from ?? '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

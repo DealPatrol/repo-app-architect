@@ -13,24 +13,26 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error')
     const cookieStore = await cookies()
     const savedState = cookieStore.get('gitlab_oauth_state')?.value
+    const from = cookieStore.get('gitlab_oauth_from')?.value
+    const errorBase = from === 'dashboard' ? '/dashboard/repositories' : '/'
 
     if (error) {
-      return NextResponse.redirect(new URL(`/?error=gitlab_oauth_failed`, getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=gitlab_oauth_failed`, getBaseUrl(request)))
     }
 
     if (!code) {
-      return NextResponse.redirect(new URL('/?error=missing_code', getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=missing_code`, getBaseUrl(request)))
     }
 
     if (!state || !savedState || state !== savedState) {
-      return NextResponse.redirect(new URL('/?error=invalid_oauth_state', getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=invalid_oauth_state`, getBaseUrl(request)))
     }
 
     const clientId = process.env.GITLAB_CLIENT_ID
     const clientSecret = process.env.GITLAB_CLIENT_SECRET
 
     if (!clientId || !clientSecret) {
-      return NextResponse.redirect(new URL('/?error=gitlab_oauth_not_configured', getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=gitlab_oauth_not_configured`, getBaseUrl(request)))
     }
 
     const redirectUri = `${getBaseUrl(request)}/api/auth/gitlab/callback`
@@ -48,14 +50,14 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      return NextResponse.redirect(new URL('/?error=token_exchange_failed', getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=token_exchange_failed`, getBaseUrl(request)))
     }
 
     const tokenJson = (await tokenResponse.json()) as { access_token?: string; error?: string }
     const access_token = tokenJson.access_token
 
     if (!access_token) {
-      return NextResponse.redirect(new URL('/?error=token_exchange_failed', getBaseUrl(request)))
+      return NextResponse.redirect(new URL(`${errorBase}?error=token_exchange_failed`, getBaseUrl(request)))
     }
 
     const response = NextResponse.redirect(
@@ -70,6 +72,7 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30,
     })
     response.cookies.set('gitlab_oauth_state', '', { path: '/', maxAge: 0 })
+    response.cookies.set('gitlab_oauth_from', '', { path: '/', maxAge: 0 })
 
     return response
   } catch {

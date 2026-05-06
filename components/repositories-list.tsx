@@ -68,6 +68,17 @@ interface PlatformRepo {
 
 type Platform = 'github' | 'gitlab' | 'bitbucket'
 
+const PLATFORM_ERROR_MESSAGES: Record<string, string> = {
+  gitlab_oauth_not_configured: 'GitLab OAuth is not set up yet. Add GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET to your environment, then register a GitLab OAuth application with the callback URL /api/auth/gitlab/callback.',
+  bitbucket_oauth_not_configured: 'Bitbucket OAuth is not set up yet. Add BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET to your environment, then register a Bitbucket OAuth consumer with the callback URL /api/auth/bitbucket/callback.',
+  gitlab_oauth_failed: 'GitLab sign-in was cancelled or denied. Please try again.',
+  bitbucket_oauth_failed: 'Bitbucket sign-in was cancelled or denied. Please try again.',
+  invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Please try again.',
+  missing_code: 'The platform did not return an authorization code. Please try again.',
+  token_exchange_failed: 'Could not complete sign-in — check that your OAuth credentials and callback URL are correct.',
+  oauth_callback_failed: 'Something went wrong during sign-in. Please try again.',
+}
+
 export function RepositoriesList({ repositories }: RepositoriesListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -279,7 +290,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     const connected = platformConnected[platform]
 
     const platformLabel = platform === 'github' ? 'GitHub' : platform === 'gitlab' ? 'GitLab' : 'Bitbucket'
-    const loginHref = `/api/auth/${platform}/login`
+    const loginHref = `/api/auth/${platform}/login?from=dashboard`
 
     if (platform === 'github' && loadingAuth) {
       return (
@@ -505,7 +516,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           <span>
             {oauthConnected
               ? `${oauthConnected.charAt(0).toUpperCase() + oauthConnected.slice(1)} connected successfully. You can now import repositories.`
-              : error || auth?.error || `Sign-in failed: ${oauthError}`}
+              : error || auth?.error || (oauthError ? (PLATFORM_ERROR_MESSAGES[oauthError] ?? `Sign-in failed: ${oauthError}`) : null)}
           </span>
         </div>
       )}

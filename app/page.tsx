@@ -18,9 +18,13 @@ import {
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
   github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
+  gitlab_oauth_not_configured: 'GitLab OAuth is not configured. Add GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET to your environment variables, then register a GitLab OAuth application with the callback URL set to /api/auth/gitlab/callback.',
+  bitbucket_oauth_not_configured: 'Bitbucket OAuth is not configured. Add BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET to your environment variables, then register a Bitbucket OAuth consumer with the callback URL set to /api/auth/bitbucket/callback.',
+  gitlab_oauth_failed: 'GitLab sign-in was cancelled or failed. Please try again.',
+  bitbucket_oauth_failed: 'Bitbucket sign-in was cancelled or failed. Please try again.',
   invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Close other tabs for this site and try signing in again.',
-  missing_code: 'GitHub did not return an authorization code. Try signing in again.',
-  token_exchange_failed: 'Could not exchange the GitHub code for a token. Check GITHUB_CLIENT_SECRET and that the OAuth callback URL matches your GitHub app.',
+  missing_code: 'The platform did not return an authorization code. Try signing in again.',
+  token_exchange_failed: 'Could not exchange the authorization code for a token. Check that your OAuth app credentials and callback URL are correct.',
   github_user_fetch_failed: 'Signed in with GitHub but could not load your profile. Try again.',
   oauth_callback_failed: 'Something went wrong finishing sign-in. Try again.',
 }
