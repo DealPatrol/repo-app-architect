@@ -19,9 +19,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
   github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
   gitlab_oauth_not_configured: 'GitLab OAuth is not configured. Add GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET to your environment variables, then register a GitLab OAuth application with the callback URL set to /api/auth/gitlab/callback.',
-  bitbucket_oauth_not_configured: 'Bitbucket OAuth is not configured. Add BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET to your environment variables, then register a Bitbucket OAuth consumer with the callback URL set to /api/auth/bitbucket/callback.',
   gitlab_oauth_failed: 'GitLab sign-in was cancelled or failed. Please try again.',
-  bitbucket_oauth_failed: 'Bitbucket sign-in was cancelled or failed. Please try again.',
   invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Close other tabs for this site and try signing in again.',
   missing_code: 'The platform did not return an authorization code. Try signing in again.',
   token_exchange_failed: 'Could not exchange the authorization code for a token. Check that your OAuth app credentials and callback URL are correct.',
@@ -33,14 +31,6 @@ function GitLabIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
-    </svg>
-  )
-}
-
-function BitbucketIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z" />
     </svg>
   )
 }
@@ -112,7 +102,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                RepoFuse scans your repositories across GitHub, GitLab, and Bitbucket — then discovers
+                RepoFuse scans your repositories across GitHub and GitLab — then discovers
                 products hiding in your codebase. Get AI blueprints showing exactly what you can ship.
               </p>
 
@@ -130,12 +120,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                     <Link href="/api/auth/gitlab/login">
                       <GitLabIcon className="h-5 w-5 mr-2 text-orange-500" />
                       Start with GitLab
-                    </Link>
-                  </Button>
-                  <Button size="lg" variant="outline" className="min-w-[200px] h-12 text-base" asChild>
-                    <Link href="/api/auth/bitbucket/login">
-                      <BitbucketIcon className="h-5 w-5 mr-2 text-blue-500" />
-                      Start with Bitbucket
                     </Link>
                   </Button>
                 </div>
@@ -182,12 +166,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   <GitLabIcon className="h-5 w-5 text-orange-500" />
                 </div>
                 <span className="font-medium text-sm">GitLab</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group">
-                <div className="h-9 w-9 rounded-lg bg-card border border-border/60 flex items-center justify-center group-hover:border-border transition-colors shadow-sm">
-                  <BitbucketIcon className="h-5 w-5 text-blue-500" />
-                </div>
-                <span className="font-medium text-sm">Bitbucket</span>
               </div>
               <div className="flex items-center gap-2.5 text-muted-foreground group">
                 <div className="h-9 w-9 rounded-lg bg-card border border-dashed border-border/40 flex items-center justify-center shadow-sm">
@@ -238,9 +216,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-chart-1/20 to-chart-1/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <GitMerge className="h-7 w-7 text-chart-1" />
               </div>
-              <h3 className="font-semibold text-xl mb-3">Connect any platform</h3>
+              <h3 className="font-semibold text-xl mb-3">Connect your platforms</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Link repos from GitHub, GitLab, or Bitbucket with read-only OAuth — or paste any public repo URL.
+                Link repos from GitHub or GitLab with read-only OAuth — or paste any public repo URL.
                 We scan file structures, never store your source code.
               </p>
             </div>
@@ -280,13 +258,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   Stop rebuilding what you already have
                 </h2>
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                  Most teams have 60-80% of their next product scattered across existing repos on multiple
-                  platforms. RepoFuse finds those hidden assets and shows you the shortest path to shipping.
+                  Most teams have 60-80% of their next product scattered across existing repos.
+                  RepoFuse finds those hidden assets and shows you the shortest path to shipping.
                 </p>
                 <ul className="space-y-4">
                   {[
                     'Identifies reusable components across all your repos',
-                    'Works across GitHub, GitLab, and Bitbucket simultaneously',
+                    'Works across GitHub and GitLab simultaneously',
                     'Shows the specific files missing to complete each app',
                     'Generates scaffold code and build plans for missing pieces',
                   ].map((item) => (
@@ -342,7 +320,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               <div className="group p-6 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:shadow-black/5 hover:border-border transition-all duration-300">
                 <div className="h-12 w-12 rounded-xl bg-foreground/5 border border-border/60 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Github className="h-6 w-6" />
@@ -374,22 +352,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   ))}
                 </div>
               </div>
-
-              <div className="group p-6 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:shadow-black/5 hover:border-border transition-all duration-300">
-                <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <BitbucketIcon className="h-6 w-6 text-blue-500" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Bitbucket</h3>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  Link your Bitbucket workspace to pull in repositories from both personal accounts
-                  and teams.
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Personal repos', 'Teams', 'Workspaces'].map((tag) => (
-                    <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{tag}</span>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -402,7 +364,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 Ready to discover what you can ship?
               </h2>
               <p className="text-lg text-muted-foreground">
-                Connect any of your platforms and get your first blueprint in under a minute.
+                Connect your repositories and get your first blueprint in under a minute.
                 Free to start, no credit card required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -417,12 +379,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   <Link href="/api/auth/gitlab/login">
                     <GitLabIcon className="h-5 w-5 mr-2 text-orange-500" />
                     Start with GitLab
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-                  <Link href="/api/auth/bitbucket/login">
-                    <BitbucketIcon className="h-5 w-5 mr-2 text-blue-500" />
-                    Start with Bitbucket
                   </Link>
                 </Button>
               </div>
@@ -459,7 +415,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/api/auth/github/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><Github className="h-3.5 w-3.5" />GitHub</Link></li>
                 <li><Link href="/api/auth/gitlab/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><GitLabIcon className="h-3.5 w-3.5 text-orange-500" />GitLab</Link></li>
-                <li><Link href="/api/auth/bitbucket/login" className="hover:text-foreground transition-colors flex items-center gap-1.5"><BitbucketIcon className="h-3.5 w-3.5 text-blue-500" />Bitbucket</Link></li>
               </ul>
             </div>
           </div>

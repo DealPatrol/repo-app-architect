@@ -17,16 +17,7 @@ export const PLATFORMS = {
     scopes: 'read_user read_repository',
     color: 'orange-500',
   },
-  BITBUCKET: {
-    id: 'bitbucket',
-    name: 'Bitbucket',
-    authUrl: 'https://bitbucket.org/site/oauth2/authorize',
-    tokenUrl: 'https://bitbucket.org/site/oauth2/access_token',
-    apiUrl: 'https://api.bitbucket.org/2.0',
-    scopes: 'repository account',
-    color: 'blue-500',
-  },
-  VERCEL: {
+VERCEL: {
     id: 'vercel',
     name: 'Vercel',
     authUrl: 'https://vercel.com/oauth/authorize',

@@ -31,13 +31,6 @@ function GitLabIcon({ className }: { className?: string }) {
   )
 }
 
-function BitbucketIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z" />
-    </svg>
-  )
-}
 
 interface RepositoriesListProps {
   repositories: Repository[]
@@ -63,16 +56,14 @@ interface PlatformRepo {
   stars: number
   default_branch: string
   private: boolean
-  platform: 'github' | 'gitlab' | 'bitbucket'
+  platform: 'github' | 'gitlab'
 }
 
-type Platform = 'github' | 'gitlab' | 'bitbucket'
+type Platform = 'github' | 'gitlab'
 
 const PLATFORM_ERROR_MESSAGES: Record<string, string> = {
   gitlab_oauth_not_configured: 'GitLab OAuth is not set up yet. Add GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET to your environment, then register a GitLab OAuth application with the callback URL /api/auth/gitlab/callback.',
-  bitbucket_oauth_not_configured: 'Bitbucket OAuth is not set up yet. Add BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET to your environment, then register a Bitbucket OAuth consumer with the callback URL /api/auth/bitbucket/callback.',
   gitlab_oauth_failed: 'GitLab sign-in was cancelled or denied. Please try again.',
-  bitbucket_oauth_failed: 'Bitbucket sign-in was cancelled or denied. Please try again.',
   invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Please try again.',
   missing_code: 'The platform did not return an authorization code. Please try again.',
   token_exchange_failed: 'Could not complete sign-in — check that your OAuth credentials and callback URL are correct.',
@@ -89,17 +80,14 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
   const [platformRepos, setPlatformRepos] = useState<Record<Platform, PlatformRepo[]>>({
     github: [],
     gitlab: [],
-    bitbucket: [],
   })
   const [platformConnected, setPlatformConnected] = useState<Record<Platform, boolean>>({
     github: false,
     gitlab: false,
-    bitbucket: false,
   })
   const [platformLoading, setPlatformLoading] = useState<Record<Platform, boolean>>({
     github: false,
     gitlab: false,
-    bitbucket: false,
   })
 
   const [selectedRepos, setSelectedRepos] = useState<(number | string)[]>([])
@@ -164,13 +152,10 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     void loadAuthStatus()
   }, [loadAuthStatus])
 
-  // When coming back from GitLab/Bitbucket OAuth, load their repos
+  // When coming back from GitLab OAuth, load their repos
   useEffect(() => {
     if (oauthConnected === 'gitlab') {
       void loadPlatformRepos('gitlab')
-      router.replace('/dashboard/repositories', { scroll: false })
-    } else if (oauthConnected === 'bitbucket') {
-      void loadPlatformRepos('bitbucket')
       router.replace('/dashboard/repositories', { scroll: false })
     } else if (oauthConnected === 'github' && auth?.authenticated) {
       router.replace('/dashboard/repositories', { scroll: false })
@@ -194,7 +179,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
       // For GitHub repos use the existing import endpoint with numeric IDs
       const githubIds = reposToImport.filter((id): id is number => typeof id === 'number')
       // For non-GitHub repos, find the full repo objects and add them by URL
-      const nonGithubRepos = [...platformRepos.gitlab, ...platformRepos.bitbucket].filter((r) =>
+      const nonGithubRepos = [...platformRepos.gitlab].filter((r) =>
         reposToImport.includes(r.id)
       )
 
@@ -282,14 +267,14 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     )
   }
 
-  const allRepos = [...platformRepos.github, ...platformRepos.gitlab, ...platformRepos.bitbucket]
+  const allRepos = [...platformRepos.github, ...platformRepos.gitlab]
 
   function PlatformRepoList({ platform }: { platform: Platform }) {
     const repos = platformRepos[platform]
     const loading = platformLoading[platform]
     const connected = platformConnected[platform]
 
-    const platformLabel = platform === 'github' ? 'GitHub' : platform === 'gitlab' ? 'GitLab' : 'Bitbucket'
+    const platformLabel = platform === 'github' ? 'GitHub' : 'GitLab'
     const loginHref = `/api/auth/${platform}/login?from=dashboard`
 
     if (platform === 'github' && loadingAuth) {
@@ -325,8 +310,6 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
         <div className="rounded-xl border border-dashed p-10 text-center">
           {platform === 'gitlab' ? (
             <GitLabIcon className="mx-auto mb-3 h-10 w-10 text-orange-400/60" />
-          ) : platform === 'bitbucket' ? (
-            <BitbucketIcon className="mx-auto mb-3 h-10 w-10 text-blue-400/60" />
           ) : (
             <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
           )}
@@ -474,7 +457,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
           <p className="text-muted-foreground">
-            Connect GitHub, GitLab, or Bitbucket to import and track repositories.
+            Connect GitHub or GitLab to import and track repositories.
           </p>
         </div>
         {!loadingAuth && auth?.authenticated && (
@@ -488,8 +471,8 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
                 setAuth({ authenticated: false })
-                setPlatformRepos({ github: [], gitlab: [], bitbucket: [] })
-                setPlatformConnected({ github: false, gitlab: false, bitbucket: false })
+                setPlatformRepos({ github: [], gitlab: [] })
+                setPlatformConnected({ github: false, gitlab: false })
                 setSelectedRepos([])
               }}
             >
@@ -546,13 +529,6 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
                 <span className="ml-1 h-2 w-2 rounded-full bg-chart-1" />
               )}
             </TabsTrigger>
-            <TabsTrigger value="bitbucket" className="flex items-center gap-2 px-4 py-2">
-              <BitbucketIcon className="h-4 w-4 text-blue-500" />
-              <span>Bitbucket</span>
-              {platformConnected.bitbucket && (
-                <span className="ml-1 h-2 w-2 rounded-full bg-chart-1" />
-              )}
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="github">
@@ -560,9 +536,6 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           </TabsContent>
           <TabsContent value="gitlab">
             <PlatformRepoList platform="gitlab" />
-          </TabsContent>
-          <TabsContent value="bitbucket">
-            <PlatformRepoList platform="bitbucket" />
           </TabsContent>
         </Tabs>
 
@@ -612,7 +585,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
             <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
             <h3 className="font-semibold text-foreground">No repositories imported yet</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Import repositories from GitHub, GitLab, or Bitbucket above, or paste a public URL.
+              Import repositories from GitHub or GitLab above, or paste a public URL.
             </p>
           </div>
         ) : (
@@ -667,12 +640,6 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
               <span className="flex items-center gap-1">
                 <GitLabIcon className="h-3 w-3 text-orange-500" />
                 {platformRepos.gitlab.length} GitLab projects loaded
-              </span>
-            )}
-            {platformConnected.bitbucket && (
-              <span className="flex items-center gap-1">
-                <BitbucketIcon className="h-3 w-3 text-blue-500" />
-                {platformRepos.bitbucket.length} Bitbucket repos loaded
               </span>
             )}
           </div>
