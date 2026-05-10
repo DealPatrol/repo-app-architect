@@ -23,6 +23,8 @@ const plans = [
     icon: Zap,
     cta: 'Get Started Free',
     ctaHref: '/api/auth/github/login',
+    ctaAlt: 'Or GitLab',
+    ctaAltHref: '/api/auth/gitlab/login',
     highlighted: false,
   },
   {
@@ -86,6 +88,14 @@ export default function PricingPage() {
               <Link href="/api/auth/github/login">
                 <Github className="h-4 w-4 mr-2" />
                 Sign in with GitHub
+              </Link>
+            </Button>
+            <Button size="sm" variant="outline" className="border-border/60 hover:bg-accent" asChild>
+              <Link href="/api/auth/gitlab/login">
+                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
+                </svg>
+                Sign in with GitLab
               </Link>
             </Button>
           </nav>
