@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
 import { getAnalysisById } from '@/lib/queries'
+import { getCurrentUser } from '@/lib/auth'
 
 const model = 'openai/gpt-4-turbo'
 
@@ -22,15 +23,25 @@ interface AppSuggestion {
 
 export async function POST(request: NextRequest) {
   try {
-    const { analysisId, selectedRepos, userId } = (await request.json()) as {
-      analysisId: string
-      selectedRepos: SelectedRepository[]
-      userId: string
+    const user = await getCurrentUser()
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Sign in with GitHub to analyze repositories.' }, { status: 401 })
     }
 
+    const { analysisId, selectedRepos } = (await request.json()) as {
+      analysisId: string
+      selectedRepos: SelectedRepository[]
+    }
+    const userId = user.id
+
     // Check credit balance before proceeding
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 401 })
+    if (!analysisId || !Array.isArray(selectedRepos)) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    const analysis = await getAnalysisById(analysisId)
+    if (!analysis) {
+      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
     }
 
     const currentBalance = await getCreditBalance(userId)

@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getOrCreateUserCredits, getCreditUsageSummary } from '@/lib/credits'
+import { getCurrentUser } from '@/lib/auth'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId')
+    const user = await getCurrentUser()
 
-    if (!userId) {
+    if (!user?.id) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: 'Sign in with GitHub to view credits.' },
+        { status: 401 }
       )
     }
 
     // Get credits and usage summary
     const [credits, summary] = await Promise.all([
-      getOrCreateUserCredits(userId),
-      getCreditUsageSummary(userId),
+      getOrCreateUserCredits(user.id),
+      getCreditUsageSummary(user.id),
     ])
 
     return NextResponse.json({
