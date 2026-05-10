@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import { getAllRepositories, getAllAnalyses, type Analysis, type Repository } from '@/lib/queries'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FolderGit2, Sparkles, Code2, Plus, ArrowRight, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { UpgradeBanner } from '@/components/upgrade-banner'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +23,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-10">
+      <Suspense>
+        <UpgradeBanner />
+      </Suspense>
+
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>

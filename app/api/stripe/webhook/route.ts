@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
-import { upsertSubscription, getSubscriptionByStripeCustomerId } from '@/lib/queries'
+import { upsertSubscription, getSubscriptionByStripeCustomerId, resetMonthlyUsage } from '@/lib/queries'
 import type Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
         const existing = await getSubscriptionByStripeCustomerId(sub.customer as string)
         const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end
         if (existing) {
+          const newPeriodEnd = periodEnd ? new Date(periodEnd * 1000).toISOString() : null
+          const isRenewal = newPeriodEnd && existing.current_period_end &&
+            new Date(newPeriodEnd) > new Date(existing.current_period_end)
+
           const isPro = sub.status === 'active' || sub.status === 'trialing'
           await upsertSubscription({
             github_id: existing.github_id,
@@ -56,8 +60,12 @@ export async function POST(request: NextRequest) {
               : sub.status === 'past_due' ? 'past_due'
               : sub.status === 'trialing' ? 'trialing'
               : 'canceled',
-            current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+            current_period_end: newPeriodEnd,
           })
+
+          if (isRenewal) {
+            await resetMonthlyUsage(existing.github_id)
+          }
         }
         break
       }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-import { getCurrentAccessToken } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import {
   getGitHubRepositoryTree,
   getGitHubRepositoryTreeFromBranch,
@@ -14,9 +14,12 @@ import {
   createRepoFile,
   createBlueprint,
   deleteBlueprintsByAnalysis,
-  getBlueprintsByAnalysis
+  getBlueprintsByAnalysis,
+  getSubscriptionByGithubId,
+  incrementAnalysisUsage,
 } from '@/lib/queries'
 import { getAnthropicModel } from '@/lib/anthropic-model'
+import { PLANS } from '@/lib/stripe'
 
 // Schema for AI-generated app blueprints
 const complexityEnum = z.preprocess((val) => {
@@ -140,12 +143,31 @@ export async function POST(
       }
 
       try {
-        const accessToken = await getCurrentAccessToken()
+        const user = await getCurrentUser()
+        const accessToken = user?.access_token ?? null
         if (!accessToken) {
           send({ error: 'Sign in with GitHub before running an analysis.' })
           controller.close()
           return
         }
+
+        // Enforce plan limits
+        if (user) {
+          try {
+            const sub = await getSubscriptionByGithubId(user.github_id)
+            const planKey = sub?.plan === 'pro' ? 'pro' : 'free'
+            const limit = PLANS[planKey].analyses_per_month
+            const used = sub?.analyses_used_this_month ?? 0
+            if (limit !== -1 && used >= limit) {
+              send({ error: `You've used all ${limit} analyses for this month. Upgrade to Pro for unlimited analyses.` })
+              controller.close()
+              return
+            }
+          } catch {
+            // DB unavailable — allow the run
+          }
+        }
+
         if (!process.env.ANTHROPIC_API_KEY) {
           send({ error: 'AI analysis is not configured. Missing ANTHROPIC_API_KEY.' })
           controller.close()
@@ -175,6 +197,9 @@ export async function POST(
         // Update status to scanning
         await updateAnalysisStatus(id, 'scanning')
         await deleteBlueprintsByAnalysis(id)
+        if (user) {
+          try { await incrementAnalysisUsage(user.github_id) } catch { /* DB unavailable */ }
+        }
         send({ status: 'scanning', progress: 10 })
 
         // Fetch file trees from GitHub for each repository
