@@ -597,8 +597,9 @@ export async function deleteAPIKey(userId: string, provider: string): Promise<bo
   const result = await sql`
     DELETE FROM user_api_keys 
     WHERE user_id = ${userId} AND provider = ${provider}
+    RETURNING id
   `
-  return result.count > 0
+  return result.length > 0
 }
 
 export async function updateAPIKeyLastUsed(userId: string, provider: string): Promise<void> {
