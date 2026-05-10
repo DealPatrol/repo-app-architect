@@ -665,7 +665,7 @@ export async function getUserViewedBlueprintIds(userId: string): Promise<string[
     const result = await sql`
       SELECT blueprint_id FROM blueprint_views WHERE user_id = ${userId}
     `
-    return (result || []).map((r: { blueprint_id: string }) => r.blueprint_id)
+    return (result as Array<{ blueprint_id: string }> || []).map((r) => r.blueprint_id)
   } catch {
     // Table may not exist yet - return empty array
     return []
