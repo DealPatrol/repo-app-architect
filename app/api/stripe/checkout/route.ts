@@ -15,6 +15,11 @@ export async function POST() {
     }
 
     const priceId = getPriceId()
+    if (!priceId) {
+      console.error('[v0] STRIPE_PRO_PRICE_ID is not set')
+      return NextResponse.json({ error: 'Price configuration is missing. Please contact support.' }, { status: 503 })
+    }
+
     const stripe = getStripe()
     let sub = await getSubscriptionByGithubId(user.github_id)
 
@@ -34,6 +39,7 @@ export async function POST() {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${process.env.PORT || 3000}`
 
+    console.log('[v0] Creating checkout session:', { priceId, customerId, appUrl })
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -46,9 +52,13 @@ export async function POST() {
       },
     })
 
+    console.log('[v0] Checkout session created:', session.id)
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error('Stripe checkout error:', error)
+    console.error('[v0] Stripe checkout error:', error instanceof Error ? error.message : String(error))
+    if (error instanceof Error) {
+      console.error('[v0] Error stack:', error.stack)
+    }
     return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
   }
 }

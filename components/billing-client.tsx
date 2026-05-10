@@ -55,14 +55,18 @@ export function BillingClient({
   const handleUpgrade = async () => {
     setCheckoutLoading(true)
     try {
+      console.log('[v0] Starting checkout request')
       const res = await fetch('/api/stripe/checkout', { method: 'POST' })
+      console.log('[v0] Checkout response status:', res.status)
       const data = await res.json().catch(() => ({ error: 'Unexpected server error' }))
+      console.log('[v0] Checkout response data:', data)
       if (res.ok && data.url) {
         window.location.href = data.url
       } else {
         alert(data.error || 'Billing is not available right now. Please try again later.')
       }
-    } catch {
+    } catch (error) {
+      console.error('[v0] Checkout error:', error)
       alert('Could not connect to billing. Please check your connection and try again.')
     } finally {
       setCheckoutLoading(false)

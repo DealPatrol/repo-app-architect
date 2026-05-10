@@ -3,9 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicModel } from '@/lib/anthropic-model'
 import { getCreditBalance, deductCredits, CREDITS } from '@/lib/credits'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
+// Scaffold generation endpoint - v1.1
 import { getCurrentUser } from '@/lib/auth'
 import { getSubscriptionByGithubId, upsertSubscription } from '@/lib/queries'
 
