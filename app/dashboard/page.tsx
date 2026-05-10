@@ -144,7 +144,7 @@ export default async function DashboardPage() {
                 Pre-configured combinations you can assemble into products today.
               </p>
               <Button variant="outline" size="sm" className="group-hover:bg-foreground/5" asChild>
-                <Link href="/dashboard/templates">
+                <Link href="/dashboard/templates/browse">
                   Explore Templates
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
