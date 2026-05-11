@@ -147,7 +147,7 @@ async function TemplatesByAnalysisContent({ analysisId }: { analysisId: string }
           <h2 className="text-xl font-semibold">All Templates</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTemplates.filter(t => !t.is_featured).map(template => (
+          {filteredTemplates.filter(t => !t.featured).map(template => (
             <TemplateAssemblyCard key={template.id} template={template} />
           ))}
         </div>
