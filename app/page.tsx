@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { RepoFuseLogo } from '@/components/repofuse-logo'
+import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
+import { NavDropdown } from '@/components/nav-dropdown'
 import { Github, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
 import { LaunchSignupModal } from '@/components/launch-signup-modal'
 
@@ -41,24 +42,24 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       }} />
 
       {/* Launch Day Banner - Compelling Headline */}
-      <div className="relative z-50 border-b border-cyan-500/20 bg-gradient-to-r from-black via-red-950/20 to-black px-4 py-6 text-center">
+      <div className="relative z-30 border-b border-red-500/30 bg-gradient-to-r from-black via-red-950/30 to-black px-4 py-6 text-center">
         <div className="max-w-4xl mx-auto space-y-4">
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-6">
             <div className="text-center">
-              <RepoFuseLogo className="h-16 w-16 mx-auto" />
+              <RepoFuseLogo3D className="h-20 w-20 mx-auto" />
             </div>
             <div className="text-left">
-              <p className="text-xl sm:text-2xl font-black text-red-500 uppercase tracking-tighter">
+              <p className="text-2xl sm:text-3xl font-black text-red-500 uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
                 FULL LAUNCH
               </p>
-              <p className="text-sm sm:text-base font-bold text-red-600 uppercase">
+              <p className="text-base sm:text-lg font-bold text-red-400 uppercase">
                 5/12/2026
               </p>
             </div>
           </div>
           <div className="space-y-3 mt-4">
             <p className="text-sm sm:text-base font-bold text-cyan-200 uppercase tracking-widest">
-              🚀 First 1,000 Developers Get:
+              First 1,000 Developers Get:
             </p>
             <p className="text-lg sm:text-xl font-bold text-white">
               <span className="text-yellow-300">14 Days Free</span> OR <span className="text-yellow-300">3 Analyses + 1 Blueprint</span>
@@ -71,30 +72,44 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/95 backdrop-blur-xl">
+        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
-            <RepoFuseLogo className="h-8 w-8" />
+            <RepoFuseLogo3D className="h-10 w-10" />
           </Link>
-          <nav className="flex items-center gap-8">
-            <a href="#features" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
+          
+          <nav className="flex items-center gap-2 sm:gap-4 md:gap-6">
+            {/* Desktop nav links */}
+            <a href="#features" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
               Features
             </a>
-            <a href="#how" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
+            <a href="#how" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
               How It Works
             </a>
-            <Link href="/pricing" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
+            <Link href="/pricing" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
               Pricing
             </Link>
-            <Link href="/dashboard" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
-              Dashboard
-            </Link>
-            <Button size="sm" variant="outline" className="border-cyan-500/30 bg-black hover:bg-cyan-950/30 hover:border-cyan-400/60 text-cyan-300" asChild>
-              <Link href="/api/auth/github/login">
-                <Github className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Sign In</span>
-              </Link>
-            </Button>
+            
+            {/* Dashboard Dropdown */}
+            <NavDropdown />
+            
+            {/* Auth buttons - GitHub & GitLab */}
+            <div className="flex items-center gap-2">
+              <Button size="sm" className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700 hover:border-gray-600 gap-1.5" asChild>
+                <Link href="/api/auth/github/login">
+                  <Github className="h-4 w-4" />
+                  <span className="hidden sm:inline">GitHub</span>
+                </Link>
+              </Button>
+              <Button size="sm" className="bg-[#fc6d26] hover:bg-[#e24329] text-white gap-1.5" asChild>
+                <Link href="/api/auth/gitlab/login">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
+                  </svg>
+                  <span className="hidden sm:inline">GitLab</span>
+                </Link>
+              </Button>
+            </div>
           </nav>
         </div>
       </header>
