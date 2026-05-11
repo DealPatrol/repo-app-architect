@@ -30,8 +30,8 @@ async function getDetectedApps(): Promise<DetectedApp[]> {
   // Generate sample detected apps from analyses
   return analyses.slice(0, 5).map((analysis, i) => ({
     id: `app-${analysis.id}`,
-    name: `${analysis.repository_name || 'Project'} App`,
-    repoName: analysis.repository_name || 'Unknown',
+    name: `${analysis.name || 'Project'} App`,
+    repoName: analysis.name || 'Unknown',
     framework: ['Next.js', 'React', 'Vue', 'Express', 'FastAPI'][i % 5],
     type: (['web-app', 'api', 'cli', 'library', 'mobile'] as const)[i % 5],
     completeness: 65 + Math.floor(Math.random() * 30),
