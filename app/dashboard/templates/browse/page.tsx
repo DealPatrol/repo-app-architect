@@ -1,14 +1,14 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AnalysisSelector } from '@/components/analysis-selector'
-import { getAllAnalyses, getAllTemplates } from '@/lib/queries'
+import { getAllAnalyses, getAllTemplates, type Analysis, type Template } from '@/lib/queries'
 import { ArrowLeft } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BrowseTemplatesPage() {
-  let analyses = []
-  let templates = []
+  let analyses: Analysis[] = []
+  let templates: Template[] = []
   let templateCounts: Record<string, number> = {}
 
   try {
