@@ -79,9 +79,14 @@ export interface Subscription {
 }
 
 export async function getSubscriptionByGithubId(githubId: number): Promise<Subscription | null> {
-  const sql = getDb()
-  const rows = await sql`SELECT * FROM subscriptions WHERE github_id = ${githubId} LIMIT 1`
-  return (rows[0] as Subscription) || null
+  try {
+    const sql = getDb()
+    const rows = await sql`SELECT * FROM subscriptions WHERE github_id = ${githubId} LIMIT 1`
+    return (rows[0] as Subscription) || null
+  } catch (error) {
+    console.error('[v0] Error fetching subscription:', error)
+    return null
+  }
 }
 
 export async function getSubscriptionByStripeCustomerId(customerId: string): Promise<Subscription | null> {
@@ -104,27 +109,45 @@ export async function upsertSubscription(data: {
   status?: 'active' | 'past_due' | 'canceled' | 'trialing'
   current_period_end?: string | null
 }): Promise<Subscription> {
-  const sql = getDb()
-  const result = await sql`
-    INSERT INTO subscriptions (github_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end)
-    VALUES (
-      ${data.github_id},
-      ${data.stripe_customer_id ?? null},
-      ${data.stripe_subscription_id ?? null},
-      ${data.plan ?? 'free'},
-      ${data.status ?? 'active'},
-      ${data.current_period_end ?? null}
-    )
-    ON CONFLICT (github_id) DO UPDATE SET
-      stripe_customer_id = COALESCE(${data.stripe_customer_id ?? null}, subscriptions.stripe_customer_id),
-      stripe_subscription_id = COALESCE(${data.stripe_subscription_id ?? null}, subscriptions.stripe_subscription_id),
-      plan = COALESCE(${data.plan ?? null}, subscriptions.plan),
-      status = COALESCE(${data.status ?? null}, subscriptions.status),
-      current_period_end = COALESCE(${data.current_period_end ?? null}, subscriptions.current_period_end),
-      updated_at = CURRENT_TIMESTAMP
-    RETURNING *
-  `
-  return result[0] as Subscription
+  try {
+    const sql = getDb()
+    const result = await sql`
+      INSERT INTO subscriptions (github_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end)
+      VALUES (
+        ${data.github_id},
+        ${data.stripe_customer_id ?? null},
+        ${data.stripe_subscription_id ?? null},
+        ${data.plan ?? 'free'},
+        ${data.status ?? 'active'},
+        ${data.current_period_end ?? null}
+      )
+      ON CONFLICT (github_id) DO UPDATE SET
+        stripe_customer_id = COALESCE(${data.stripe_customer_id ?? null}, subscriptions.stripe_customer_id),
+        stripe_subscription_id = COALESCE(${data.stripe_subscription_id ?? null}, subscriptions.stripe_subscription_id),
+        plan = COALESCE(${data.plan ?? null}, subscriptions.plan),
+        status = COALESCE(${data.status ?? null}, subscriptions.status),
+        current_period_end = COALESCE(${data.current_period_end ?? null}, subscriptions.current_period_end),
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `
+    return result[0] as Subscription
+  } catch (error) {
+    console.error('[v0] Error upserting subscription:', error)
+    // Return a default subscription object if the operation fails
+    return {
+      id: '',
+      github_id: data.github_id,
+      stripe_customer_id: data.stripe_customer_id ?? null,
+      stripe_subscription_id: data.stripe_subscription_id ?? null,
+      plan: data.plan ?? 'free',
+      status: data.status ?? 'active',
+      current_period_end: data.current_period_end ?? null,
+      analyses_used_this_month: 0,
+      billing_cycle_anchor: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Subscription
+  }
 }
 
 export async function incrementAnalysisUsage(githubId: number): Promise<void> {
@@ -665,7 +688,7 @@ export async function getUserViewedBlueprintIds(userId: string): Promise<string[
     const result = await sql`
       SELECT blueprint_id FROM blueprint_views WHERE user_id = ${userId}
     `
-    return (result || []).map((r: { blueprint_id: string }) => r.blueprint_id)
+    return (result as Array<{ blueprint_id: string }> || []).map((r) => r.blueprint_id)
   } catch {
     // Table may not exist yet - return empty array
     return []

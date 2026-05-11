@@ -8,10 +8,12 @@ import { Github, Sparkles, Code2, ArrowRight, AlertCircle, Shield, Zap, GitBranc
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
   github_oauth_not_configured: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment variables.',
+  gitlab_oauth_not_configured: 'GitLab OAuth is not configured. Set GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET in your environment variables.',
   invalid_oauth_state: 'Sign-in session expired or cookies were blocked. Close other tabs for this site and try signing in again.',
-  missing_code: 'GitHub did not return an authorization code. Try signing in again.',
-  token_exchange_failed: 'Could not exchange the GitHub code for a token. Check GITHUB_CLIENT_SECRET and that the OAuth callback URL matches your GitHub app.',
+  missing_code: 'Your OAuth provider did not return an authorization code. Try signing in again.',
+  token_exchange_failed: 'Could not exchange the authorization code for a token. Try again.',
   github_user_fetch_failed: 'Signed in with GitHub but could not load your profile. Try again.',
+  gitlab_user_fetch_failed: 'Signed in with GitLab but could not load your profile. Try again.',
   oauth_callback_failed: 'Something went wrong finishing sign-in. Try again.',
 }
 
@@ -45,6 +47,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <Link href="/api/auth/github/login">
                 <Github className="h-4 w-4 mr-2" />
                 Sign in with GitHub
+              </Link>
+            </Button>
+            <Button size="sm" variant="outline" className="border-border/60 hover:bg-accent" asChild>
+              <Link href="/api/auth/gitlab/login">
+                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
+                </svg>
+                Sign in with GitLab
               </Link>
             </Button>
           </nav>
@@ -92,8 +102,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="min-w-[220px] h-12 text-base" asChild>
-                  <Link href="/dashboard">
-                    View Dashboard
+                  <Link href="/api/auth/gitlab/login">
+                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
+                    </svg>
+                    Or GitLab
                   </Link>
                 </Button>
               </div>

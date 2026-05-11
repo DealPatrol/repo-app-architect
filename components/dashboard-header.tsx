@@ -75,13 +75,24 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                 </div>
               </div>
             ) : (
-              <Link
-                href="/api/auth/github/login"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
-              >
-                <Github className="h-4 w-4" />
-                <span className="hidden sm:inline">Connect GitHub</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/api/auth/github/login"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
+                >
+                  <Github className="h-4 w-4" />
+                  <span className="hidden sm:inline">Connect GitHub</span>
+                </Link>
+                <Link
+                  href="/api/auth/gitlab/login"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Connect GitLab</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>
