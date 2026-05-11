@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Check, ArrowRight, Sparkles, Github, Crown, Zap } from 'lucide-react'
-import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
-import { NavDropdown } from '@/components/nav-dropdown'
+import { Check, ArrowRight, Sparkles, Crown, Zap } from 'lucide-react'
 import { PLANS } from '@/lib/stripe'
 import { CREDITS } from '@/lib/credits'
 
@@ -77,56 +75,7 @@ const plans = [
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-black">
-      {/* Grid background */}
-      <div className="fixed inset-0 -z-10 opacity-[0.03]">
-        <div 
-          className="absolute inset-0" 
-          style={{
-            backgroundImage: 'linear-gradient(rgba(0,229,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }} 
-        />
-      </div>
-      {/* Glowing orbs */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl -z-10" />
-      <div className="fixed top-40 right-1/4 w-72 h-72 bg-yellow-500/5 rounded-full blur-3xl -z-10" />
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/95 backdrop-blur-xl">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <RepoFuseLogo3D className="h-10 w-10" />
-          </Link>
-          <nav className="flex items-center gap-2 sm:gap-4 md:gap-6">
-            <Link href="/" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
-              Home
-            </Link>
-            <Link href="/dashboard" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
-              Dashboard
-            </Link>
-            <NavDropdown />
-            <div className="flex items-center gap-2">
-              <Button size="sm" className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700 hover:border-gray-600 gap-1.5" asChild>
-                <Link href="/api/auth/github/login">
-                  <Github className="h-4 w-4" />
-                  <span className="hidden sm:inline">GitHub</span>
-                </Link>
-              </Button>
-              <Button size="sm" className="bg-[#fc6d26] hover:bg-[#e24329] text-white gap-1.5" asChild>
-                <Link href="/api/auth/gitlab/login">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
-                  </svg>
-                  <span className="hidden sm:inline">GitLab</span>
-                </Link>
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-20">
+    <main className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/30 bg-cyan-950/20 text-sm text-cyan-300 mb-6">
             <Sparkles className="h-4 w-4 text-cyan-400" />
@@ -220,6 +169,5 @@ export default function PricingPage() {
           All plans include read-only GitHub access. Cancel anytime. Your code is never stored.
         </p>
       </main>
-    </div>
   )
 }

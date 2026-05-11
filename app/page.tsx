@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
-import { NavDropdown } from '@/components/nav-dropdown'
-import { Github, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
+import { ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
 import { LaunchSignupModal } from '@/components/launch-signup-modal'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -22,7 +21,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const errorMessage = error ? ERROR_MESSAGES[error] ?? 'An unexpected error occurred.' : null
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="text-white overflow-x-hidden">
       {errorMessage && (
         <div className="bg-red-950/50 border-b border-red-500/30 px-4 py-3 flex items-center gap-3 text-sm text-red-300">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -70,49 +69,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </div>
       </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/95 backdrop-blur-xl">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <RepoFuseLogo3D className="h-10 w-10" />
-          </Link>
-          
-          <nav className="flex items-center gap-2 sm:gap-4 md:gap-6">
-            {/* Desktop nav links */}
-            <a href="#features" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
-              Features
-            </a>
-            <a href="#how" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
-              How It Works
-            </a>
-            <Link href="/pricing" className="text-xs font-mono tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden lg:block uppercase">
-              Pricing
-            </Link>
-            
-            {/* Dashboard Dropdown */}
-            <NavDropdown />
-            
-            {/* Auth buttons - GitHub & GitLab */}
-            <div className="flex items-center gap-2">
-              <Button size="sm" className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700 hover:border-gray-600 gap-1.5" asChild>
-                <Link href="/api/auth/github/login">
-                  <Github className="h-4 w-4" />
-                  <span className="hidden sm:inline">GitHub</span>
-                </Link>
-              </Button>
-              <Button size="sm" className="bg-[#fc6d26] hover:bg-[#e24329] text-white gap-1.5" asChild>
-                <Link href="/api/auth/gitlab/login">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
-                  </svg>
-                  <span className="hidden sm:inline">GitLab</span>
-                </Link>
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
 
       {/* Hero Section */}
       <main>
