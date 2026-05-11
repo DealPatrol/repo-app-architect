@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
@@ -61,8 +62,13 @@ export default function RootLayout({
           <div className="fixed top-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl -z-10" />
           <div className="fixed top-40 right-1/4 w-72 h-72 bg-orange-500/3 rounded-full blur-3xl -z-10" />
           
-          <SiteHeader />
-          {children}
+          <div className="flex flex-col min-h-screen">
+            <SiteHeader />
+            <div className="flex-1">
+              {children}
+            </div>
+            <SiteFooter />
+          </div>
           <Analytics />
         </ThemeProvider>
       </body>

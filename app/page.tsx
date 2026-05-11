@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
-import { ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles, Github } from 'lucide-react'
+import { ArrowRight, AlertCircle, Zap, GitBranch, Rocket, Code2, Sparkles, Github } from 'lucide-react'
 import { LaunchSignupModal } from '@/components/launch-signup-modal'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -311,13 +311,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-cyan-500/20 bg-black/50 py-8">
-        <div className="container mx-auto px-4 text-center text-xs text-cyan-400/40 font-mono">
-          © 2025 RepoFuse. Built by developers, for developers.
-        </div>
-      </footer>
 
       <style>{`
         @keyframes gridDrift {
