@@ -219,8 +219,8 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-          <p className="text-muted-foreground">Sign in with GitHub, import repositories, and track them in RepoFuse.</p>
+          <h1 className="text-2xl font-black text-white">Repositories</h1>
+          <p className="text-cyan-200/60">Sign in with GitHub, import repositories, and track them in RepoFuse.</p>
         </div>
         {loadingAuth ? (
           <Button variant="outline" disabled>
@@ -229,11 +229,12 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
           </Button>
         ) : auth?.authenticated ? (
           <div className="flex items-center gap-3">
-            <div className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">@{auth.user?.github_username}</span>
+            <div className="text-sm text-cyan-200/60">
+              Signed in as <span className="font-medium text-white">@{auth.user?.github_username}</span>
             </div>
             <Button
               variant="outline"
+              className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/30"
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
                 setAuth({ authenticated: false })
@@ -245,7 +246,7 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
             </Button>
           </div>
         ) : (
-          <Button asChild>
+          <Button className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700" asChild>
             <a href="/api/auth/github/login">
               <Github className="h-4 w-4 mr-2" />
               Sign in with GitHub
@@ -255,18 +256,18 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
       </div>
 
       {(oauthConnected || error || auth?.error || oauthError) && (
-        <Card className={oauthConnected ? 'border-primary/30 bg-primary/5 p-4 text-sm text-primary' : 'border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'}>
+        <Card className={oauthConnected ? 'border-cyan-500/30 bg-cyan-950/20 p-4 text-sm text-cyan-300' : 'border-red-500/30 bg-red-950/20 p-4 text-sm text-red-300'}>
           {oauthConnected
             ? 'GitHub connected successfully. You can import repositories now.'
             : error || auth?.error || `GitHub sign-in failed: ${oauthError}`}
         </Card>
       )}
 
-      <Card className="p-6 space-y-4">
+      <Card className="p-6 space-y-4 bg-black/60 border-cyan-500/30 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">GitHub import</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-lg font-bold text-white">GitHub import</h2>
+            <p className="text-sm text-cyan-200/60">
               Connect GitHub to import public and private repositories directly into the app.
             </p>
           </div>
@@ -278,13 +279,13 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
         </div>
 
         {!auth?.authenticated ? (
-          <div className="rounded-xl border border-dashed p-8 text-center">
-            <Github className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">Connect your GitHub account</h3>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 p-8 text-center">
+            <Github className="mx-auto mb-3 h-10 w-10 text-cyan-400/40" />
+            <h3 className="font-bold text-white">Connect your GitHub account</h3>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-cyan-200/60">
               Once you sign in, RepoFuse can read your repositories and show what you can build from the code you already own.
             </p>
-            <Button className="mt-4" asChild>
+            <Button className="mt-4 bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700" asChild>
               <a href="/api/auth/github/login">
                 <ShieldCheck className="h-4 w-4 mr-2" />
                 Continue with GitHub
@@ -292,15 +293,15 @@ export function RepositoriesList({ repositories }: RepositoriesListProps) {
             </Button>
           </div>
         ) : loadingGitHubRepos ? (
-          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <div className="flex items-center justify-center py-10 text-sm text-cyan-200/60">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin text-cyan-400" />
             Loading repositories from GitHub...
           </div>
         ) : githubRepos.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center">
-            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">No GitHub repositories found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-cyan-500/30 bg-cyan-950/10 p-8 text-center">
+            <FolderGit2 className="mx-auto mb-3 h-10 w-10 text-cyan-400/40" />
+            <h3 className="font-bold text-white">No GitHub repositories found</h3>
+            <p className="mt-2 text-sm text-cyan-200/60">
               We could not find any repositories on the connected GitHub account yet.
             </p>
           </div>

@@ -27,11 +27,11 @@ interface AnalysesListProps {
 }
 
 const statusConfig = {
-  pending: { icon: Clock, label: 'Pending', className: 'text-muted-foreground' },
-  scanning: { icon: Loader2, label: 'Scanning', className: 'text-chart-1 animate-spin' },
-  analyzing: { icon: Sparkles, label: 'Analyzing', className: 'text-chart-1 animate-pulse' },
-  complete: { icon: CheckCircle2, label: 'Complete', className: 'text-chart-1' },
-  failed: { icon: XCircle, label: 'Failed', className: 'text-destructive' },
+  pending: { icon: Clock, label: 'Pending', className: 'text-cyan-400/60' },
+  scanning: { icon: Loader2, label: 'Scanning', className: 'text-orange-400 animate-spin' },
+  analyzing: { icon: Sparkles, label: 'Analyzing', className: 'text-orange-400 animate-pulse' },
+  complete: { icon: CheckCircle2, label: 'Complete', className: 'text-cyan-400' },
+  failed: { icon: XCircle, label: 'Failed', className: 'text-red-400' },
 }
 
 export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
@@ -107,20 +107,20 @@ export function AnalysesList({ analyses, repositories }: AnalysesListProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Analyses</h1>
-          <p className="text-muted-foreground">Run AI analysis to discover app possibilities.</p>
+          <h1 className="text-2xl font-black text-white">Analyses</h1>
+          <p className="text-cyan-200/60">Run AI analysis to discover app possibilities.</p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button disabled={repositories.length === 0}>
+            <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black font-bold" disabled={repositories.length === 0}>
               <Plus className="h-4 w-4 mr-2" />
               New Analysis
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg bg-black/95 border-cyan-500/30 backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle>New Analysis</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white font-bold">New Analysis</DialogTitle>
+              <DialogDescription className="text-cyan-200/60">
                 Select repositories to analyze and discover what apps you can build.
               </DialogDescription>
             </DialogHeader>

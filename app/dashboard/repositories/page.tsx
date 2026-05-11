@@ -8,8 +8,8 @@ function RepositoriesFallback() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-        <p className="text-muted-foreground">Loading your repository workspace...</p>
+        <h1 className="text-2xl font-black text-white">Repositories</h1>
+        <p className="text-cyan-200/60">Loading your repository workspace...</p>
       </div>
     </div>
   )
