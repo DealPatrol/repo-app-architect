@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
-import { ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
+import { ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles, Github } from 'lucide-react'
 import { LaunchSignupModal } from '@/components/launch-signup-modal'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -227,7 +227,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {[
                 { num: '01', title: 'Connect', icon: '🔗', desc: 'OAuth in one click. Read-only access to your repos.' },
                 { num: '02', title: 'Scan', icon: '⚡', desc: 'AI analyzes structure, patterns, and dependencies.' },
-                { num: '03', title: 'Discover', icon: '💡', desc: 'Ideas surface instantly, ranked by viability.' },
+                { num: '03', title: 'Discover', icon: '���', desc: 'Ideas surface instantly, ranked by viability.' },
                 { num: '04', title: 'Build', icon: '🚀', desc: 'Get full briefs, stack recs, and MVP roadmaps.' }
               ].map((step, i) => (
                 <div key={i} className="relative group">
