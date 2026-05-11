@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RepoFuseLogo } from '@/components/repofuse-logo'
 import { Github, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
+import { LaunchSignupModal } from '@/components/launch-signup-modal'
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
@@ -40,25 +41,40 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       }} />
 
       {/* Launch Day Banner - Compelling Headline */}
-      <div className="relative z-50 border-b border-cyan-500/20 bg-gradient-to-r from-black via-cyan-950/20 to-black px-4 py-4 text-center">
-        <div className="max-w-4xl mx-auto space-y-2">
-          <p className="text-xs sm:text-sm font-bold tracking-widest text-cyan-300 uppercase">
-            🚀 LAUNCH DAY: FIRST 1,000 DEVELOPERS LOCK IN LIFETIME VALUE
-          </p>
-          <p className="text-sm sm:text-base text-white font-bold">
-            What if you got in on RepoFuse's first 100 days like the earliest Claude, ChatGPT, and Copilot users?
-          </p>
-          <p className="text-xs sm:text-sm text-cyan-200/80">
-            Every developer who ships their first idea today becomes part of RepoFuse's origin story.
-          </p>
+      <div className="relative z-50 border-b border-cyan-500/20 bg-gradient-to-r from-black via-red-950/20 to-black px-4 py-6 text-center">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center justify-center gap-4">
+            <div className="text-center">
+              <RepoFuseLogo className="h-16 w-16 mx-auto" />
+            </div>
+            <div className="text-left">
+              <p className="text-xl sm:text-2xl font-black text-red-500 uppercase tracking-tighter">
+                FULL LAUNCH
+              </p>
+              <p className="text-sm sm:text-base font-bold text-red-600 uppercase">
+                5/12/2026
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3 mt-4">
+            <p className="text-sm sm:text-base font-bold text-cyan-200 uppercase tracking-widest">
+              🚀 First 1,000 Developers Get:
+            </p>
+            <p className="text-lg sm:text-xl font-bold text-white">
+              <span className="text-yellow-300">14 Days Free</span> OR <span className="text-yellow-300">3 Analyses + 1 Blueprint</span>
+            </p>
+            <p className="text-xs sm:text-sm text-cyan-300">
+              Lock in lifetime pricing. Link GitHub or GitLab today.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
-            <RepoFuseLogo className="h-10 w-full max-w-xs" />
+            <RepoFuseLogo className="h-8 w-8" />
           </Link>
           <nav className="flex items-center gap-8">
             <a href="#features" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
@@ -130,19 +146,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                  <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-black font-bold text-base h-12 shadow-lg shadow-cyan-500/40" asChild>
+                  <LaunchSignupModal>
+                    <Button size="lg" className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold text-base h-12 shadow-lg shadow-yellow-500/40 cursor-pointer">
+                      <Rocket className="h-5 w-5 mr-2" />
+                      Lock In Launch Pricing
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </LaunchSignupModal>
+                  <Button size="lg" className="bg-cyan-950/40 border border-cyan-500/40 hover:bg-cyan-950/60 hover:border-cyan-400/60 text-cyan-300 font-bold text-base h-12" asChild>
                     <Link href="/api/auth/github/login">
                       <Github className="h-5 w-5 mr-2" />
-                      Get Started Free
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  </Button>
-                  <Button size="lg" className="bg-orange-950/40 border border-orange-500/40 hover:bg-orange-950/60 hover:border-orange-400/60 text-orange-300 font-bold text-base h-12" asChild>
-                    <Link href="/api/auth/gitlab/login">
-                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
-                      </svg>
-                      Or GitLab
+                      Or Link Repo Free
                     </Link>
                   </Button>
                 </div>
