@@ -105,8 +105,29 @@ export async function GET(request: NextRequest) {
       console.error('[v0] OAuth callback DB write failed; continuing with cookie session:', dbError)
     }
 
+    // Check if this is a launch signup flow
+    const launchSignupCookie = cookieStore.get('launch_signup')?.value
+    let redirectUrl = '/dashboard/repositories?connected=gitlab'
+    
+    if (launchSignupCookie) {
+      try {
+        const launchData = JSON.parse(launchSignupCookie)
+        console.log('[v0] GitLab launch signup flow detected:', launchData)
+        
+        if (launchData.wantsStripe) {
+          // Redirect to Stripe checkout
+          redirectUrl = '/api/stripe/checkout-redirect'
+        } else {
+          // Free trial - just go to dashboard
+          redirectUrl = '/dashboard?trial=started'
+        }
+      } catch (e) {
+        console.error('[v0] Failed to parse launch_signup cookie:', e)
+      }
+    }
+
     // Session cookies — token cookie lets APIs work even if DB persistence failed
-    const response = NextResponse.redirect(new URL('/dashboard/repositories?connected=gitlab', getBaseUrl(request)))
+    const response = NextResponse.redirect(new URL(redirectUrl, getBaseUrl(request)))
     response.cookies.set('github_user_id', String(gitlabUser.id), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -122,6 +143,8 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30,
     })
     response.cookies.set('gitlab_oauth_state', '', { path: '/', maxAge: 0 })
+    // Clear the launch signup cookie after use
+    response.cookies.set('launch_signup', '', { path: '/', maxAge: 0 })
 
     return response
   } catch (error) {

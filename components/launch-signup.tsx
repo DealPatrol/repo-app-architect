@@ -48,42 +48,27 @@ export function LaunchSignup({ onComplete }: LaunchSignupProps) {
     setError('')
 
     try {
-      if (choice === 'launch-with-stripe') {
-        // Redirect to checkout for subscription
-        const response = await fetch('/api/stripe/checkout', {
-          method: 'POST',
-        })
+      // First, save the signup data
+      const res = await fetch('/api/auth/signup-launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          trialType: choice === 'free-trial' ? '14-days' : 'pro',
+          wantsStripe: choice === 'launch-with-stripe',
+        }),
+      })
 
-        if (!response.ok) {
-          throw new Error('Failed to create checkout session')
-        }
-
-        const { url } = await response.json()
-        if (url) {
-          window.location.href = url
-        }
-      } else {
-        // Free trial - just create account
-        const res = await fetch('/api/auth/signup-launch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            trialType: '14-days',
-          }),
-        })
-
-        if (!res.ok) {
-          throw new Error('Failed to start free trial')
-        }
-
-        setStep('success')
-        onComplete?.(formData.email)
-        setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 2000)
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to save signup data')
       }
+
+      // Redirect to GitHub OAuth to authenticate
+      // After OAuth completes, the callback will check for the launch_signup cookie
+      // and either start the free trial or redirect to Stripe checkout
+      window.location.href = `/api/auth/github/login?launch=${choice === 'launch-with-stripe' ? 'pro' : 'free'}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setIsLoading(false)
@@ -154,7 +139,7 @@ export function LaunchSignup({ onComplete }: LaunchSignupProps) {
       <div className="space-y-6">
         <div>
           <h3 className="text-2xl font-bold text-white mb-2">Choose Your Launch Offer</h3>
-          <p className="text-cyan-200/80">Both come with full feature access. No credit card required for free trial.</p>
+          <p className="text-cyan-200/80">Both come with full feature access. Connect GitHub or GitLab to continue.</p>
         </div>
 
         <div className="space-y-3">
@@ -167,7 +152,7 @@ export function LaunchSignup({ onComplete }: LaunchSignupProps) {
             <div className="flex items-start gap-3">
               <div className="flex-1">
                 <p className="font-bold text-white">14 Days Free</p>
-                <p className="text-sm text-cyan-300 mt-1">Full access. No credit card needed.</p>
+                <p className="text-sm text-cyan-300 mt-1">Full access. No credit card needed. Connect your repos to start.</p>
               </div>
               {isLoading && <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />}
             </div>
@@ -185,7 +170,7 @@ export function LaunchSignup({ onComplete }: LaunchSignupProps) {
                   Start Pro ($20/mo)
                   <span className="text-xs text-yellow-400 ml-2">← Lock in Launch Pricing</span>
                 </p>
-                <p className="text-sm text-yellow-300 mt-1">Unlimited analyses. Unlimited blueprints. Billed monthly.</p>
+                <p className="text-sm text-yellow-300 mt-1">14 days free, then $20/mo. Unlimited everything.</p>
               </div>
               {isLoading && <Loader2 className="h-5 w-5 animate-spin text-yellow-400" />}
             </div>
@@ -200,7 +185,7 @@ export function LaunchSignup({ onComplete }: LaunchSignupProps) {
         )}
 
         <p className="text-xs text-cyan-400/50 text-center">
-          14 day free trial converts to $20/mo unless cancelled. Full billing details will be entered on next step.
+          You&apos;ll connect GitHub or GitLab next. Pro trial converts to $20/mo after 14 days unless cancelled.
         </p>
       </div>
     )
