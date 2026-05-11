@@ -39,22 +39,44 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         backgroundSize: '256px'
       }} />
 
+      {/* Launch Day Banner - Compelling Headline */}
+      <div className="relative z-50 border-b border-cyan-500/20 bg-gradient-to-r from-black via-cyan-950/20 to-black px-4 py-4 text-center">
+        <div className="max-w-4xl mx-auto space-y-2">
+          <p className="text-xs sm:text-sm font-bold tracking-widest text-cyan-300 uppercase">
+            🚀 LAUNCH DAY: FIRST 1,000 DEVELOPERS LOCK IN LIFETIME VALUE
+          </p>
+          <p className="text-sm sm:text-base text-white font-bold">
+            What if you got in on RepoFuse's first 100 days like the earliest Claude, ChatGPT, and Copilot users?
+          </p>
+          <p className="text-xs sm:text-sm text-cyan-200/80">
+            Every developer who ships their first idea today becomes part of RepoFuse's origin story.
+          </p>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <RepoFuseLogo className="h-40 w-full max-w-xs" />
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <RepoFuseLogo className="h-10 w-full max-w-xs" />
           </Link>
           <nav className="flex items-center gap-8">
-            <a href="#features" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden sm:block uppercase">
+            <a href="#features" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
               Features
             </a>
-            <a href="#how" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden sm:block uppercase">
+            <a href="#how" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
               How It Works
             </a>
+            <Link href="/pricing" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
+              Pricing
+            </Link>
+            <Link href="/dashboard" className="text-xs font-mono letter-spacing tracking-widest text-cyan-400/60 hover:text-cyan-300 transition-colors hidden md:block uppercase">
+              Dashboard
+            </Link>
             <Button size="sm" variant="outline" className="border-cyan-500/30 bg-black hover:bg-cyan-950/30 hover:border-cyan-400/60 text-cyan-300" asChild>
               <Link href="/api/auth/github/login">
-                Sign In
+                <Github className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Sign In</span>
               </Link>
             </Button>
           </nav>
@@ -89,9 +111,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 {/* Heading */}
                 <div className="space-y-4">
                   <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-tight">
-                    <span className="block text-white">Your repos.</span>
-                    <span className="block bg-gradient-to-r from-cyan-400 via-orange-400 to-magenta-400 bg-clip-text text-transparent animate-pulse">
-                      Fused with AI.
+                    <span className="block text-white">Everything your</span>
+                    <span className="block mt-2">
+                      <span className="text-cyan-300">repos</span>
+                      <span className="text-white mx-3">have been</span>
+                    </span>
+                    <span className="block mt-2">
+                      <span className="text-orange-300">waiting</span>
+                      <span className="text-orange-200">for</span>
                     </span>
                   </h1>
                 </div>
