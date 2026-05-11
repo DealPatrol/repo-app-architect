@@ -33,6 +33,8 @@ import {
   getOpportunityScore,
   getSuggestedFirstStep,
 } from '@/lib/opportunity-metrics'
+import { TerminalScanner } from '@/components/terminal-scanner'
+import { CompletenessMeter, CompletenessBar } from '@/components/completeness-meter'
 
 interface AnalysisDetailProps {
   analysis: Analysis
@@ -51,17 +53,17 @@ const statusConfig: Record<Analysis['status'], {
   spin?: boolean
   pulse?: boolean
 }> = {
-  pending: { icon: Clock, label: 'Pending', color: 'text-muted-foreground' },
-  scanning: { icon: Loader2, label: 'Scanning repositories...', color: 'text-chart-1', spin: true },
-  analyzing: { icon: Sparkles, label: 'AI analyzing files...', color: 'text-chart-1', pulse: true },
-  complete: { icon: CheckCircle2, label: 'Analysis Complete', color: 'text-chart-1' },
-  failed: { icon: XCircle, label: 'Analysis Failed', color: 'text-destructive' },
+  pending: { icon: Clock, label: 'Pending', color: 'text-cyan-400/60' },
+  scanning: { icon: Loader2, label: 'Scanning repositories...', color: 'text-orange-400', spin: true },
+  analyzing: { icon: Sparkles, label: 'AI analyzing files...', color: 'text-orange-400', pulse: true },
+  complete: { icon: CheckCircle2, label: 'Analysis Complete', color: 'text-cyan-400' },
+  failed: { icon: XCircle, label: 'Analysis Failed', color: 'text-red-400' },
 }
 
 const complexityColors = {
-  simple: 'bg-chart-1/20 text-chart-1',
-  moderate: 'bg-chart-4/20 text-chart-4',
-  complex: 'bg-chart-5/20 text-chart-5',
+  simple: 'bg-green-500/20 text-green-400',
+  moderate: 'bg-yellow-500/20 text-yellow-400',
+  complex: 'bg-orange-500/20 text-orange-400',
 }
 
 export function AnalysisDetail({ 
@@ -312,7 +314,7 @@ export function AnalysisDetail({
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <h1 className="text-2xl font-bold text-foreground">{analysis.name}</h1>
+            <h1 className="text-2xl font-black text-white">{analysis.name}</h1>
           </div>
           <div className="flex items-center gap-2 ml-11">
             <StatusIcon className={`h-4 w-4 ${statusInfo.color} ${statusInfo.spin ? 'animate-spin' : ''} ${statusInfo.pulse ? 'animate-pulse' : ''}`} />
@@ -321,7 +323,11 @@ export function AnalysisDetail({
         </div>
         
         {(status === 'pending' || status === 'failed' || status === 'complete') && (
-          <Button onClick={runAnalysis} disabled={isRunning}>
+          <Button 
+            onClick={runAnalysis} 
+            disabled={isRunning}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black font-bold"
+          >
             {isRunning ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -343,19 +349,14 @@ export function AnalysisDetail({
         </Card>
       )}
 
-      {/* Progress */}
+      {/* Progress - Terminal Scanner */}
       {isInProgress && (
-        <Card className="p-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {status === 'scanning' ? 'Scanning repositories...' : 'AI analyzing files...'}
-              </span>
-              <span className="font-medium">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </Card>
+        <TerminalScanner 
+          isActive={isInProgress}
+          repoName={repositories[0]?.name || analysis.name}
+          totalFiles={analysis.total_files}
+          analyzedFiles={analysis.analyzed_files}
+        />
       )}
 
       {/* Repositories */}
@@ -376,6 +377,36 @@ export function AnalysisDetail({
           ))}
         </div>
       </section>
+
+      {/* Completeness Overview */}
+      {status === 'complete' && localBlueprints.length > 0 && (
+        <section>
+          <CompletenessMeter
+            existingFiles={localBlueprints.reduce((sum, bp) => sum + bp.existing_files.length, 0)}
+            missingFiles={localBlueprints.reduce((sum, bp) => sum + bp.missing_files.length, 0)}
+            reusePercentage={Math.round(
+              localBlueprints.reduce((sum, bp) => sum + bp.reuse_percentage, 0) / localBlueprints.length
+            )}
+            categories={[
+              { 
+                name: 'Ship Ready', 
+                existing: localBlueprints.filter(b => getBlueprintTier(b) === 'ship_ready').reduce((s, b) => s + b.existing_files.length, 0),
+                missing: localBlueprints.filter(b => getBlueprintTier(b) === 'ship_ready').reduce((s, b) => s + b.missing_files.length, 0)
+              },
+              { 
+                name: 'Almost There', 
+                existing: localBlueprints.filter(b => getBlueprintTier(b) === 'almost_there').reduce((s, b) => s + b.existing_files.length, 0),
+                missing: localBlueprints.filter(b => getBlueprintTier(b) === 'almost_there').reduce((s, b) => s + b.missing_files.length, 0)
+              },
+              { 
+                name: 'Foundation', 
+                existing: localBlueprints.filter(b => getBlueprintTier(b) === 'foundation').reduce((s, b) => s + b.existing_files.length, 0),
+                missing: localBlueprints.filter(b => getBlueprintTier(b) === 'foundation').reduce((s, b) => s + b.missing_files.length, 0)
+              },
+            ]}
+          />
+        </section>
+      )}
 
       {/* App Blueprints */}
       <section className="space-y-4">
@@ -524,19 +555,18 @@ export function AnalysisDetail({
                             <span className={`text-xs px-2 py-1 rounded-full ${complexityColors[blueprint.complexity]}`}>
                               {blueprint.complexity}
                             </span>
-                            <span className="text-sm font-medium text-chart-1">
-                              {blueprint.reuse_percentage}% reusable
-                            </span>
                             <span className="text-xs text-muted-foreground">
-                              Score {getOpportunityScore(blueprint)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Risk {getExecutionRisk(blueprint)}
+                              Score {getOpportunityScore(blueprint)} · Risk {getExecutionRisk(blueprint)}
                             </span>
                           </div>
                         </div>
 
                         <h3 className="font-semibold text-foreground text-lg mb-2">{blueprint.name}</h3>
+                        
+                        {/* Visual Completeness Bar */}
+                        <div className="mb-4">
+                          <CompletenessBar percentage={blueprint.reuse_percentage} size="sm" />
+                        </div>
                         <p className="text-sm text-muted-foreground mb-4 flex-1">{blueprint.description}</p>
 
                         {blueprint.technologies.length > 0 && (
