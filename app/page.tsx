@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Testimonials } from '@/components/testimonials'
 import { ImpactStats } from '@/components/impact-stats'
 import { RepoFuseLogo } from '@/components/repofuse-logo'
-import { Github, Sparkles, Code2, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check } from 'lucide-react'
+import { Github, Sparkles, Code2, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Check, Rocket } from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <RepoFuseLogo className="h-40 w-full max-w-xl" />
@@ -46,15 +46,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <Button size="sm" variant="outline" className="border-border/60 hover:bg-accent" asChild>
               <Link href="/api/auth/github/login">
                 <Github className="h-4 w-4 mr-2" />
-                Sign in with GitHub
-              </Link>
-            </Button>
-            <Button size="sm" variant="outline" className="border-border/60 hover:bg-accent" asChild>
-              <Link href="/api/auth/gitlab/login">
-                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
-                </svg>
-                Sign in with GitLab
+                Sign in
               </Link>
             </Button>
           </nav>
@@ -63,45 +55,56 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {/* Hero Section */}
       <main>
-        <section className="relative overflow-hidden">
-          {/* Background gradient effects */}
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-chart-1/5 rounded-full blur-3xl" />
-            <div className="absolute top-20 right-1/4 w-72 h-72 bg-chart-5/5 rounded-full blur-3xl" />
+        <section className="relative overflow-hidden pt-20 pb-24">
+          {/* Animated grid background */}
+          <div className="absolute inset-0 -z-10 opacity-[0.03]">
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'linear-gradient(rgba(0,229,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.08) 1px, transparent 1px)',
+              backgroundSize: '60px 60px',
+              animation: 'gridDrift 20s linear infinite'
+            }} />
           </div>
 
-          <div className="container mx-auto px-4 pt-20 pb-16 md:pt-32 md:pb-24">
+          {/* Glowing orbs */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-chart-1/10 rounded-full blur-3xl -z-10 animate-pulse" />
+          <div className="absolute top-20 right-1/4 w-72 h-72 bg-chart-5/5 rounded-full blur-3xl -z-10 opacity-10 animate-pulse" style={{ animationDelay: '1s' }} />
+
+          <div className="container mx-auto px-4 pt-12 pb-12">
             <div className="max-w-4xl mx-auto text-center space-y-8">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-border/60 bg-card/80 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
+              {/* Badge */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-border/60 bg-card/80 text-sm text-muted-foreground shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-chart-1/20">
-                  <Sparkles className="h-3 w-3 text-chart-1" />
+                  <Rocket className="h-3 w-3 text-chart-1 animate-bounce" />
                 </span>
-                <span className="font-medium text-foreground/90">New</span>
+                <span className="font-medium text-foreground/90">Now in Public Beta</span>
                 <span className="text-border">·</span>
-                <span>Cross-repo blueprint engine powered by Claude AI</span>
+                <span>Cross-repo blueprint engine</span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-balance leading-[1.1]">
+              {/* Heading with gradient */}
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-balance leading-[1.1] animate-in fade-in slide-in-from-bottom-6 duration-700 fill-mode-both" style={{ animationDelay: '100ms' }}>
                 Ship what you&apos;ve
                 <span className="block bg-gradient-to-r from-chart-1 via-chart-2 to-chart-4 bg-clip-text text-transparent">
                   already built
                 </span>
               </h1>
               
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                RepoFuse scans your GitHub repositories and discovers products hiding across your codebase.
+              {/* Subheading */}
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both" style={{ animationDelay: '200ms' }}>
+                RepoFuse scans your GitHub and GitLab repositories and discovers products hiding across your codebase.
                 Get AI-generated blueprints showing exactly what you can ship — and what&apos;s missing.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-                <Button size="lg" className="min-w-[220px] h-12 text-base shadow-lg shadow-primary/20" asChild>
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 animate-in fade-in slide-in-from-bottom-10 duration-700 fill-mode-both" style={{ animationDelay: '300ms' }}>
+                <Button size="lg" className="min-w-[220px] h-12 text-base shadow-lg shadow-primary/20 hover:shadow-lg hover:shadow-primary/40 transition-all" asChild>
                   <Link href="/api/auth/github/login">
                     <Github className="h-5 w-5 mr-2" />
                     Get Started Free
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="min-w-[220px] h-12 text-base" asChild>
+                <Button size="lg" variant="outline" className="min-w-[220px] h-12 text-base border-border/60 hover:border-border" asChild>
                   <Link href="/api/auth/gitlab/login">
                     <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
@@ -111,17 +114,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
+              {/* Social proof and features */}
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-6 text-sm text-muted-foreground animate-in fade-in duration-900 fill-mode-both" style={{ animationDelay: '400ms' }}>
                 <span className="flex items-center gap-1.5">
-                  <Shield className="h-3.5 w-3.5" />
+                  <Shield className="h-3.5 w-3.5 text-chart-1" />
                   Read-only access
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5" />
+                  <Zap className="h-3.5 w-3.5 text-chart-2" />
                   Results in seconds
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <GitBranch className="h-3.5 w-3.5" />
+                  <GitBranch className="h-3.5 w-3.5 text-chart-4" />
                   Works with any stack
                 </span>
               </div>
@@ -130,24 +134,24 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </section>
 
         {/* Metrics bar */}
-        <section className="border-y border-border/50 bg-card/30">
-          <div className="container mx-auto px-4 py-10">
+        <section className="border-y border-border/50 bg-gradient-to-b from-card/30 to-card/10">
+          <div className="container mx-auto px-4 py-12">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
-              <div>
+              <div className="space-y-2">
                 <p className="text-3xl md:text-4xl font-bold text-foreground tabular-nums">12k+</p>
-                <p className="text-sm text-muted-foreground mt-1">Repos analyzed</p>
+                <p className="text-sm text-muted-foreground">Repos analyzed</p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-3xl md:text-4xl font-bold text-foreground tabular-nums">4.1k</p>
-                <p className="text-sm text-muted-foreground mt-1">Blueprints generated</p>
+                <p className="text-sm text-muted-foreground">Blueprints generated</p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-3xl md:text-4xl font-bold text-foreground tabular-nums">89%</p>
-                <p className="text-sm text-muted-foreground mt-1">Avg code reuse</p>
+                <p className="text-sm text-muted-foreground">Avg code reuse</p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-3xl md:text-4xl font-bold text-foreground tabular-nums">&lt;30s</p>
-                <p className="text-sm text-muted-foreground mt-1">Analysis time</p>
+                <p className="text-sm text-muted-foreground">Analysis time</p>
               </div>
             </div>
           </div>
