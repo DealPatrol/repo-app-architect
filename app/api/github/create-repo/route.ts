@@ -19,9 +19,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { app, repoName } = (await request.json()) as {
+    const { app, repoName, scaffoldFiles } = (await request.json()) as {
       app: TemplateApp
       repoName: string
+      scaffoldFiles?: Record<string, unknown>
     }
 
     if (!repoName || repoName.trim().length === 0) {
@@ -54,16 +55,17 @@ export async function POST(request: NextRequest) {
 
     const newRepo = await createRepoRes.json()
 
-    // Generate initial code template
-    const templateFiles = generateTemplateFiles(app)
+    const filesToCreate = scaffoldFiles
+      ? normalizeScaffoldFiles(scaffoldFiles)
+      : generateTemplateFiles(app)
 
     // Create files in the new repository
-    for (const [fileName, content] of Object.entries(templateFiles)) {
+    for (const [fileName, content] of Object.entries(filesToCreate)) {
       await createFileInRepo(
         githubUsername,
         repoName,
         fileName,
-        content as string,
+        content,
         accessToken
       )
     }
@@ -104,6 +106,15 @@ async function createFileInRepo(
         content: encodedContent,
       }),
     }
+  )
+}
+
+function normalizeScaffoldFiles(files: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(files).map(([path, content]) => [
+      path,
+      typeof content === 'string' ? content : JSON.stringify(content, null, 2),
+    ])
   )
 }
 
