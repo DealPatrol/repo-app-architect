@@ -71,7 +71,7 @@ const plans = [
     ],
     icon: Rocket,
     cta: 'Get Scale',
-    ctaHref: '/dashboard/billing?plan=scale',
+    ctaHref: 'https://buy.stripe.com/3cIcN65VJ55g6nC9gkbjW00',
     highlighted: false,
     checkoutPlan: 'scale',
   },
