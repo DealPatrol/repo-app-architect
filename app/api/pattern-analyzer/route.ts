@@ -7,6 +7,8 @@ import {
   getFilesByRepository,
 } from '@/lib/queries'
 import { getAnthropicModel } from '@/lib/anthropic-model'
+import { getCurrentUser } from '@/lib/auth'
+import { deductCredits, CREDITS } from '@/lib/credits'
 
 const anthropic = new Anthropic()
 
@@ -32,10 +34,20 @@ export interface PatternAnalyzerResult {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
     const { analysisId } = (await request.json()) as { analysisId: string }
 
     if (!analysisId) {
       return NextResponse.json({ error: 'analysisId is required' }, { status: 400 })
+    }
+
+    const creditResult = await deductCredits(user.id, CREDITS.PATTERN_ANALYZER_COST, 'pattern_analyzer', { analysisId })
+    if (!creditResult.success) {
+      return NextResponse.json({ error: creditResult.error || 'Insufficient credits' }, { status: 402 })
     }
 
     const analysis = await getAnalysisById(analysisId)
