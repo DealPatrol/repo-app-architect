@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Github, BarChart3, FolderGit2, Sparkles, CreditCard } from 'lucide-react'
+import { Github, BarChart3, FolderGit2, Sparkles, CreditCard, LayoutGrid, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RepoFuseLogo } from '@/components/repofuse-logo'
 import type { AuthUser } from '@/lib/auth'
@@ -15,6 +15,8 @@ const navItems = [
   { href: '/dashboard', label: 'Overview', icon: BarChart3 },
   { href: '/dashboard/repositories', label: 'Repositories', icon: FolderGit2 },
   { href: '/dashboard/analyses', label: 'Analyses', icon: Sparkles },
+  { href: '/dashboard/idea-board', label: 'Idea Board', icon: LayoutGrid },
+  { href: '/dashboard/pattern-analyzer', label: 'Pattern Analyzer', icon: Cpu },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
 ]
 
