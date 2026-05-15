@@ -350,7 +350,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </Link>
             </Button>
             <p className="text-xs text-cyan-400/50 font-mono mt-6">
-              free forever plan · no credit card required · read-only access
+              no credit card required · read-only access
             </p>
           </div>
         </section>
