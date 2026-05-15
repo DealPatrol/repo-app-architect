@@ -16,16 +16,15 @@ import {
   Search,
   RefreshCw,
   LayoutGrid,
+  type LucideIcon,
 } from 'lucide-react'
 import type { Analysis } from '@/lib/queries'
 
 type StatusFilter = 'all' | Analysis['status']
 
-type IconComponent = (props: { className?: string }) => JSX.Element
-
 const STATUS_META: Record<
   Analysis['status'],
-  { label: string; color: string; badgeClass: string; icon: IconComponent }
+  { label: string; color: string; badgeClass: string; icon: LucideIcon }
 > = {
   pending: {
     label: 'Pending',
