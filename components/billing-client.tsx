@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 interface BillingClientProps {
-  plan: 'free' | 'pro'
+  plan: 'free' | 'pro' | 'scale' | 'byok'
   planName: string
   analysesUsed: number
   analysesLimit: number
@@ -49,6 +49,7 @@ export function BillingClient({
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
 
+  const isPaid = plan === 'pro' || plan === 'scale' || plan === 'byok'
   const isPro = plan === 'pro'
   const usagePercent = analysesLimit > 0 ? Math.min(100, Math.round((analysesUsed / analysesLimit) * 100)) : 0
 
@@ -135,16 +136,16 @@ export function BillingClient({
             <div className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-chart-1" />
               <span className="text-muted-foreground">
-                {isPro ? 'Unlimited repositories' : `Up to ${reposLimit} repositories`}
+                {isPaid ? 'Unlimited repositories' : `Up to ${reposLimit} repositories`}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-chart-1" />
               <span className="text-muted-foreground">
-                {isPro ? 'Unlimited analyses' : `${analysesLimit} analyses per month`}
+                {isPaid ? 'Unlimited analyses' : `${analysesLimit} analyses per month`}
               </span>
             </div>
-            {isPro && (
+            {isPaid && (
               <>
                 <div className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-chart-1" />
@@ -159,7 +160,7 @@ export function BillingClient({
           </div>
 
           <div className="mt-6 pt-6 border-t border-border">
-            {isPro && hasStripeCustomer ? (
+            {isPaid && hasStripeCustomer ? (
               <Button variant="outline" onClick={handleManageBilling} disabled={portalLoading} className="w-full">
                 {portalLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -168,14 +169,14 @@ export function BillingClient({
                 )}
                 Manage Subscription
               </Button>
-            ) : !isPro ? (
+            ) : !isPaid ? (
               <Button onClick={handleUpgrade} disabled={checkoutLoading} className="w-full shadow-lg shadow-primary/20">
                 {checkoutLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                Upgrade to Pro — 7 days free, then $20/mo
+                Upgrade to Pro — 7 days free, then $19/mo
               </Button>
             ) : null}
           </div>
@@ -203,7 +204,7 @@ export function BillingClient({
                   <div className="h-full rounded-full bg-chart-1 w-0" />
                 </div>
               )}
-              {!isPro && analysesLimit > 0 && usagePercent >= 80 && (
+              {!isPaid && analysesLimit > 0 && usagePercent >= 80 && (
                 <p className="text-xs text-destructive mt-2">
                   {usagePercent >= 100
                     ? 'You\'ve reached your monthly limit.'
@@ -217,7 +218,7 @@ export function BillingClient({
             </div>
 
             {/* Blueprint views for free users */}
-            {!isPro && blueprintsLimit > 0 && (
+            {!isPaid && blueprintsLimit > 0 && (
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Blueprints Viewed</span>
@@ -237,7 +238,7 @@ export function BillingClient({
               </div>
             )}
 
-            {!isPro && (
+            {!isPaid && (
               <div className="rounded-xl border border-chart-1/20 bg-chart-1/5 p-4">
                 <div className="flex items-start gap-3">
                   <Sparkles className="h-5 w-5 text-chart-1 mt-0.5 flex-shrink-0" />
@@ -258,8 +259,8 @@ export function BillingClient({
         </Card>
       </div>
 
-      {/* Credits Section for Pro Users */}
-      {isPro && userId && (
+      {/* Credits Section for paid users */}
+      {isPaid && userId && (
         <div className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-1">Credits & Usage</h2>
@@ -270,7 +271,7 @@ export function BillingClient({
       )}
 
       {/* Compare plans */}
-      {!isPro && (
+      {!isPaid && (
         <div className="text-center pt-4">
           <Button variant="ghost" asChild>
             <Link href="/pricing">
