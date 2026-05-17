@@ -15,9 +15,9 @@ const plans = [
     description: 'Explore your codebase, no card needed',
     credits: PLANS.free.credits_per_month,
     features: [
-      `Up to ${PLANS.free.repos_limit} repositories`,
-      `${PLANS.free.analyses_per_month} analyses per month`,
-      `${PLANS.free.blueprints_viewable} blueprint views`,
+      `${PLANS.free.repos_limit} repository`,
+      `${PLANS.free.analyses_per_month} analysis per month`,
+      `${PLANS.free.blueprints_viewable} blueprint view`,
       `${PLANS.free.credits_per_month} credits to start`,
       'AI-powered app blueprints',
       'Gap discovery & analysis',

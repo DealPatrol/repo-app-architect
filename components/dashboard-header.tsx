@@ -16,7 +16,7 @@ const navItems = [
   { href: '/dashboard/repositories', label: 'Repositories', icon: FolderGit2 },
   { href: '/dashboard/analyses', label: 'Analyses', icon: Sparkles },
   { href: '/dashboard/idea-board', label: 'Idea Board', icon: LayoutGrid },
-  { href: '/dashboard/pattern-analyzer', label: 'Pattern Analyzer', icon: Cpu },
+  { href: '/dashboard/pattern-analyzer', label: 'App Idea Chat', icon: Cpu },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
 ]
 
