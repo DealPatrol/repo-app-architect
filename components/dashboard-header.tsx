@@ -78,14 +78,14 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
+                <a
                   href="/api/auth/github/login"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-400/60 hover:text-cyan-300 hover:bg-cyan-950/30 transition-all border border-transparent hover:border-cyan-500/20"
                 >
                   <Github className="h-4 w-4" />
                   <span className="hidden sm:inline">GitHub</span>
-                </Link>
-                <Link
+                </a>
+                <a
                   href="/api/auth/gitlab/login"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-400/60 hover:text-cyan-300 hover:bg-cyan-950/30 transition-all border border-transparent hover:border-cyan-500/20"
                 >
@@ -93,7 +93,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
                   </svg>
                   <span className="hidden sm:inline">GitLab</span>
-                </Link>
+                </a>
               </div>
             )}
           </div>

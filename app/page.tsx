@@ -66,18 +66,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {/* Auth buttons - GitHub & GitLab */}
             <div className="flex items-center gap-2">
               <Button size="sm" className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700 hover:border-gray-600 gap-1.5" asChild>
-                <Link href="/api/auth/github/login">
+                <a href="/api/auth/github/login">
                   <Github className="h-4 w-4" />
                   <span className="hidden sm:inline">GitHub</span>
-                </Link>
+                </a>
               </Button>
               <Button size="sm" className="bg-[#fc6d26] hover:bg-[#e24329] text-white gap-1.5" asChild>
-                <Link href="/api/auth/gitlab/login">
+                <a href="/api/auth/gitlab/login">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M23.6 6.15 12 0 .4 6.15a.88.88 0 0 0-.3 1.1l1.88 5.77H0v4.27h2.58l2.4 7.38a.88.88 0 0 0 .83.56h12.38a.88.88 0 0 0 .83-.56l2.4-7.38H24v-4.27h-2.08l1.88-5.77a.88.88 0 0 0-.28-1.1z"/>
                   </svg>
                   <span className="hidden sm:inline">GitLab</span>
-                </Link>
+                </a>
               </Button>
             </div>
           </nav>
@@ -139,10 +139,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                     </Button>
                   </LaunchSignupModal>
                   <Button size="lg" className="bg-cyan-950/40 border border-cyan-500/40 hover:bg-cyan-950/60 hover:border-cyan-400/60 text-cyan-300 font-bold text-base h-12" asChild>
-                    <Link href="/api/auth/github/login">
+                    <a href="/api/auth/github/login">
                       <Github className="h-5 w-5 mr-2" />
                       Or Link Repo Free
-                    </Link>
+                    </a>
                   </Button>
                 </div>
 
@@ -313,11 +313,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Join 2,400+ developers who've stopped guessing and started shipping.
             </p>
             <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-black font-bold text-base h-12 shadow-lg shadow-cyan-500/40" asChild>
-              <Link href="/api/auth/github/login">
+              <a href="/api/auth/github/login">
                 <Github className="h-5 w-5 mr-2" />
                 Start Scanning Now
                 <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
+              </a>
             </Button>
             <p className="text-xs text-cyan-400/50 font-mono mt-6">
               no credit card required · read-only access

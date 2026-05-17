@@ -120,10 +120,10 @@ export default function PricingPage() {
               Dashboard
             </Link>
             <Button size="sm" className="bg-[#24292e] hover:bg-[#2f363d] text-white border border-gray-700 hover:border-gray-600 gap-1.5" asChild>
-              <Link href="/api/auth/github/login">
+              <a href="/api/auth/github/login">
                 <Github className="h-4 w-4" />
                 <span className="hidden sm:inline">Sign in</span>
-              </Link>
+              </a>
             </Button>
           </nav>
         </div>
