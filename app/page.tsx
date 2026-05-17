@@ -41,36 +41,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         backgroundSize: '256px'
       }} />
 
-      {/* Launch Day Banner - Compelling Headline */}
-      <div className="relative z-30 border-b border-red-500/30 bg-gradient-to-r from-black via-red-950/30 to-black px-4 py-6 text-center">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="flex items-center justify-center gap-6">
-            <div className="text-center">
-              <RepoFuseLogo3D className="h-20 w-20 mx-auto" />
-            </div>
-            <div className="text-left">
-              <p className="text-2xl sm:text-3xl font-black text-red-500 uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                FULL LAUNCH
-              </p>
-              <p className="text-base sm:text-lg font-bold text-red-400 uppercase">
-                5/12/2026
-              </p>
-            </div>
-          </div>
-          <div className="space-y-3 mt-4">
-            <p className="text-sm sm:text-base font-bold text-cyan-200 uppercase tracking-widest">
-              First 1,000 Developers Get:
-            </p>
-            <p className="text-lg sm:text-xl font-bold text-white">
-              <span className="text-yellow-300">14 Days Free</span> OR <span className="text-yellow-300">3 Analyses + 1 Blueprint</span>
-            </p>
-            <p className="text-xs sm:text-sm text-cyan-300">
-              Lock in lifetime pricing. Link GitHub or GitLab today.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-black/95 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
