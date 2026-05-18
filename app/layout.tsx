@@ -11,7 +11,6 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 export const metadata: Metadata = {
   title: 'RepoFuse - Discover Apps Hidden in Your Code',
   description: 'AI-powered GitHub repository analyzer that discovers what apps you can build from your existing code',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -34,7 +33,6 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 }
 
 export default function RootLayout({

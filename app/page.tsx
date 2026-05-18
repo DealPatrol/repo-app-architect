@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
 import { NavDropdown } from '@/components/nav-dropdown'
-import { Github, ArrowRight, AlertCircle, Shield, Zap, GitBranch, Rocket, Code2, Sparkles } from 'lucide-react'
+import { Github, ArrowRight, AlertCircle, Rocket } from 'lucide-react'
 import { LaunchSignupModal } from '@/components/launch-signup-modal'
+import { ImpactStats } from '@/components/impact-stats'
+import { Testimonials } from '@/components/testimonials'
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_required: 'You must sign in to access the dashboard.',
@@ -41,33 +43,23 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         backgroundSize: '256px'
       }} />
 
-      {/* Launch Day Banner - Compelling Headline */}
-      <div className="relative z-30 border-b border-red-500/30 bg-gradient-to-r from-black via-red-950/30 to-black px-4 py-6 text-center">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="flex items-center justify-center gap-6">
-            <div className="text-center">
-              <RepoFuseLogo3D className="h-20 w-20 mx-auto" />
-            </div>
-            <div className="text-left">
-              <p className="text-2xl sm:text-3xl font-black text-red-500 uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                FULL LAUNCH
-              </p>
-              <p className="text-base sm:text-lg font-bold text-red-400 uppercase">
-                5/12/2026
-              </p>
-            </div>
-          </div>
-          <div className="space-y-3 mt-4">
-            <p className="text-sm sm:text-base font-bold text-cyan-200 uppercase tracking-widest">
-              First 1,000 Developers Get:
+      {/* Post-launch offer */}
+      <div className="relative z-30 border-b border-cyan-500/30 bg-gradient-to-r from-black via-cyan-950/40 to-black px-4 py-5 text-center">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+          <RepoFuseLogo3D className="h-14 w-14 shrink-0" />
+          <div className="space-y-1">
+            <p className="text-lg sm:text-xl font-black text-cyan-300 uppercase tracking-tight">
+              Now live — start free today
             </p>
-            <p className="text-lg sm:text-xl font-bold text-white">
-              <span className="text-yellow-300">14 Days Free</span> OR <span className="text-yellow-300">3 Analyses + 1 Blueprint</span>
-            </p>
-            <p className="text-xs sm:text-sm text-cyan-300">
-              Lock in lifetime pricing. Link GitHub or GitLab today.
+            <p className="text-sm text-cyan-200/80">
+              <span className="text-yellow-300 font-semibold">14-day Pro trial</span>
+              {' · '}
+              free tier includes repo scans and blueprint previews
             </p>
           </div>
+          <Button size="sm" className="bg-cyan-600 hover:bg-cyan-500 text-black font-bold shrink-0" asChild>
+            <Link href="/pricing">View pricing</Link>
+          </Button>
         </div>
       </div>
 
@@ -136,7 +128,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-950/30 text-xs font-mono text-cyan-300 w-fit">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  Now in Public Beta
+                  Now live
                 </div>
                 
                 {/* Heading */}
@@ -164,7 +156,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   <LaunchSignupModal>
                     <Button size="lg" className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold text-base h-12 shadow-lg shadow-yellow-500/40 cursor-pointer">
                       <Rocket className="h-5 w-5 mr-2" />
-                      Lock In Launch Pricing
+                      Start free — claim Pro trial
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </LaunchSignupModal>
@@ -178,7 +170,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
                 {/* Social proof */}
                 <div className="pt-4 text-xs text-cyan-400/50 font-mono">
-                  <span className="text-cyan-300">2,400+</span> developers already on the waitlist
+                  Join developers turning repos into shippable products
                 </div>
               </div>
 
@@ -225,29 +217,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
 
-        {/* Metrics Strip */}
-        <section className="border-y border-cyan-500/20 bg-gradient-to-b from-cyan-950/10 to-transparent py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
-              <div className="space-y-2">
-                <p className="text-3xl md:text-4xl font-black text-cyan-300 tabular-nums">12k+</p>
-                <p className="text-xs text-cyan-400/60 font-mono uppercase tracking-widest">Repos Scanned</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-3xl md:text-4xl font-black text-orange-300 tabular-nums">4.1k</p>
-                <p className="text-xs text-orange-400/60 font-mono uppercase tracking-widest">Ideas Found</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-3xl md:text-4xl font-black text-magenta-300 tabular-nums">89%</p>
-                <p className="text-xs text-magenta-400/60 font-mono uppercase tracking-widest">Code Reuse</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-3xl md:text-4xl font-black text-cyan-300 tabular-nums">&lt;30s</p>
-                <p className="text-xs text-cyan-400/60 font-mono uppercase tracking-widest">Analysis Time</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ImpactStats variant="marketing" />
 
         {/* How It Works */}
         <section id="how" className="py-20 border-b border-cyan-500/20 bg-gradient-to-b from-black via-cyan-950/5 to-black">
@@ -266,7 +236,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
             <div className="grid md:grid-cols-4 gap-0 relative">
               {/* Connecting line */}
-              <div className="hidden md:block absolute top-24 left-12.5% right-12.5% h-1 bg-gradient-to-r from-cyan-500 via-orange-500 to-magenta-500 opacity-20" />
+              <div className="hidden md:block absolute top-24 left-[12.5%] right-[12.5%] h-1 bg-gradient-to-r from-cyan-500 via-orange-500 to-fuchsia-500 opacity-20" />
 
               {[
                 { num: '01', title: 'Connect', icon: '🔗', desc: 'OAuth in one click. Read-only access to your repos.' },
@@ -330,6 +300,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </section>
 
+        <Testimonials variant="marketing" />
+
         {/* CTA Section */}
         <section className="py-20 border-t border-cyan-500/20">
           <div className="container mx-auto px-4 max-w-2xl text-center">
@@ -340,7 +312,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </span>
             </h2>
             <p className="text-lg text-cyan-200/70 mb-8">
-              Join 2,400+ developers who've stopped guessing and started shipping.
+              Connect your repos and get your first blueprint in minutes.
             </p>
             <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-black font-bold text-base h-12 shadow-lg shadow-cyan-500/40" asChild>
               <Link href="/api/auth/github/login">
@@ -359,7 +331,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {/* Footer */}
       <footer className="border-t border-cyan-500/20 bg-black/50 py-8">
         <div className="container mx-auto px-4 text-center text-xs text-cyan-400/40 font-mono">
-          © 2025 RepoFuse. Built by developers, for developers.
+          © 2026 RepoFuse. Built by developers, for developers.
         </div>
       </footer>
 

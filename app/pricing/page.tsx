@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Check, ArrowRight, Sparkles, Github, Crown, Zap, Rocket, Key } from 'lucide-react'
-import { RepoFuseLogo } from '@/components/repofuse-logo'
+import { RepoFuseLogo3D } from '@/components/repofuse-logo-3d'
 import { PLANS } from '@/lib/stripe'
 import { CREDITS } from '@/lib/credits'
 
@@ -110,10 +110,13 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <RepoFuseLogo className="h-40 w-full max-w-xl" />
+      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-background/95 backdrop-blur-xl">
+        <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <RepoFuseLogo3D className="h-10 w-10" />
+            <span className="text-sm font-mono font-semibold tracking-widest text-cyan-400/80 uppercase hidden sm:inline">
+              RepoFuse
+            </span>
           </Link>
           <nav className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
