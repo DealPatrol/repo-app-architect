@@ -86,7 +86,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {/* Hero Section */}
       <main>
-        <section className="relative overflow-hidden pt-16 pb-20">
+        <section className="relative overflow-hidden pt-4 pb-16">
           {/* Animated grid background */}
           <div className="absolute inset-0 -z-10" style={{
             backgroundImage: 'linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)',
@@ -99,10 +99,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div className="absolute -bottom-32 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl -z-10 opacity-50" style={{ animation: 'pulse 4s ease-in-out infinite 1s' }} />
           <div className="absolute top-1/2 -right-32 w-72 h-72 bg-magenta-500/5 rounded-full blur-3xl -z-10 opacity-40" style={{ animation: 'pulse 5s ease-in-out infinite 2s' }} />
 
-          <div className="container mx-auto px-4 pt-8 pb-12">
-            <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-              {/* Left content */}
-              <div className="space-y-8 z-10">
+          <div className="container mx-auto px-4 pt-2 pb-8">
+            <div className="grid lg:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
+              {/* Left content — appears second on mobile, first on desktop */}
+              <div className="space-y-6 z-10 order-2 lg:order-1">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-950/30 text-xs font-mono text-cyan-300 w-fit">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -152,8 +152,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </div>
               </div>
 
-              {/* Right: Terminal window */}
-              <div className="relative z-10">
+              {/* Right: Terminal window — appears first on mobile */}
+              <div className="relative z-10 order-1 lg:order-2">
                 <div className="bg-black/80 border border-cyan-500/30 rounded-lg overflow-hidden shadow-2xl shadow-cyan-500/20 backdrop-blur-sm">
                   {/* Terminal header */}
                   <div className="bg-cyan-950/40 border-b border-cyan-500/20 px-4 py-3 flex items-center gap-2">
