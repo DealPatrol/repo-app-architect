@@ -36,16 +36,18 @@ export async function POST(request: NextRequest) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string)
           const githubId = Number(sub.metadata.github_id || session.metadata?.github_id)
           const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end
+          // Use the plan stored in metadata; default to 'pro' if missing
+          const planName = (sub.metadata.plan === 'scale' ? 'scale' : 'pro') as 'pro' | 'scale'
           if (githubId) {
             await upsertSubscription({
               github_id: githubId,
               stripe_customer_id: session.customer as string,
               stripe_subscription_id: sub.id,
-              plan: 'pro',
-              status: 'active',
+              plan: planName,
+              status: sub.status === 'trialing' ? 'trialing' : 'active',
               current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
             })
-            
+
             // Grant initial credits on signup
             try {
               const user = await getUserByGithubId(githubId)
@@ -53,13 +55,13 @@ export async function POST(request: NextRequest) {
                 await grantCredits(
                   user.id,
                   CREDITS.INITIAL_GRANT,
-                  'Pro plan signup bonus',
+                  `${planName} plan signup bonus`,
                   { stripe_customer_id: session.customer as string }
                 )
-                console.log(`[v0] Granted ${CREDITS.INITIAL_GRANT} credits to user ${user.id}`)
+                console.log(`[webhook] Granted ${CREDITS.INITIAL_GRANT} credits to user ${user.id} (${planName})`)
               }
             } catch (err) {
-              console.error('[v0] Failed to grant signup credits:', err)
+              console.error('[webhook] Failed to grant signup credits:', err)
             }
           }
         }
@@ -71,10 +73,15 @@ export async function POST(request: NextRequest) {
         const existing = await getSubscriptionByStripeCustomerId(sub.customer as string)
         const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end
         if (existing) {
-          const isPro = sub.status === 'active' || sub.status === 'trialing'
+          const isActive = sub.status === 'active' || sub.status === 'trialing'
+          // Preserve existing plan name (pro/scale) when still active; downgrade to free on cancel
+          const metaPlan = sub.metadata?.plan as string | undefined
+          const planToSet = isActive
+            ? ((metaPlan === 'scale' ? 'scale' : existing.plan === 'scale' ? 'scale' : 'pro') as 'pro' | 'scale')
+            : 'free' as const
           await upsertSubscription({
             github_id: existing.github_id,
-            plan: isPro ? 'pro' : 'free',
+            plan: planToSet,
             status: sub.status === 'active' ? 'active'
               : sub.status === 'past_due' ? 'past_due'
               : sub.status === 'trialing' ? 'trialing'
@@ -117,10 +124,10 @@ export async function POST(request: NextRequest) {
         if (invoice.customer) {
           const existing = await getSubscriptionByStripeCustomerId(invoice.customer as string)
           if (existing) {
-            // Grant monthly renewal credits on successful payment (but only if not the initial invoice)
+            // Only grant renewal credits on recurring payments, not the initial subscription creation
             try {
-              // Check if this is a renewal (not the initial invoice by checking if invoice number > 1)
-              if (invoice.number && invoice.number !== '0001') {
+              const isRenewal = invoice.billing_reason === 'subscription_cycle'
+              if (isRenewal) {
                 const user = await getUserByGithubId(existing.github_id)
                 if (user) {
                   await grantCredits(
@@ -129,11 +136,11 @@ export async function POST(request: NextRequest) {
                     'Monthly subscription renewal',
                     { invoice_id: invoice.id, stripe_customer_id: invoice.customer as string }
                   )
-                  console.log(`[v0] Granted ${CREDITS.MONTHLY_GRANT} monthly renewal credits to user ${user.id}`)
+                  console.log(`[webhook] Granted ${CREDITS.MONTHLY_GRANT} renewal credits to user ${user.id}`)
                 }
               }
             } catch (err) {
-              console.error('[v0] Failed to grant renewal credits:', err)
+              console.error('[webhook] Failed to grant renewal credits:', err)
             }
           }
         }

@@ -67,7 +67,7 @@ const PLAN_CONFIGS = [
     icon: Rocket,
     features: ['Everything in Pro', '12,000 credits/month', 'Highest priority AI', 'Early access', 'Dedicated support'],
     cta: 'Get Scale',
-    ctaHref: 'https://buy.stripe.com/3cIcN65VJ55g6nC9gkbjW00',
+    ctaHref: null, // goes through checkout API so github_id is attached to subscription
   },
   {
     id: 'byok',
@@ -103,13 +103,20 @@ export function BillingClient({
   const isPro = plan === 'pro'
   const usagePercent = analysesLimit > 0 ? Math.min(100, Math.round((analysesUsed / analysesLimit) * 100)) : 0
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (targetPlan: 'pro' | 'scale' = 'pro') => {
     setCheckoutLoading(true)
     try {
-      const res = await fetch('/api/stripe/checkout', { method: 'POST' })
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: targetPlan }),
+      })
       const data = await res.json().catch(() => ({ error: 'Unexpected server error' }))
       if (res.ok && data.url) {
         window.location.href = data.url
+      } else if (targetPlan === 'scale' && res.status === 503) {
+        // Scale price ID not configured — fall back to Stripe payment link
+        window.location.href = 'https://buy.stripe.com/3cIcN65VJ55g6nC9gkbjW00'
       } else {
         alert(data.error || 'Billing is not available right now. Please try again later.')
       }
@@ -372,7 +379,7 @@ export function BillingClient({
                       size="sm"
                       variant={highlighted ? 'default' : 'outline'}
                       className="w-full"
-                      onClick={handleUpgrade}
+                      onClick={() => handleUpgrade(p.id === 'scale' ? 'scale' : 'pro')}
                       disabled={checkoutLoading}
                     >
                       {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
