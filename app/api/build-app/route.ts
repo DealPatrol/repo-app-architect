@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { getAnthropicModel } from '@/lib/anthropic-model'
 import type { AppBlueprint } from '@/lib/queries'
 
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
+
 const anthropic = new Anthropic()
 
 type Platform = 'github' | 'gitlab'
@@ -61,7 +64,7 @@ Return format: {"path/to/file.ts": "...full content...", "README.md": "..."}
 
   const response = await anthropic.messages.create({
     model: getAnthropicModel(),
-    max_tokens: 8192,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   })
 

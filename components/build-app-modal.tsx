@@ -140,8 +140,22 @@ export function BuildAppModal({ blueprint, open, onOpenChange }: BuildAppModalPr
 
         if (done) break
       }
+
+      // If stream ended without reaching 'done', the function timed out
+      setStep((prev) =>
+        prev.id !== 'done' && prev.id !== 'error'
+          ? { id: 'error', message: 'Build timed out — please try again. File generation can take up to 60 seconds.' }
+          : prev
+      )
     } catch (e) {
-      setStep({ id: 'error', message: e instanceof Error ? e.message : 'Build failed' })
+      const msg = e instanceof Error ? e.message : 'Build failed'
+      // Safari reports network/timeout errors as "Load failed"
+      setStep({
+        id: 'error',
+        message: msg === 'Load failed' || msg === 'Failed to fetch'
+          ? 'Connection timed out — please try again. Large projects can take up to 60 seconds.'
+          : msg,
+      })
     }
   }
 
